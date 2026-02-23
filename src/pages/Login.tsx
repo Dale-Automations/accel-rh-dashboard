@@ -34,11 +34,18 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center pb-2">
-          <img src={logo} alt="AccelRH" className="h-14 w-14 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground">AccelRH</h1>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
+      {/* Background gradient blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-brand-gradient opacity-10 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-brand-gradient opacity-10 blur-3xl" />
+      </div>
+
+      <Card className="w-full max-w-md shadow-xl border-0 relative z-10 backdrop-blur-sm">
+        <div className="absolute inset-x-0 top-0 h-1 bg-brand-gradient rounded-t-lg" />
+        <CardHeader className="text-center pb-2 pt-8">
+          <img src={logo} alt="AccelRH" className="h-16 w-16 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-brand-gradient">AccelRH</h1>
           <p className="text-sm text-muted-foreground mt-1">Dashboard de Gestión</p>
         </CardHeader>
         <CardContent>
@@ -52,6 +59,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="focus-visible:ring-primary"
               />
             </div>
             <div className="space-y-2">
@@ -63,9 +71,10 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="focus-visible:ring-primary"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button type="submit" className="w-full bg-brand-gradient hover:opacity-90 transition-opacity text-primary-foreground" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Iniciar sesión
             </Button>

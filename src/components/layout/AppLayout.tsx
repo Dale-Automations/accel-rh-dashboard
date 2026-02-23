@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const roleBadgeClass: Record<string, string> = {
-  manager: 'bg-blue-100 text-blue-800 border-blue-200',
-  selectora: 'bg-purple-100 text-purple-800 border-purple-200',
-  cliente: 'bg-orange-100 text-orange-800 border-orange-200',
+  manager: 'bg-primary/10 text-primary border-primary/20',
+  selectora: 'bg-accent/10 text-accent border-accent/20',
+  cliente: 'bg-warning/10 text-warning border-warning/20',
 };
 
 export default function AppLayout() {
@@ -18,7 +18,7 @@ export default function AppLayout() {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="h-10 w-10 rounded-full bg-brand-gradient animate-pulse" />
           <Skeleton className="h-4 w-32" />
         </div>
       </div>
