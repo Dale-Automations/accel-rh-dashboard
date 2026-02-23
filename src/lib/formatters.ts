@@ -27,7 +27,7 @@ export function formatCurrency(value: number | null | undefined): string {
 export function getScoreColor(score: number | null | undefined): string {
   if (score == null) return 'bg-muted text-muted-foreground';
   if (score >= 80) return 'bg-green-50 text-green-700 border-green-200';
-  if (score >= 60) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+  if (score >= 60) return 'bg-amber-50 text-amber-700 border-amber-200';
   return 'bg-red-50 text-red-700 border-red-200';
 }
 
@@ -39,8 +39,8 @@ export function getEtapaColor(etapa: string | null): string {
     'Coordinando entrevista selectora': 'bg-purple-50 text-purple-700 border-purple-200',
     'Entrevista agendada': 'bg-violet-50 text-violet-700 border-violet-200',
     'Enviado a cliente': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    'Descartado': 'bg-red-50 text-red-700 border-red-200',
-    'Rechazado por cliente': 'bg-orange-50 text-orange-700 border-orange-200',
+    'Descartado': 'bg-rose-50 text-rose-700 border-rose-200',
+    'Rechazado por cliente': 'bg-amber-50 text-amber-700 border-amber-200',
   };
   return colors[etapa || ''] || 'bg-muted text-muted-foreground';
 }

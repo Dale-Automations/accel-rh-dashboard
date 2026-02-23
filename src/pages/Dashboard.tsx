@@ -198,7 +198,7 @@ export default function Dashboard() {
               <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-20} textAnchor="end" height={80} />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="value" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="value" fill="hsl(260, 50%, 55%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

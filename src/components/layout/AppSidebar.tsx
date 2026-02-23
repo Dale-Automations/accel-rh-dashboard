@@ -1,6 +1,7 @@
 import { LayoutDashboard, Briefcase, Users, LogOut } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
+import logo from '@/assets/logo.png';
 import {
   Sidebar,
   SidebarContent,
@@ -28,10 +29,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r-0">
-      <div className="flex h-14 items-center gap-2 px-4 border-b border-sidebar-border">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-          <Briefcase className="h-4 w-4 text-sidebar-primary-foreground" />
-        </div>
+      <div className="flex h-14 items-center gap-3 px-4 border-b border-sidebar-border">
+        <img src={logo} alt="AccelRH" className="h-8 w-8" />
         <span className="font-bold text-lg text-sidebar-foreground tracking-tight">AccelRH</span>
       </div>
       <SidebarContent className="pt-2">
