@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Briefcase, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import logo from '@/assets/logo.png';
 
 export default function Login() {
   const { session, loading } = useAuth();
@@ -36,11 +37,9 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary mb-4">
-            <Briefcase className="h-7 w-7 text-primary-foreground" />
-          </div>
+          <img src={logo} alt="AccelRH" className="h-14 w-14 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground">AccelRH</h1>
-          <p className="text-sm text-muted-foreground mt-1">Dashboard de Reclutamiento</p>
+          <p className="text-sm text-muted-foreground mt-1">Dashboard de Gestión</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
