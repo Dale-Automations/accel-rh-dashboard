@@ -61,6 +61,14 @@ export default function Dashboard() {
         filteredPosts = posts.filter(p => assignedVacancyIds!.includes(p.vacancy_id));
       }
 
+      // Sort: active first, then by created_at desc
+      filteredVacs.sort((a, b) => {
+        const aActive = a.status === 'Activa' ? 0 : 1;
+        const bActive = b.status === 'Activa' ? 0 : 1;
+        if (aActive !== bActive) return aActive - bActive;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
       setVacantes(filteredVacs);
       setPostulantes(filteredPosts);
       setAssignments(assigns);
