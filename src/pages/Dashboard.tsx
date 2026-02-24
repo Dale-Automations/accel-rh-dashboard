@@ -8,7 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Briefcase, Users, CheckCircle, Clock, Phone, BarChart3 } from 'lucide-react';
+import { Briefcase, Users, CheckCircle, Clock, Phone, BarChart3, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import type { Vacante, Postulante, UserProfile, VacancyAssignment } from '@/types/database';
 
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [assignments, setAssignments] = useState<VacancyAssignment[]>([]);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadData();
@@ -123,7 +125,18 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar vacante o postulante..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
 
       {/* KPI Cards */}
       {role === 'cliente' ? (
@@ -143,6 +156,42 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Matching Postulantes */}
+      {searchQuery.length >= 2 && (() => {
+        const q = searchQuery.toLowerCase();
+        const matchingPosts = postulantes.filter(p => p.full_name?.toLowerCase().includes(q)).slice(0, 10);
+        if (matchingPosts.length === 0) return null;
+        return (
+          <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b bg-muted/30">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Postulantes encontrados</h2>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Nombre</TableHead>
+                  <TableHead className="font-semibold">Vacante</TableHead>
+                  <TableHead className="font-semibold">Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {matchingPosts.map(p => (
+                  <TableRow
+                    key={p.id_postulant}
+                    className="cursor-pointer hover:bg-muted/30 transition-colors"
+                    onClick={() => navigate(`/postulantes/${p.id_postulant}?vacancy_id=${p.vacancy_id}`)}
+                  >
+                    <TableCell className="font-medium text-foreground">{p.full_name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.vacancy_name || '—'}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs">{p.scoring_status}</Badge></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        );
+      })()}
+
       {/* Vacancies Table */}
       <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
         <Table>
@@ -156,14 +205,19 @@ export default function Dashboard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {vacantes.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={role !== 'cliente' ? 5 : 4} className="text-center text-muted-foreground py-10">
-                  No hay vacantes disponibles
-                </TableCell>
-              </TableRow>
-            ) : (
-              vacantes.map(v => {
+            {(() => {
+              const q = searchQuery.toLowerCase();
+              const filteredVacs = q.length >= 2
+                ? vacantes.filter(v => v.vacancy_name.toLowerCase().includes(q))
+                : vacantes;
+              if (filteredVacs.length === 0) return (
+                <TableRow>
+                  <TableCell colSpan={role !== 'cliente' ? 5 : 4} className="text-center text-muted-foreground py-10">
+                    {q.length >= 2 ? 'Sin resultados' : 'No hay vacantes disponibles'}
+                  </TableCell>
+                </TableRow>
+              );
+              return filteredVacs.map(v => {
                 const stats = getVacancyStats(v.vacancy_id);
                 return (
                   <TableRow
@@ -187,8 +241,8 @@ export default function Dashboard() {
                     {role !== 'cliente' && <TableCell className="text-sm text-muted-foreground">{getSelectoras(v.vacancy_id) || '—'}</TableCell>}
                   </TableRow>
                 );
-              })
-            )}
+              });
+            })()}
           </TableBody>
         </Table>
       </div>
