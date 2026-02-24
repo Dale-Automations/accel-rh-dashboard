@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiCard } from '@/components/KpiCard';
 import { formatDate, formatCurrency, getScoreColor, getEtapaColor } from '@/lib/formatters';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus } from 'lucide-react';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Vacante, Postulante, CvScore, UserProfile, VacancyAssignment } from '@/types/database';
 import { ETAPAS } from '@/types/database';
@@ -153,6 +153,9 @@ export default function VacancyDetail() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
+          <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground" onClick={() => navigate('/')}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
+          </Button>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-foreground">{vacante.vacancy_name}</h1>
             <Badge
