@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabaseExternal as supabase } from '@/lib/supabaseExternal';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Progress } from '@/components/ui/progress';
 import { formatDate, formatDateTime, formatCurrency, getScoreColor, getEtapaColor, extractLinks } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download } from 'lucide-react';
+import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download, ArrowLeft } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -28,6 +28,7 @@ export default function PostulantDetail() {
   const { id_postulant } = useParams<{ id_postulant: string }>();
   const [searchParams] = useSearchParams();
   const vacancyId = searchParams.get('vacancy_id') || '';
+  const navigate = useNavigate();
   const { role, user } = useAuth();
   const { toast } = useToast();
   const [postulante, setPostulante] = useState<Postulante | null>(null);
@@ -147,6 +148,9 @@ export default function PostulantDetail() {
       <div className="space-y-6">
         {/* Header */}
         <div>
+          <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground" onClick={() => vacancyId ? navigate(`/vacantes/${vacancyId}`) : navigate('/')}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
+          </Button>
           {!isCliente ? (
             <>
                <div className="flex items-center gap-2">
