@@ -31,24 +31,29 @@ export default function Dashboard() {
     setLoading(true);
     try {
       // Fetch assignments for the current user if not manager
-      let assignedVacancyIds: string[] | null = null;
-      if (role !== 'manager' && user) {
-        const { data: myAssignments } = await sb.from('vacancy_assignments').select('*').eq('user_id', user.id);
-        assignedVacancyIds = (myAssignments || []).map((a: VacancyAssignment) => a.vacancy_id);
-      }
-
-      // Fetch all data
-      const [vacRes, postRes, assignRes, profRes] = await Promise.all([
+      // Fetch core data
+      const [vacRes, postRes, profRes] = await Promise.all([
         sb.from('vacantes').select('*'),
         sb.from('postulantes').select('*'),
-        sb.from('vacancy_assignments').select('*'),
         sb.from('user_profiles').select('*'),
       ]);
 
       let vacs = (vacRes.data || []) as Vacante[];
       let posts = (postRes.data || []) as Postulante[];
-      const assigns = (assignRes.data || []) as VacancyAssignment[];
       const profs = (profRes.data || []) as UserProfile[];
+
+      // Try fetching assignments (table may not exist)
+      let assigns: VacancyAssignment[] = [];
+      let assignedVacancyIds: string[] | null = null;
+      try {
+        const assignRes = await sb.from('vacancy_assignments').select('*');
+        if (assignRes.data) assigns = assignRes.data as VacancyAssignment[];
+        if (role !== 'manager' && user) {
+          assignedVacancyIds = assigns.filter((a: VacancyAssignment) => a.user_id === user.id).map((a: VacancyAssignment) => a.vacancy_id);
+        }
+      } catch {
+        console.warn('vacancy_assignments table not available');
+      }
 
       // Filter by assigned vacancies for non-manager roles
       if (assignedVacancyIds) {
