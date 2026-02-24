@@ -10,11 +10,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiCard } from '@/components/KpiCard';
-import { formatDate, formatCurrency, getScoreColor, getEtapaColor } from '@/lib/formatters';
+import { formatDate } from '@/lib/formatters';
 import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft } from 'lucide-react';
+import EditablePostulantTable from '@/components/EditablePostulantTable';
 import { useToast } from '@/hooks/use-toast';
 import type { Vacante, Postulante, CvScore, UserProfile, VacancyAssignment } from '@/types/database';
 import { ETAPAS } from '@/types/database';
@@ -248,83 +248,17 @@ export default function VacancyDetail() {
         </Select>
       </div>
 
-      {/* Table */}
-      <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-12 text-center">#</TableHead>
-              {role !== 'cliente' ? (
-                <TableHead className="cursor-pointer" onClick={() => handleToggleSort('name')}>Nombre</TableHead>
-              ) : (
-                <TableHead>ID</TableHead>
-              )}
-              <TableHead className="cursor-pointer text-center" onClick={() => handleToggleSort('score')}>Score</TableHead>
-              <TableHead>Etapa</TableHead>
-              {role !== 'cliente' && <TableHead>Selectora</TableHead>}
-              <TableHead>Fuente</TableHead>
-              {role !== 'cliente' && (
-                <TableHead className="cursor-pointer" onClick={() => handleToggleSort('salary')}>Rem. Pretendida</TableHead>
-              )}
-              {role !== 'cliente' && <TableHead className="text-center">Contactado</TableHead>}
-              {role === 'cliente' && <TableHead>Fortalezas</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginated.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">Sin postulantes</TableCell>
-              </TableRow>
-            ) : (
-              paginated.map((p, idx) => {
-                const score = getScore(p.id_postulant);
-                const cvScore = scores.find(s => s.postulant_id === p.id_postulant);
-                return (
-                  <TableRow
-                    key={p.id_postulant}
-                    className="cursor-pointer hover:bg-muted/30 transition-colors"
-                    onClick={() => navigate(`/postulantes/${p.id_postulant}?vacancy_id=${vacancy_id}`)}
-                  >
-                    <TableCell className="text-center text-muted-foreground text-sm">{page * PAGE_SIZE + idx + 1}</TableCell>
-                    {role !== 'cliente' ? (
-                      <TableCell className="font-medium">{p.full_name || '—'}</TableCell>
-                    ) : (
-                      <TableCell className="font-mono text-xs">{p.id_postulant?.slice(0, 8)}...</TableCell>
-                    )}
-                    <TableCell className="text-center">
-                      {score != null ? (
-                        <span className={`inline-flex items-center justify-center w-10 h-7 rounded text-sm font-semibold border ${getScoreColor(score)}`}>
-                          {score}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-xs ${getEtapaColor(p.etapa)}`}>
-                        {p.etapa || '—'}
-                      </Badge>
-                    </TableCell>
-                    {role !== 'cliente' && <TableCell className="text-sm text-muted-foreground">{getSelectoraName(p.selectora_id)}</TableCell>}
-                    <TableCell className="text-sm">{p.source || '—'}</TableCell>
-                    {role !== 'cliente' && <TableCell className="text-sm">{formatCurrency(p.salary_pretended)}</TableCell>}
-                    {role !== 'cliente' && (
-                      <TableCell className="text-center">
-                        {p.contacted ? <CheckCircle className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">—</span>}
-                      </TableCell>
-                    )}
-                    {role === 'cliente' && (
-                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                        {cvScore?.razones_top3?.[0] || '—'}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <EditablePostulantTable
+        postulantes={paginated}
+        scores={scores}
+        profiles={profiles}
+        role={role as any}
+        userId={user?.id}
+        vacancyId={vacancy_id!}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onDataChange={loadData}
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (
