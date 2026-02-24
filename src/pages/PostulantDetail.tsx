@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Progress } from '@/components/ui/progress';
 import { formatDate, formatDateTime, formatCurrency, getScoreColor, getEtapaColor, extractLinks } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag } from 'lucide-react';
+import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -149,8 +149,15 @@ export default function PostulantDetail() {
         <div>
           {!isCliente ? (
             <>
-              <h1 className="text-2xl font-bold text-foreground">{postulante.full_name || '—'}</h1>
-              <p className="text-sm text-muted-foreground font-mono">{postulante.id_postulant}</p>
+               <div className="flex items-center gap-2">
+                 <h1 className="text-2xl font-bold text-foreground">{postulante.full_name || '—'}</h1>
+                 {postulante.notes && (
+                   <a href={postulante.notes} target="_blank" rel="noopener noreferrer" title="Descargar CV">
+                     <Download className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+                   </a>
+                 )}
+               </div>
+               <p className="text-sm text-muted-foreground font-mono">{postulante.id_postulant}</p>
             </>
           ) : (
             <>
