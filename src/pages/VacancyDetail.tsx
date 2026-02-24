@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabaseExternal as supabase } from '@/lib/supabaseExternal';
+import { fetchAll } from '@/lib/supabaseFetchAll';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -47,16 +48,16 @@ export default function VacancyDetail() {
 
   const loadData = async () => {
     setLoading(true);
-    const [vacRes, postRes, scoreRes, profRes] = await Promise.all([
+    const [vacRes, posts, scores, profs] = await Promise.all([
       sb.from('vacantes').select('*').eq('vacancy_id', vacancy_id).single(),
-      sb.from('postulantes').select('*').eq('vacancy_id', vacancy_id),
-      sb.from('cv_scores').select('*').eq('vacancy_id', vacancy_id),
-      sb.from('user_profiles').select('*'),
+      fetchAll<Postulante>('postulantes', [['vacancy_id', vacancy_id!]]),
+      fetchAll<CvScore>('cv_scores', [['vacancy_id', vacancy_id!]]),
+      fetchAll<UserProfile>('user_profiles'),
     ]);
     setVacante(vacRes.data as Vacante);
-    setPostulantes((postRes.data || []) as Postulante[]);
-    setScores((scoreRes.data || []) as CvScore[]);
-    setProfiles((profRes.data || []) as UserProfile[]);
+    setPostulantes(posts);
+    setScores(scores);
+    setProfiles(profs);
 
     // Try fetching assignments (table may not exist)
     try {

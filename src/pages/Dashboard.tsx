@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabaseExternal as supabase } from '@/lib/supabaseExternal';
+import { fetchAll } from '@/lib/supabaseFetchAll';
 import { useAuth } from '@/contexts/AuthContext';
 import { KpiCard } from '@/components/KpiCard';
 import { Badge } from '@/components/ui/badge';
@@ -34,15 +35,11 @@ export default function Dashboard() {
     try {
       // Fetch assignments for the current user if not manager
       // Fetch core data
-      const [vacRes, postRes, profRes] = await Promise.all([
-        sb.from('vacantes').select('*'),
-        sb.from('postulantes').select('*'),
-        sb.from('user_profiles').select('*'),
+      const [vacs, posts, profs] = await Promise.all([
+        fetchAll<Vacante>('vacantes'),
+        fetchAll<Postulante>('postulantes'),
+        fetchAll<UserProfile>('user_profiles'),
       ]);
-
-      let vacs = (vacRes.data || []) as Vacante[];
-      let posts = (postRes.data || []) as Postulante[];
-      const profs = (profRes.data || []) as UserProfile[];
 
       // Try fetching assignments (table may not exist)
       let assigns: VacancyAssignment[] = [];
@@ -57,14 +54,15 @@ export default function Dashboard() {
         console.warn('vacancy_assignments table not available');
       }
 
-      // Filter by assigned vacancies for non-manager roles
+      let filteredVacs = vacs;
+      let filteredPosts = posts;
       if (assignedVacancyIds) {
-        vacs = vacs.filter(v => assignedVacancyIds!.includes(v.vacancy_id));
-        posts = posts.filter(p => assignedVacancyIds!.includes(p.vacancy_id));
+        filteredVacs = vacs.filter(v => assignedVacancyIds!.includes(v.vacancy_id));
+        filteredPosts = posts.filter(p => assignedVacancyIds!.includes(p.vacancy_id));
       }
 
-      setVacantes(vacs);
-      setPostulantes(posts);
+      setVacantes(filteredVacs);
+      setPostulantes(filteredPosts);
       setAssignments(assigns);
       setProfiles(profs);
     } catch (error) {
