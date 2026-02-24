@@ -164,15 +164,15 @@ export default function PostulantDetail() {
         {!isCliente && (
           <div className="bg-card rounded-lg border p-4 space-y-3">
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Información de contacto</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
               {postulante.email && (
-                <a href={`mailto:${postulante.email}`} className="flex items-center gap-2 text-sm text-accent hover:underline">
-                  <Mail className="h-4 w-4" /> {postulante.email}
+                <a href={`mailto:${postulante.email}`} className="flex items-center gap-2 text-sm text-accent hover:underline break-all">
+                  <Mail className="h-4 w-4 shrink-0" /> {postulante.email}
                 </a>
               )}
               {postulante.phone && (
                 <a href={`tel:${postulante.phone}`} className="flex items-center gap-2 text-sm text-accent hover:underline">
-                  <Phone className="h-4 w-4" /> {postulante.phone}
+                  <Phone className="h-4 w-4 shrink-0" /> {postulante.phone}
                 </a>
               )}
             </div>
