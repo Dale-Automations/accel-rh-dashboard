@@ -47,23 +47,28 @@ export default function VacancyDetail() {
 
   const loadData = async () => {
     setLoading(true);
-    const [vacRes, postRes, scoreRes, profRes, assignRes] = await Promise.all([
+    const [vacRes, postRes, scoreRes, profRes] = await Promise.all([
       sb.from('vacantes').select('*').eq('vacancy_id', vacancy_id).single(),
       sb.from('postulantes').select('*').eq('vacancy_id', vacancy_id),
       sb.from('cv_scores').select('*').eq('vacancy_id', vacancy_id),
       sb.from('user_profiles').select('*'),
-      sb.from('vacancy_assignments').select('*').eq('vacancy_id', vacancy_id),
     ]);
     setVacante(vacRes.data as Vacante);
     setPostulantes((postRes.data || []) as Postulante[]);
     setScores((scoreRes.data || []) as CvScore[]);
     setProfiles((profRes.data || []) as UserProfile[]);
-    setAssignments((assignRes.data || []) as VacancyAssignment[]);
 
-    // Init assignment checkboxes
-    const checked: Record<string, boolean> = {};
-    ((assignRes.data || []) as VacancyAssignment[]).forEach(a => { checked[a.user_id] = true; });
-    setSelectedAssignments(checked);
+    // Try fetching assignments (table may not exist)
+    try {
+      const assignRes = await sb.from('vacancy_assignments').select('*').eq('vacancy_id', vacancy_id);
+      const assignData = (assignRes.data || []) as VacancyAssignment[];
+      setAssignments(assignData);
+      const checked: Record<string, boolean> = {};
+      assignData.forEach(a => { checked[a.user_id] = true; });
+      setSelectedAssignments(checked);
+    } catch {
+      console.warn('vacancy_assignments table not available');
+    }
     setLoading(false);
   };
 
