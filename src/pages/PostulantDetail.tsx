@@ -171,7 +171,7 @@ export default function PostulantDetail() {
           )}
         </div>
 
-        {/* Contact Info - Manager/Selectora only */}
+        {/* Contact Info - Manager/Selector/a only */}
         {!isCliente && (
           <div className="bg-card rounded-lg border p-4 space-y-3">
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Información de contacto</h3>
@@ -205,7 +205,7 @@ export default function PostulantDetail() {
           </div>
         )}
 
-        {/* Pipeline Section - Editable (Manager/Selectora) */}
+        {/* Pipeline Section - Editable (Manager/Selector/a) */}
         {!isCliente && (
           <div className="bg-card rounded-lg border p-4 space-y-4">
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Pipeline</h3>
@@ -237,7 +237,7 @@ export default function PostulantDetail() {
               </div>
 
               <div>
-                <Label className="text-xs">Comentarios Selectora</Label>
+                <Label className="text-xs">Comentarios Selector/a</Label>
                 <Textarea value={commentsSelectora} onChange={e => setCommentsSelectora(e.target.value)} rows={4} disabled={!canEdit} />
               </div>
 
@@ -257,7 +257,7 @@ export default function PostulantDetail() {
 
               {role === 'manager' && (
                 <div>
-                  <Label className="text-xs">Selectora Asignada</Label>
+                  <Label className="text-xs">Selector/a Asignado/a</Label>
                   <Select value={selectoraId} onValueChange={setSelectoraId}>
                     <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                     <SelectContent>
@@ -323,8 +323,9 @@ export default function PostulantDetail() {
             {/* Score Circle */}
             <div className="bg-card rounded-lg border p-6 flex flex-col items-center">
               <div className={`relative flex items-center justify-center w-28 h-28 rounded-full border-4 ${
-                score.score_final >= 80 ? 'border-green-500' :
-                score.score_final >= 60 ? 'border-yellow-500' : 'border-red-500'
+              score.score_final > 90 ? 'border-green-500' :
+              score.score_final >= 80 ? 'border-yellow-500' :
+              score.score_final >= 70 ? 'border-orange-500' : 'border-red-500'
               }`}>
                 <span className="text-3xl font-bold text-foreground">{score.score_final}</span>
                 <span className="absolute bottom-2 text-xs text-muted-foreground">/100</span>

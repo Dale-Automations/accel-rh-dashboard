@@ -99,7 +99,7 @@ export default function Dashboard() {
     return '—';
   };
 
-  const getSelectoras = (vacancyId: string) => {
+    const getSelectoras = (vacancyId: string) => {
     const vacAssigns = assignments.filter(a => a.vacancy_id === vacancyId && a.role === 'selectora');
     return vacAssigns
       .map(a => profiles.find(p => p.id === a.user_id)?.full_name)
@@ -207,7 +207,7 @@ export default function Dashboard() {
               <TableHead className="font-semibold">Estado</TableHead>
               <TableHead className="font-semibold text-center">Postulantes</TableHead>
               <TableHead className="font-semibold text-center">Evaluados</TableHead>
-              {role !== 'cliente' && <TableHead className="font-semibold">Selectora(s)</TableHead>}
+              {role !== 'cliente' && <TableHead className="font-semibold">Selector/a(s)</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>

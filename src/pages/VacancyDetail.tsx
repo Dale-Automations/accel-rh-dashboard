@@ -184,7 +184,7 @@ export default function VacancyDetail() {
                 <DialogHeader><DialogTitle>Asignar Usuarios</DialogTitle></DialogHeader>
                 <Tabs value={assignTab} onValueChange={setAssignTab}>
                   <TabsList className="w-full">
-                    <TabsTrigger value="selectora" className="flex-1">Selectoras</TabsTrigger>
+                    <TabsTrigger value="selectora" className="flex-1">Selectores/as</TabsTrigger>
                     <TabsTrigger value="cliente" className="flex-1">Clientes</TabsTrigger>
                   </TabsList>
                   <TabsContent value="selectora" className="space-y-2 mt-4">
