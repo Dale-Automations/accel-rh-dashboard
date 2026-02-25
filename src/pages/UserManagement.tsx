@@ -222,7 +222,7 @@ export default function UserManagement() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="selectora">Selectora</SelectItem>
+                  <SelectItem value="selectora">Selector/a</SelectItem>
                   <SelectItem value="cliente">Cliente</SelectItem>
                 </SelectContent>
               </Select>

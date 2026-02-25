@@ -151,12 +151,12 @@ export default function EditablePostulantTable({
             )}
             <TableHead className="text-center w-16">Score</TableHead>
             <TableHead className="min-w-[140px]">Etapa</TableHead>
-            {!isCliente && <TableHead className="min-w-[130px]">Selectora</TableHead>}
+            {!isCliente && <TableHead className="min-w-[130px]">Selector/a</TableHead>}
             <TableHead className="w-20">Fuente</TableHead>
             {!isCliente && <TableHead className="min-w-[110px]">Rem. Pret.</TableHead>}
             {!isCliente && <TableHead className="w-10 text-center">✓</TableHead>}
             {!isCliente && <TableHead className="min-w-[160px]">Estado Contacto</TableHead>}
-            {!isCliente && <TableHead className="min-w-[180px]">Coment. Selectora</TableHead>}
+            {!isCliente && <TableHead className="min-w-[180px]">Coment. Selector/a</TableHead>}
             {role === 'manager' && <TableHead className="min-w-[180px]">Coment. Manager</TableHead>}
             {!isCliente && <TableHead className="min-w-[160px]">Screening</TableHead>}
             {isCliente && <TableHead>Fortalezas</TableHead>}
@@ -217,7 +217,7 @@ export default function EditablePostulantTable({
                     />
                   </TableCell>
 
-                  {/* Selectora - editable select (manager only) */}
+                  {/* Selector/a - editable select (manager only) */}
                   {!isCliente && (
                     <TableCell>
                       {role === 'manager' ? (
@@ -276,7 +276,7 @@ export default function EditablePostulantTable({
                     </TableCell>
                   )}
 
-                  {/* Comments Selectora - editable text */}
+                  {/* Comments Selector/a - editable text */}
                   {!isCliente && (
                     <TableCell>
                       <EditableTextCell

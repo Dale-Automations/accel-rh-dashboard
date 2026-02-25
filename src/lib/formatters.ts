@@ -26,8 +26,9 @@ export function formatCurrency(value: number | null | undefined): string {
 
 export function getScoreColor(score: number | null | undefined): string {
   if (score == null) return 'bg-muted text-muted-foreground';
-  if (score >= 80) return 'bg-green-50 text-green-700 border-green-200';
-  if (score >= 60) return 'bg-amber-50 text-amber-700 border-amber-200';
+  if (score > 90) return 'bg-green-50 text-green-700 border-green-200';
+  if (score >= 80) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+  if (score >= 70) return 'bg-orange-50 text-orange-700 border-orange-200';
   return 'bg-red-50 text-red-700 border-red-200';
 }
 
