@@ -333,6 +333,37 @@ export default function PostulantDetail() {
               <p className="mt-2 text-sm text-muted-foreground">Score Final</p>
             </div>
 
+            {/* Radar Chart - always expanded */}
+            {radarData.length > 0 && (
+              <div className="bg-card rounded-lg border p-4 space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Detalle Evaluación</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RadarChart data={radarData}>
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="criterio" tick={{ fontSize: 10 }} />
+                    <PolarRadiusAxis angle={30} />
+                    <Radar name="Máximo" dataKey="puntaje_max" stroke="hsl(250, 15%, 80%)" fill="hsl(250, 15%, 80%)" fillOpacity={0.2} />
+                    <Radar name="Puntaje" dataKey="puntaje" stroke="hsl(260, 50%, 55%)" fill="hsl(260, 50%, 55%)" fillOpacity={0.4} />
+                    <Legend />
+                  </RadarChart>
+                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {detalles.map((d, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="text-xs text-foreground w-40 truncate" title={d.criterio}>{d.criterio}</span>
+                      <Progress value={(d.puntaje / d.puntaje_max) * 100} className="flex-1 h-2" />
+                      <span className="text-xs text-muted-foreground w-16 text-right">{d.puntaje}/{d.puntaje_max}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
+                  {score.rubric_used && <p>Rúbrica: {score.rubric_used}</p>}
+                  {score.ai_model && <p>Modelo: {score.ai_model}</p>}
+                  {score.scored_at && <p>Evaluado: {formatDateTime(score.scored_at)}</p>}
+                </div>
+              </div>
+            )}
+
             {/* Fortalezas */}
             {score.razones_top3 && score.razones_top3.length > 0 && (
               <div className="bg-card rounded-lg border p-4 space-y-2">
@@ -385,7 +416,7 @@ export default function PostulantDetail() {
               </Collapsible>
             )}
 
-            {/* Keywords */}
+            {/* Keywords - last item */}
             {score.match_keywords && score.match_keywords.length > 0 && (
               <div className="bg-card rounded-lg border p-4 space-y-2">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Tag className="h-3 w-3" /> Keywords</h3>
@@ -395,44 +426,6 @@ export default function PostulantDetail() {
                   ))}
                 </div>
               </div>
-            )}
-
-            {/* Radar Chart */}
-            {radarData.length > 0 && (
-              <Collapsible>
-                <div className="bg-card rounded-lg border p-4">
-                  <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Detalle Evaluación</h3>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-4 space-y-4">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <RadarChart data={radarData}>
-                        <PolarGrid />
-                        <PolarAngleAxis dataKey="criterio" tick={{ fontSize: 10 }} />
-                        <PolarRadiusAxis angle={30} />
-                        <Radar name="Máximo" dataKey="puntaje_max" stroke="hsl(250, 15%, 80%)" fill="hsl(250, 15%, 80%)" fillOpacity={0.2} />
-                        <Radar name="Puntaje" dataKey="puntaje" stroke="hsl(260, 50%, 55%)" fill="hsl(260, 50%, 55%)" fillOpacity={0.4} />
-                        <Legend />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                    <div className="space-y-2">
-                      {detalles.map((d, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <span className="text-xs text-foreground w-40 truncate" title={d.criterio}>{d.criterio}</span>
-                          <Progress value={(d.puntaje / d.puntaje_max) * 100} className="flex-1 h-2" />
-                          <span className="text-xs text-muted-foreground w-16 text-right">{d.puntaje}/{d.puntaje_max}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
-                      {score.rubric_used && <p>Rúbrica: {score.rubric_used}</p>}
-                      {score.ai_model && <p>Modelo: {score.ai_model}</p>}
-                      {score.scored_at && <p>Evaluado: {formatDateTime(score.scored_at)}</p>}
-                    </div>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
             )}
 
             {/* CV Links */}
