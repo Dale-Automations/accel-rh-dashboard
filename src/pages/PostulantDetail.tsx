@@ -47,6 +47,9 @@ export default function PostulantDetail() {
   const [signoffReason, setSignoffReason] = useState('');
   const [selectoraId, setSelectoraId] = useState('');
   const [interviewDate, setInterviewDate] = useState<Date | undefined>();
+  const [editPreguntas, setEditPreguntas] = useState<string[]>([]);
+  const [editRespuestas, setEditRespuestas] = useState<string[]>([]);
+  const [savingPreguntas, setSavingPreguntas] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -61,8 +64,10 @@ export default function PostulantDetail() {
     ]);
     const post = postRes.data as Postulante;
     setPostulante(post);
-    setScore((scoreRes.data as CvScore) || null);
-    setSelectoras((profRes.data || []) as UserProfile[]);
+    const scoreData = (scoreRes.data as CvScore) || null;
+    setScore(scoreData);
+    setEditPreguntas(scoreData?.preguntas_sugeridas || []);
+    setEditRespuestas(scoreData?.respuestas_esperadas || []);
     if (post) {
       setEtapa(post.etapa || '');
       setContactStatus(post.contact_status || '');
@@ -402,15 +407,67 @@ export default function PostulantDetail() {
                     <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Preguntas Sugeridas</h3>
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-3 space-y-3">
-                    {score.preguntas_sugeridas.map((q, i) => (
-                      <div key={i} className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">{q}</p>
-                        {score.respuestas_esperadas?.[i] && (
-                          <p className="text-xs text-muted-foreground italic ml-4">↳ {score.respuestas_esperadas[i]}</p>
+                  <CollapsibleContent className="mt-3 space-y-4">
+                    {editPreguntas.map((q, i) => (
+                      <div key={i} className="space-y-1.5">
+                        {canEdit ? (
+                          <>
+                            <Textarea
+                              value={q}
+                              onChange={e => {
+                                const updated = [...editPreguntas];
+                                updated[i] = e.target.value;
+                                setEditPreguntas(updated);
+                              }}
+                              rows={2}
+                              className="text-sm"
+                              placeholder={`Pregunta ${i + 1}`}
+                            />
+                            <Textarea
+                              value={editRespuestas[i] || ''}
+                              onChange={e => {
+                                const updated = [...editRespuestas];
+                                updated[i] = e.target.value;
+                                setEditRespuestas(updated);
+                              }}
+                              rows={2}
+                              className="text-xs text-muted-foreground ml-4"
+                              placeholder="Respuesta esperada"
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm font-medium text-foreground">{q}</p>
+                            {editRespuestas[i] && (
+                              <p className="text-xs text-muted-foreground italic ml-4">↳ {editRespuestas[i]}</p>
+                            )}
+                          </>
                         )}
                       </div>
                     ))}
+                    {canEdit && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={savingPreguntas}
+                        onClick={async () => {
+                          setSavingPreguntas(true);
+                          const { error } = await sb.from('cv_scores').update({
+                            preguntas_sugeridas: editPreguntas,
+                            respuestas_esperadas: editRespuestas,
+                          }).eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId);
+                          setSavingPreguntas(false);
+                          if (error) {
+                            toast({ title: 'Error al guardar', description: error.message, variant: 'destructive' });
+                          } else {
+                            toast({ title: 'Preguntas actualizadas' });
+                            loadData();
+                          }
+                        }}
+                      >
+                        <Save className="h-3 w-3 mr-1" /> Guardar Preguntas
+                      </Button>
+                    )}
                   </CollapsibleContent>
                 </div>
               </Collapsible>
