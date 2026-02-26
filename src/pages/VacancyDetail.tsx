@@ -13,7 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiCard } from '@/components/KpiCard';
 import { formatDate } from '@/lib/formatters';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft } from 'lucide-react';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
 import { useToast } from '@/hooks/use-toast';
 import type { Vacante, Postulante, CvScore, UserProfile, VacancyAssignment } from '@/types/database';
@@ -121,6 +122,32 @@ export default function VacancyDetail() {
     else { setSortBy(col); setSortDir('desc'); }
   };
 
+  const handleExportXlsx = () => {
+    const rows = filtered.map(p => {
+      const score = getScore(p.id_postulant);
+      return {
+        Nombre: p.full_name || '',
+        Email: p.email || '',
+        Teléfono: p.phone || '',
+        Fuente: p.source || '',
+        Etapa: p.etapa || '',
+        'Score Final': score ?? '',
+        'Salario Pretendido': p.salary_pretended ?? '',
+        Contactado: p.contacted ? 'Sí' : 'No',
+        'Fecha Postulación': p.apply_date || '',
+        'Estado Contacto': p.contact_status || '',
+        Selectora: getSelectoraName(p.selectora_id),
+        'Comentarios Manager': p.comments_manager || '',
+        'Comentarios Selectora': p.comments_selectora || '',
+        Notas: p.notes || '',
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Postulantes');
+    XLSX.writeFile(wb, `${vacante?.vacancy_name || 'postulantes'}.xlsx`);
+  };
+
   const handleSaveAssignments = async () => {
     const roleFilter = assignTab === 'selectora' ? 'selectora' : 'cliente';
     // Delete existing assignments for this role
@@ -168,6 +195,9 @@ export default function VacancyDetail() {
           <p className="text-sm text-muted-foreground mt-1">Creada: {formatDate(vacante.created_at)}</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportXlsx}>
+            <Download className="h-4 w-4 mr-2" /> Exportar XLSX
+          </Button>
           {vacante.drive_folder_id && (
             <Button variant="outline" size="sm" asChild>
               <a href={`https://drive.google.com/drive/folders/${vacante.drive_folder_id}`} target="_blank" rel="noopener noreferrer">
