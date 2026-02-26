@@ -281,7 +281,7 @@ export default function VacancyDetail() {
       </div>
 
       {/* Scrollable table area */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-auto">
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}
