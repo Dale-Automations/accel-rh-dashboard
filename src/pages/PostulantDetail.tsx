@@ -50,6 +50,8 @@ export default function PostulantDetail() {
   const [editPreguntas, setEditPreguntas] = useState<string[]>([]);
   const [editRespuestas, setEditRespuestas] = useState<string[]>([]);
   const [savingPreguntas, setSavingPreguntas] = useState(false);
+  const [editScore, setEditScore] = useState('');
+  const [savingScore, setSavingScore] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -68,6 +70,7 @@ export default function PostulantDetail() {
     setScore(scoreData);
     setEditPreguntas(scoreData?.preguntas_sugeridas || []);
     setEditRespuestas(scoreData?.respuestas_esperadas || []);
+    setEditScore(scoreData?.score_final?.toString() || '');
     if (post) {
       setEtapa(post.etapa || '');
       setContactStatus(post.contact_status || '');
@@ -332,10 +335,44 @@ export default function PostulantDetail() {
               score.score_final >= 80 ? 'border-yellow-500' :
               score.score_final >= 70 ? 'border-orange-500' : 'border-red-500'
               }`}>
-                <span className="text-3xl font-bold text-foreground">{score.score_final}</span>
+                {canEdit ? (
+                  <input
+                    type="number"
+                    value={editScore}
+                    onChange={e => setEditScore(e.target.value)}
+                    className="w-16 text-3xl font-bold text-foreground text-center bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    min={0}
+                    max={100}
+                  />
+                ) : (
+                  <span className="text-3xl font-bold text-foreground">{score.score_final}{score.score_modified ? '*' : ''}</span>
+                )}
                 <span className="absolute bottom-2 text-xs text-muted-foreground">/100</span>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">Score Final</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Score Final{score.score_modified ? ' (modificado)' : ''}
+              </p>
+              {canEdit && editScore !== (score.score_final?.toString() || '') && (
+                <Button
+                  size="sm"
+                  className="mt-2"
+                  disabled={savingScore}
+                  onClick={async () => {
+                    setSavingScore(true);
+                    const newScore = editScore ? parseFloat(editScore) : null;
+                    const { error } = await sb.from('cv_scores').update({ score_final: newScore, score_modified: true }).eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId);
+                    setSavingScore(false);
+                    if (error) {
+                      toast({ title: 'Error al guardar score', description: error.message, variant: 'destructive' });
+                    } else {
+                      toast({ title: 'Score actualizado' });
+                      loadData();
+                    }
+                  }}
+                >
+                  <Save className="h-3 w-3 mr-1" /> Guardar Score
+                </Button>
+              )}
             </div>
 
             {/* Radar Chart - always expanded */}

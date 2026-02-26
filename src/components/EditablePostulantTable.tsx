@@ -135,12 +135,21 @@ export default function EditablePostulantTable({
   }, [onDataChange, toast]);
 
   const saveScore = useCallback(async (postulantId: string, newScore: number | null) => {
-    const { error } = await sb.from('cv_scores').update({ score_final: newScore, score_modified: true }).eq('postulant_id', postulantId).eq('vacancy_id', vacancyId);
+    // Try update first
+    const { data, error } = await sb.from('cv_scores').update({ score_final: newScore, score_modified: true }).eq('postulant_id', postulantId).eq('vacancy_id', vacancyId).select();
     if (error) {
       toast({ title: 'Error al guardar score', description: error.message, variant: 'destructive' });
-    } else {
-      onDataChange();
+      return;
     }
+    // If no rows were updated, insert a new record
+    if (!data || data.length === 0) {
+      const { error: insertErr } = await sb.from('cv_scores').insert({ postulant_id: postulantId, vacancy_id: vacancyId, score_final: newScore, score_modified: true });
+      if (insertErr) {
+        toast({ title: 'Error al crear score', description: insertErr.message, variant: 'destructive' });
+        return;
+      }
+    }
+    onDataChange();
   }, [onDataChange, toast, vacancyId]);
 
   const isCliente = role === 'cliente';
