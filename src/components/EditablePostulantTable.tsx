@@ -32,12 +32,14 @@ function EditableTextCell({
   onSave,
   disabled,
   type = 'text',
+  format = 'text',
   className = '',
 }: {
   value: string;
   onSave: (v: string) => void;
   disabled?: boolean;
   type?: 'text' | 'number';
+  format?: 'text' | 'currency';
   className?: string;
 }) {
   const [editing, setEditing] = useState(false);
@@ -59,7 +61,7 @@ function EditableTextCell({
         onClick={() => !disabled && setEditing(true)}
         title={value || '—'}
       >
-        {type === 'number' && value ? formatCurrency(parseFloat(value)) : value || <span className="text-muted-foreground">—</span>}
+        {format === 'currency' && value ? formatCurrency(parseFloat(value)) : value || <span className="text-muted-foreground">—</span>}
       </div>
     );
   }
@@ -277,6 +279,7 @@ export default function EditablePostulantTable({
                         onSave={v => saveField(p.id_postulant, 'salary_pretended', v ? parseFloat(v) : null)}
                         disabled={!editable}
                         type="number"
+                        format="currency"
                       />
                     </TableCell>
                   )}
