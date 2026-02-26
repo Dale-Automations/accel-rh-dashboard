@@ -132,6 +132,15 @@ export default function EditablePostulantTable({
     }
   }, [onDataChange, toast]);
 
+  const saveScore = useCallback(async (postulantId: string, newScore: number | null) => {
+    const { error } = await sb.from('cv_scores').update({ score_final: newScore, score_modified: true }).eq('postulant_id', postulantId).eq('vacancy_id', vacancyId);
+    if (error) {
+      toast({ title: 'Error al guardar score', description: error.message, variant: 'destructive' });
+    } else {
+      onDataChange();
+    }
+  }, [onDataChange, toast, vacancyId]);
+
   const isCliente = role === 'cliente';
   const selectoras = profiles.filter(p => p.role === 'selectora');
   const selectoraOptions = selectoras.map(s => ({ value: s.id, label: s.full_name || s.email || s.id }));
@@ -153,6 +162,7 @@ export default function EditablePostulantTable({
             <TableHead className="min-w-[140px]">Etapa</TableHead>
             {!isCliente && <TableHead className="min-w-[130px]">Selector/a</TableHead>}
             <TableHead className="w-20">Fuente</TableHead>
+            {!isCliente && <TableHead className="min-w-[120px]">Estado</TableHead>}
             {!isCliente && <TableHead className="min-w-[110px]">Rem. Pret.</TableHead>}
             {!isCliente && <TableHead className="w-10 text-center">✓</TableHead>}
             {!isCliente && <TableHead className="min-w-[160px]">Estado Contacto</TableHead>}
@@ -191,14 +201,24 @@ export default function EditablePostulantTable({
                     <TableCell className="font-mono text-xs">{p.id_postulant?.slice(0, 8)}...</TableCell>
                   )}
 
-                  {/* Score - read only */}
+                  {/* Score - editable */}
                   <TableCell className="text-center">
-                    {score != null ? (
+                    {editable ? (
+                      <EditableTextCell
+                        value={score != null ? score.toString() : ''}
+                        onSave={v => saveScore(p.id_postulant, v ? parseFloat(v) : null)}
+                        type="number"
+                        className={`text-center font-semibold ${score != null ? getScoreColor(score) : ''}`}
+                      />
+                    ) : score != null ? (
                       <span className={`inline-flex items-center justify-center w-10 h-7 rounded text-sm font-semibold border ${getScoreColor(score)}`}>
-                        {score}
+                        {score}{cvScore?.score_modified ? '*' : ''}
                       </span>
                     ) : (
                       <span className="text-muted-foreground text-sm">—</span>
+                    )}
+                    {editable && cvScore?.score_modified && (
+                      <span className="text-xs text-muted-foreground">*</span>
                     )}
                   </TableCell>
 
@@ -237,6 +257,17 @@ export default function EditablePostulantTable({
 
                   {/* Fuente - read only */}
                   <TableCell className="text-sm">{p.source || '—'}</TableCell>
+
+                  {/* Estado - editable */}
+                  {!isCliente && (
+                    <TableCell>
+                      <EditableTextCell
+                        value={p.status || ''}
+                        onSave={v => saveField(p.id_postulant, 'status', v)}
+                        disabled={!editable}
+                      />
+                    </TableCell>
+                  )}
 
                   {/* Salary - editable */}
                   {!isCliente && (
