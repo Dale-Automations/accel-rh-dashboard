@@ -56,6 +56,7 @@ export interface CvScore {
   rubric_used: string | null;
   ai_model: string | null;
   scored_at: string | null;
+  score_modified: boolean | null;
 }
 
 export interface ScoreDetalle {
