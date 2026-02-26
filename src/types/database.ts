@@ -93,6 +93,7 @@ export const ETAPAS = [
   'Enviado a cliente',
   'Descartado',
   'Rechazado por cliente',
+  'Rechazado por Selector/a',
 ] as const;
 
 export type Etapa = typeof ETAPAS[number];
