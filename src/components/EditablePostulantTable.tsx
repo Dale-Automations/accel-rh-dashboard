@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getScoreColor, getEtapaColor, formatCurrency } from '@/lib/formatters';
 import { CheckCircle } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import type { Postulante, CvScore, UserProfile, UserRole } from '@/types/database';
 import { ETAPAS } from '@/types/database';
 
@@ -159,6 +160,7 @@ export default function EditablePostulantTable({
   const etapaOptions = ETAPAS.map(e => ({ value: e, label: e }));
 
   return (
+    <TooltipProvider>
     <div className="bg-card rounded-lg border shadow-sm overflow-x-auto">
       <Table>
         <TableHeader>
@@ -228,8 +230,13 @@ export default function EditablePostulantTable({
                     ) : (
                       <span className="text-muted-foreground text-sm">—</span>
                     )}
-                    {editable && cvScore?.score_modified && (
-                      <span className="text-xs text-muted-foreground">*</span>
+                  {editable && cvScore?.score_modified && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-xs text-amber-500 font-bold cursor-default">*</span>
+                        </TooltipTrigger>
+                        <TooltipContent>Modificado</TooltipContent>
+                      </Tooltip>
                     )}
                   </TableCell>
 
@@ -364,5 +371,6 @@ export default function EditablePostulantTable({
         </TableBody>
       </Table>
     </div>
+    </TooltipProvider>
   );
 }
