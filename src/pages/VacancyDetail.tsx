@@ -176,123 +176,128 @@ export default function VacancyDetail() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground" onClick={() => navigate('/')}>
-            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
-          </Button>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">{vacante.vacancy_name}</h1>
-            <Badge
-              variant="outline"
-              className={vacante.status === 'Activa' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-muted text-muted-foreground'}
-            >
-              {vacante.status}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">Creada: {formatDate(vacante.created_at)}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportXlsx}>
-            <Download className="h-4 w-4 mr-2" /> Exportar XLSX
-          </Button>
-          {vacante.drive_folder_id && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={`https://drive.google.com/drive/folders/${vacante.drive_folder_id}`} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" /> Google Drive
-              </a>
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+      {/* Header - fixed */}
+      <div className="flex-shrink-0 space-y-6 pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground" onClick={() => navigate('/')}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Volver
             </Button>
-          )}
-          {role === 'manager' && (
-            <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm"><UserPlus className="h-4 w-4 mr-2" /> Asignar Usuarios</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader><DialogTitle>Asignar Usuarios</DialogTitle></DialogHeader>
-                <Tabs value={assignTab} onValueChange={setAssignTab}>
-                  <TabsList className="w-full">
-                    <TabsTrigger value="selectora" className="flex-1">Selectores/as</TabsTrigger>
-                    <TabsTrigger value="cliente" className="flex-1">Clientes</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="selectora" className="space-y-2 mt-4">
-                    {profiles.filter(p => p.role === 'selectora').map(p => (
-                      <label key={p.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer">
-                        <Checkbox
-                          checked={!!selectedAssignments[p.id]}
-                          onCheckedChange={(c) => setSelectedAssignments(prev => ({ ...prev, [p.id]: !!c }))}
-                        />
-                        <span className="text-sm">{p.full_name} <span className="text-muted-foreground">({p.email})</span></span>
-                      </label>
-                    ))}
-                  </TabsContent>
-                  <TabsContent value="cliente" className="space-y-2 mt-4">
-                    {profiles.filter(p => p.role === 'cliente').map(p => (
-                      <label key={p.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer">
-                        <Checkbox
-                          checked={!!selectedAssignments[p.id]}
-                          onCheckedChange={(c) => setSelectedAssignments(prev => ({ ...prev, [p.id]: !!c }))}
-                        />
-                        <span className="text-sm">{p.full_name} <span className="text-muted-foreground">({p.email})</span></span>
-                      </label>
-                    ))}
-                  </TabsContent>
-                </Tabs>
-                <Button onClick={handleSaveAssignments} className="w-full mt-4">Guardar</Button>
-              </DialogContent>
-            </Dialog>
-          )}
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-foreground">{vacante.vacancy_name}</h1>
+              <Badge
+                variant="outline"
+                className={vacante.status === 'Activa' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-muted text-muted-foreground'}
+              >
+                {vacante.status}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">Creada: {formatDate(vacante.created_at)}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportXlsx}>
+              <Download className="h-4 w-4 mr-2" /> Exportar XLSX
+            </Button>
+            {vacante.drive_folder_id && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={`https://drive.google.com/drive/folders/${vacante.drive_folder_id}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-2" /> Google Drive
+                </a>
+              </Button>
+            )}
+            {role === 'manager' && (
+              <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm"><UserPlus className="h-4 w-4 mr-2" /> Asignar Usuarios</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader><DialogTitle>Asignar Usuarios</DialogTitle></DialogHeader>
+                  <Tabs value={assignTab} onValueChange={setAssignTab}>
+                    <TabsList className="w-full">
+                      <TabsTrigger value="selectora" className="flex-1">Selectores/as</TabsTrigger>
+                      <TabsTrigger value="cliente" className="flex-1">Clientes</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="selectora" className="space-y-2 mt-4">
+                      {profiles.filter(p => p.role === 'selectora').map(p => (
+                        <label key={p.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer">
+                          <Checkbox
+                            checked={!!selectedAssignments[p.id]}
+                            onCheckedChange={(c) => setSelectedAssignments(prev => ({ ...prev, [p.id]: !!c }))}
+                          />
+                          <span className="text-sm">{p.full_name} <span className="text-muted-foreground">({p.email})</span></span>
+                        </label>
+                      ))}
+                    </TabsContent>
+                    <TabsContent value="cliente" className="space-y-2 mt-4">
+                      {profiles.filter(p => p.role === 'cliente').map(p => (
+                        <label key={p.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer">
+                          <Checkbox
+                            checked={!!selectedAssignments[p.id]}
+                            onCheckedChange={(c) => setSelectedAssignments(prev => ({ ...prev, [p.id]: !!c }))}
+                          />
+                          <span className="text-sm">{p.full_name} <span className="text-muted-foreground">({p.email})</span></span>
+                        </label>
+                      ))}
+                    </TabsContent>
+                  </Tabs>
+                  <Button onClick={handleSaveAssignments} className="w-full mt-4">Guardar</Button>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
+          <KpiCard title="Total" value={totalPost} icon={Users} />
+          <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} />
+          <KpiCard title="Pendientes" value={pendientes} icon={Clock} />
+          <KpiCard title="Score Prom." value={avgScore ?? '—'} icon={TrendingUp} />
+          <KpiCard title="Score Máx." value={maxScore ?? '—'} icon={TrendingUp} />
+          <KpiCard title="Score Mín." value={minScore ?? '—'} icon={TrendingDown} />
+          <KpiCard title="Contactados" value={contactados} icon={Phone} />
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
+              className="pl-9"
+            />
+          </div>
+          <Select value={etapaFilter} onValueChange={(v) => { setEtapaFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[220px]"><SelectValue placeholder="Filtrar por etapa" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las etapas</SelectItem>
+              {ETAPAS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
-        <KpiCard title="Total" value={totalPost} icon={Users} />
-        <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} />
-        <KpiCard title="Pendientes" value={pendientes} icon={Clock} />
-        <KpiCard title="Score Prom." value={avgScore ?? '—'} icon={TrendingUp} />
-        <KpiCard title="Score Máx." value={maxScore ?? '—'} icon={TrendingUp} />
-        <KpiCard title="Score Mín." value={minScore ?? '—'} icon={TrendingDown} />
-        <KpiCard title="Contactados" value={contactados} icon={Phone} />
+      {/* Scrollable table area */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <EditablePostulantTable
+          postulantes={paginated}
+          scores={scores}
+          profiles={profiles}
+          role={role as any}
+          userId={user?.id}
+          vacancyId={vacancy_id!}
+          page={page}
+          pageSize={PAGE_SIZE}
+          onDataChange={loadData}
+        />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre..."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
-            className="pl-9"
-          />
-        </div>
-        <Select value={etapaFilter} onValueChange={(v) => { setEtapaFilter(v); setPage(0); }}>
-          <SelectTrigger className="w-[220px]"><SelectValue placeholder="Filtrar por etapa" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las etapas</SelectItem>
-            {ETAPAS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <EditablePostulantTable
-        postulantes={paginated}
-        scores={scores}
-        profiles={profiles}
-        role={role as any}
-        userId={user?.id}
-        vacancyId={vacancy_id!}
-        page={page}
-        pageSize={PAGE_SIZE}
-        onDataChange={loadData}
-      />
-
-      {/* Pagination */}
+      {/* Pagination - fixed at bottom */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex-shrink-0 flex items-center justify-between py-3 border-t">
           <span className="text-sm text-muted-foreground">{filtered.length} postulantes</span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Anterior</Button>
