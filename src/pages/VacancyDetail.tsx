@@ -176,7 +176,7 @@ export default function VacancyDetail() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex flex-col absolute inset-0 p-4 md:p-6 overflow-hidden">
       {/* Header - fixed */}
       <div className="flex-shrink-0 space-y-6 pb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
