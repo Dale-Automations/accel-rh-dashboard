@@ -53,6 +53,12 @@ export default function PostulantDetail() {
   const [savingPreguntas, setSavingPreguntas] = useState(false);
   const [editScore, setEditScore] = useState('');
   const [savingScore, setSavingScore] = useState(false);
+  const [hoveredRadarLabel, setHoveredRadarLabel] = useState<{
+    text: string;
+    x: number;
+    y: number;
+    anchor: 'start' | 'middle' | 'end';
+  } | null>(null);
 
   useEffect(() => {
     loadData();
