@@ -16,6 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { formatDate, formatDateTime, formatCurrency, getScoreColor, getEtapaColor, extractLinks } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download, ArrowLeft } from 'lucide-react';
+import PostulantReportPdf from '@/components/PostulantReportPdf';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -597,6 +598,7 @@ export default function PostulantDetail() {
               {postulante.report_file_name && (
                 <Button variant="outline" size="sm"><FileText className="h-4 w-4 mr-2" /> Reporte: {postulante.report_file_name}</Button>
               )}
+              <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} />
             </div>
           </>
         ) : (
