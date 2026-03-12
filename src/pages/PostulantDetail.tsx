@@ -603,7 +603,6 @@ export default function PostulantDetail() {
               {postulante.report_file_name && (
                 <Button variant="outline" size="sm"><FileText className="h-4 w-4 mr-2" /> Reporte: {postulante.report_file_name}</Button>
               )}
-              <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} />
             </div>
           </>
         ) : (
