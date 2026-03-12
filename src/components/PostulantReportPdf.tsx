@@ -193,7 +193,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         y = drawHeader(page, ctx, y);
 
         // Section title
-        y = drawSectionTitle(page, helveticaBold, 'Evaluation Detail', y);
+        y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
 
         // Radar chart
         y = drawRadarChart(page, detalles, helvetica, y);
@@ -476,13 +476,19 @@ function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, 
     if (current) lines.push(current);
 
     lines.forEach((line, li) => {
-      const textW = font.widthOfTextAtSize(line, 8);
+      const safeLine = line.replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
+      if (!safeLine) return;
+      const textW = font.widthOfTextAtSize(safeLine, 8);
       let tx = p.x;
       if (p.x < cx - 10) tx = p.x - textW;
       else if (p.x > cx + 10) tx = p.x;
       else tx = p.x - textW / 2;
 
-      page.drawText(line, { x: tx, y: p.y - li * 10, size: 8, font, color: rgb(0.3, 0.3, 0.3) });
+      try {
+        page.drawText(safeLine, { x: tx, y: p.y - li * 10, size: 8, font, color: rgb(0.3, 0.3, 0.3) });
+      } catch {
+        // Skip unencodable text
+      }
     });
   });
 
