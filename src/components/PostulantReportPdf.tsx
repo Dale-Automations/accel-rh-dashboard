@@ -129,9 +129,9 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       // Divider line
       page.drawLine({ start: { x: ML, y }, end: { x: PW - MR, y }, thickness: 1.5, color: BORDER_COLOR });
-      y -= 24;
+      y -= 32;
 
-      // Metadata
+      // Metadata with better spacing
       const metaFields = [
         ['Customer', vacancyName || postulante.vacancy_name || '—'],
         ['Role', postulante.vacancy_name || '—'],
@@ -141,76 +141,78 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       ];
       for (const [label, value] of metaFields) {
         page.drawText(label, { x: ML, y, size: 11, font: helvetica, color: GRAY });
-        page.drawText(value, { x: ML + 130, y, size: 11, font: helveticaBold, color: TEXT_COLOR });
-        y -= 20;
+        page.drawText(value, { x: ML + 140, y, size: 11, font: helveticaBold, color: TEXT_COLOR });
+        y -= 24;
       }
-      y -= 10;
+      y -= 16;
 
-      // Score
+      // Score - bigger and more prominent
       page.drawText(`AcceleRATE Match Score: ${scoreVal != null ? `${scoreVal}/100` : '—'}`, {
-        x: ML, y, size: 13, font: helveticaBold, color: TEXT_COLOR,
+        x: ML, y, size: 15, font: helveticaBold, color: ACCENT,
       });
-      y -= 18;
+      y -= 22;
       page.drawText(`Status: ${statusText}`, {
-        x: ML, y, size: 11, font: helveticaBold, color: TEXT_COLOR,
+        x: ML, y, size: 12, font: helveticaBold, color: TEXT_COLOR,
       });
-      y -= 28;
+      y -= 36;
 
       // Profile Summary
       const summaryText = postulante.screening_responses || postulante.comments_selectora || postulante.comments_manager;
       if (summaryText) {
         y = drawSectionTitle(page, helveticaBold, 'Professional Profile Summary', y);
-        y = drawWrappedText(page, helvetica, summaryText, y, 10.5, TEXT_COLOR);
-        y -= 16;
+        y = drawWrappedText(page, helvetica, summaryText, y, 11, TEXT_COLOR);
+        y -= 24;
       }
 
       // Key Strengths
       if (score?.razones_top3 && score.razones_top3.length > 0) {
         y = drawSectionTitle(page, helveticaBold, 'Key Strengths (Value for the Client)', y);
         for (const r of score.razones_top3) {
-          y = drawWrappedText(page, helvetica, r, y, 10.5, TEXT_COLOR);
-          y -= 12;
+          y = drawWrappedText(page, helvetica, `• ${r}`, y, 11, TEXT_COLOR);
+          y -= 14;
         }
       }
 
+      // Logistics on page 1 since we have space
+      y -= 8;
+      y = drawSectionTitle(page, helveticaBold, 'Logistics & Salary Expectations', y);
+      y = drawWrappedText(page, helvetica, `Salary Expectation: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 11, TEXT_COLOR);
+      y -= 4;
+      y = drawWrappedText(page, helvetica, `Availability: ${postulante.contact_status || '—'}`, y, 11, TEXT_COLOR);
+      y -= 4;
+      y = drawWrappedText(page, helvetica, `Stage: ${postulante.etapa || '—'}`, y, 11, TEXT_COLOR);
+
       drawFooter(page, helvetica, helveticaBold);
 
-      // ===== PAGE 2 =====
-      const hasPage2 = detalles.length > 0 || (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0);
+      // ===== PAGE 2: Full Evaluation Detail =====
+      const hasPage2 = detalles.length > 0;
       if (hasPage2) {
         page = pdfDoc.addPage([PW, PH]);
         drawBorder(page);
         y = PH - MT;
         y = drawHeader(page, ctx, y);
 
-        // Scoring Breakdown - Radar chart
-        if (detalles.length > 0) {
-          y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
-          y = drawRadarChart(page, detalles, helvetica, y);
-          y -= 12;
-        }
+        // Section title
+        y = drawSectionTitle(page, helveticaBold, 'Evaluation Detail', y);
 
-        // Logistics
-        y = drawSectionTitle(page, helveticaBold, 'Logistics & Salary Expectations', y);
-        y = drawWrappedText(page, helvetica, `Salary Expectation: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 10.5, TEXT_COLOR);
-        y -= 2;
-        y = drawWrappedText(page, helvetica, `Availability: ${postulante.contact_status || '—'}`, y, 10.5, TEXT_COLOR);
-        y -= 2;
-        y = drawWrappedText(page, helvetica, `Stage: ${postulante.etapa || '—'}`, y, 10.5, TEXT_COLOR);
-        y -= 16;
+        // Radar chart
+        y = drawRadarChart(page, detalles, helvetica, y);
+        y -= 20;
 
-        // Check if we need a new page
-        const estimatedNotesHeight = estimateTextHeight(score?.preguntas_sugeridas || [], helvetica, 10.5) + 
-          estimateTextHeight(score?.riesgos_top3 || [], helvetica, 10.5) + 100;
+        // Horizontal bar chart with scores
+        y = drawBarChart(page, detalles, helvetica, helveticaBold, y);
 
-        if (y - estimatedNotesHeight < MB + 20) {
-          // Content would overflow - add new page
-          drawFooter(page, helvetica, helveticaBold);
-          page = pdfDoc.addPage([PW, PH]);
-          drawBorder(page);
-          y = PH - MT;
-          y = drawHeader(page, ctx, y);
-        }
+        drawFooter(page, helvetica, helveticaBold);
+      }
+
+      // ===== PAGE 3: Notes, Risks, Signature =====
+      const hasPage3 = (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0) ||
+                        (score?.riesgos_top3 && score.riesgos_top3.length > 0);
+      if (hasPage3) {
+        page = pdfDoc.addPage([PW, PH]);
+        drawBorder(page);
+        y = PH - MT;
+        y = drawHeader(page, ctx, y);
 
         // Interviewer Notes
         if (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0) {
@@ -223,7 +225,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
               y = PH - MT;
               y = drawHeader(page, ctx, y);
             }
-            y = drawWrappedText(page, helvetica, q, y, 10.5, TEXT_COLOR);
+            y = drawWrappedText(page, helvetica, `• ${q}`, y, 10.5, TEXT_COLOR);
             y -= 10;
           }
           y -= 6;
@@ -247,13 +249,13 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
               y = PH - MT;
               y = drawHeader(page, ctx, y);
             }
-            y = drawWrappedText(page, helvetica, `[!] ${r}`, y, 10.5, TEXT_COLOR);
+            y = drawWrappedText(page, helvetica, `⚠ ${r}`, y, 10.5, TEXT_COLOR);
             y -= 8;
           }
         }
 
         // Signature
-        y -= 16;
+        y -= 24;
         page.drawText('Sincerely,', { x: ML, y, size: 10.5, font: helvetica, color: TEXT_COLOR });
         y -= 16;
         page.drawText('AccelRH Recruitment Team', { x: ML, y, size: 12, font: helveticaBold, color: ACCENT });
@@ -492,4 +494,62 @@ function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, 
   }
 
   return startY - chartH - 8;
+}
+
+function drawBarChart(
+  page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, fontBold: PDFFont, startY: number,
+): number {
+  const barH = 14;
+  const gap = 8;
+  const labelW = 200;
+  const scoreW = 50;
+  const barMaxW = CW - labelW - scoreW - 10;
+  let y = startY;
+
+  // Legend
+  const legendY = y + 2;
+  // Max legend
+  page.drawRectangle({ x: ML + labelW, y: legendY, width: 12, height: 8, color: rgb(0.88, 0.87, 0.92) });
+  page.drawText('Máximo', { x: ML + labelW + 16, y: legendY + 1, size: 8, font, color: GRAY });
+  // Score legend
+  page.drawRectangle({ x: ML + labelW + 70, y: legendY, width: 12, height: 8, color: ACCENT });
+  page.drawText('Puntaje', { x: ML + labelW + 86, y: legendY + 1, size: 8, font: fontBold, color: ACCENT });
+  y -= 18;
+
+  for (const d of detalles) {
+    // Truncate label
+    let label = d.criterio;
+    const maxLabelChars = 28;
+    if (label.length > maxLabelChars) label = label.substring(0, maxLabelChars) + '...';
+
+    // Label
+    page.drawText(label, { x: ML, y: y + 2, size: 9, font: fontBold, color: TEXT_COLOR });
+
+    // Background bar (max)
+    const barX = ML + labelW;
+    const maxBarW = barMaxW;
+    page.drawRectangle({
+      x: barX, y: y - 1, width: maxBarW, height: barH,
+      color: rgb(0.88, 0.87, 0.92),
+    });
+
+    // Score bar
+    const ratio = d.puntaje_max > 0 ? d.puntaje / d.puntaje_max : 0;
+    const scoreBarW = Math.max(barMaxW * ratio, 2);
+    page.drawRectangle({
+      x: barX, y: y - 1, width: scoreBarW, height: barH,
+      color: ACCENT,
+    });
+
+    // Score text
+    const scoreText = `${d.puntaje}/${d.puntaje_max}`;
+    const scoreTextW = font.widthOfTextAtSize(scoreText, 9);
+    page.drawText(scoreText, {
+      x: PW - MR - scoreTextW, y: y + 2, size: 9, font, color: TEXT_COLOR,
+    });
+
+    y -= barH + gap;
+  }
+
+  return y;
 }
