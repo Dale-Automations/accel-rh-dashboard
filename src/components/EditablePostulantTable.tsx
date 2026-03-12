@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getScoreColor, getEtapaColor, formatCurrency } from '@/lib/formatters';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import type { Postulante, CvScore, UserProfile, UserRole } from '@/types/database';
 import { ETAPAS } from '@/types/database';
@@ -25,6 +25,9 @@ interface Props {
   page: number;
   pageSize: number;
   onDataChange: () => void;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  onToggleSort?: (col: string) => void;
 }
 
 // A cell that becomes an input on click
@@ -113,6 +116,7 @@ function EditableSelectCell({
 
 export default function EditablePostulantTable({
   postulantes, scores, profiles, role, userId, vacancyId, page, pageSize, onDataChange,
+  sortBy, sortDir, onToggleSort,
 }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -159,6 +163,23 @@ export default function EditablePostulantTable({
 
   const etapaOptions = ETAPAS.map(e => ({ value: e, label: e }));
 
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortBy !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  const SortableHead = ({ col, children, className = '' }: { col: string; children: React.ReactNode; className?: string }) => (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/70 ${className}`}
+      onClick={() => onToggleSort?.(col)}
+    >
+      <div className="flex items-center">
+        {children}
+        <SortIcon col={col} />
+      </div>
+    </TableHead>
+  );
+
   return (
     <TooltipProvider>
     <div className="bg-card rounded-lg border shadow-sm overflow-x-auto">
@@ -167,18 +188,18 @@ export default function EditablePostulantTable({
           <TableRow className="bg-muted/50">
             <TableHead className="w-10 text-center">#</TableHead>
             {!isCliente ? (
-              <TableHead className="min-w-[160px]">Nombre</TableHead>
+              <SortableHead col="name" className="min-w-[160px]">Nombre</SortableHead>
             ) : (
               <TableHead>ID</TableHead>
             )}
-            <TableHead className="text-center w-16">Score</TableHead>
-            <TableHead className="min-w-[140px]">Etapa</TableHead>
-            {!isCliente && <TableHead className="min-w-[130px]">Selector/a</TableHead>}
-            <TableHead className="w-20">Fuente</TableHead>
-            {!isCliente && <TableHead className="min-w-[120px]">Estado</TableHead>}
-            {!isCliente && <TableHead className="min-w-[110px]">Rem. Pret.</TableHead>}
+            <SortableHead col="score" className="text-center w-16">Score</SortableHead>
+            <SortableHead col="etapa" className="min-w-[140px]">Etapa</SortableHead>
+            {!isCliente && <SortableHead col="selectora" className="min-w-[130px]">Selector/a</SortableHead>}
+            <SortableHead col="source" className="w-20">Fuente</SortableHead>
+            {!isCliente && <SortableHead col="status" className="min-w-[120px]">Estado</SortableHead>}
+            {!isCliente && <SortableHead col="salary" className="min-w-[110px]">Rem. Pret.</SortableHead>}
             {!isCliente && <TableHead className="w-10 text-center">✓</TableHead>}
-            {!isCliente && <TableHead className="min-w-[160px]">Estado Contacto</TableHead>}
+            {!isCliente && <SortableHead col="contact_status" className="min-w-[160px]">Estado Contacto</SortableHead>}
             {!isCliente && <TableHead className="min-w-[180px]">Coment. Selector/a</TableHead>}
             {role === 'manager' && <TableHead className="min-w-[180px]">Coment. Manager</TableHead>}
             {!isCliente && <TableHead className="min-w-[160px]">Screening</TableHead>}
