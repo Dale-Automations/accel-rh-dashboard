@@ -335,9 +335,9 @@ export default function PostulantDetail() {
       <div className="space-y-6">
         {score && score.score_final != null ? (
           <>
-            {/* Score Circle */}
-            <div className="bg-card rounded-lg border p-6 flex flex-col items-center">
-              <div className={`relative flex items-center justify-center w-28 h-28 rounded-full border-4 ${
+            {/* Score + Download */}
+            <div className="bg-card rounded-lg border p-4 flex items-center gap-5">
+              <div className={`relative flex items-center justify-center w-20 h-20 rounded-full border-4 shrink-0 ${
               score.score_final > 90 ? 'border-green-500' :
               score.score_final >= 80 ? 'border-yellow-500' :
               score.score_final >= 70 ? 'border-orange-500' : 'border-red-500'
@@ -347,39 +347,44 @@ export default function PostulantDetail() {
                     type="number"
                     value={editScore}
                     onChange={e => setEditScore(e.target.value)}
-                    className="w-16 text-3xl font-bold text-foreground text-center bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-12 text-2xl font-bold text-foreground text-center bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     min={0}
                     max={100}
                   />
                 ) : (
-                  <span className="text-3xl font-bold text-foreground">{score.score_final}{score.score_modified ? '*' : ''}</span>
+                  <span className="text-2xl font-bold text-foreground">{score.score_final}{score.score_modified ? '*' : ''}</span>
                 )}
-                <span className="absolute bottom-2 text-xs text-muted-foreground">/100</span>
+                <span className="absolute bottom-1 text-[10px] text-muted-foreground">/100</span>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Score Final{score.score_modified ? ' (modificado)' : ''}
-              </p>
-              {canEdit && editScore !== (score.score_final?.toString() || '') && (
-                <Button
-                  size="sm"
-                  className="mt-2"
-                  disabled={savingScore}
-                  onClick={async () => {
-                    setSavingScore(true);
-                    const newScore = editScore ? parseFloat(editScore) : null;
-                    const { error } = await sb.from('cv_scores').update({ score_final: newScore, score_modified: true }).eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId);
-                    setSavingScore(false);
-                    if (error) {
-                      toast({ title: 'Error al guardar score', description: error.message, variant: 'destructive' });
-                    } else {
-                      toast({ title: 'Score actualizado' });
-                      loadData();
-                    }
-                  }}
-                >
-                  <Save className="h-3 w-3 mr-1" /> Guardar Score
-                </Button>
-              )}
+              <div className="flex flex-col gap-1 flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  Score Final{score.score_modified ? ' (modificado)' : ''}
+                </p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {canEdit && editScore !== (score.score_final?.toString() || '') && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={savingScore}
+                      onClick={async () => {
+                        setSavingScore(true);
+                        const newScore = editScore ? parseFloat(editScore) : null;
+                        const { error } = await sb.from('cv_scores').update({ score_final: newScore, score_modified: true }).eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId);
+                        setSavingScore(false);
+                        if (error) {
+                          toast({ title: 'Error al guardar score', description: error.message, variant: 'destructive' });
+                        } else {
+                          toast({ title: 'Score actualizado' });
+                          loadData();
+                        }
+                      }}
+                    >
+                      <Save className="h-3 w-3 mr-1" /> Guardar Score
+                    </Button>
+                  )}
+                  <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} />
+                </div>
+              </div>
             </div>
 
             {/* Radar Chart - always expanded */}
