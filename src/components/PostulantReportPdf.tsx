@@ -193,7 +193,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         y = drawHeader(page, ctx, y);
 
         // Section title
-        y = drawSectionTitle(page, helveticaBold, 'Evaluation Detail', y);
+        y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
 
         // Radar chart
         y = drawRadarChart(page, detalles, helvetica, y);
