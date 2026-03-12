@@ -53,6 +53,12 @@ export default function PostulantDetail() {
   const [savingPreguntas, setSavingPreguntas] = useState(false);
   const [editScore, setEditScore] = useState('');
   const [savingScore, setSavingScore] = useState(false);
+  const [hoveredRadarLabel, setHoveredRadarLabel] = useState<{
+    text: string;
+    x: number;
+    y: number;
+    anchor: 'start' | 'middle' | 'end';
+  } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -387,36 +393,22 @@ export default function PostulantDetail() {
                       <PolarAngleAxis
                         dataKey="criterio"
                         tick={({ payload, x, y, textAnchor }) => {
-                          const full = payload.value || '';
+                          const full = String(payload?.value ?? '');
                           const maxLen = 16;
                           const short = full.length > maxLen ? full.slice(0, maxLen) + '…' : full;
-                          // Use foreignObject to render HTML with proper CSS tooltip
-                          const width = 160;
-                          const height = 40;
-                          const fx = textAnchor === 'end' ? x - width : textAnchor === 'middle' ? x - width / 2 : x;
-                          const fy = y - height / 2;
+                          const safeX = typeof x === 'number' ? x : 0;
+                          const safeY = typeof y === 'number' ? y : 0;
+                          const anchor = (textAnchor as 'start' | 'middle' | 'end') || 'middle';
+
                           return (
-                            <foreignObject x={fx} y={fy} width={width} height={height} style={{ overflow: 'visible' }}>
-                              <div
-                                title={full}
-                                style={{
-                                  fontSize: 10,
-                                  lineHeight: '14px',
-                                  textAlign: textAnchor === 'end' ? 'right' : textAnchor === 'middle' ? 'center' : 'left',
-                                  cursor: 'default',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  height: '100%',
-                                  justifyContent: textAnchor === 'end' ? 'flex-end' : textAnchor === 'middle' ? 'center' : 'flex-start',
-                                }}
-                                className="group relative"
-                              >
-                                <span className="truncate block max-w-[150px] group-hover:whitespace-normal group-hover:overflow-visible group-hover:bg-popover group-hover:border group-hover:border-border group-hover:rounded group-hover:px-2 group-hover:py-1 group-hover:shadow-md group-hover:z-50 group-hover:max-w-none group-hover:absolute">
-                                  {short}
-                                  <span className="hidden group-hover:inline">{full.length > maxLen ? full.slice(maxLen) : ''}</span>
-                                </span>
-                              </div>
-                            </foreignObject>
+                            <g
+                              onMouseEnter={() => setHoveredRadarLabel({ text: full, x: safeX, y: safeY, anchor })}
+                              onMouseLeave={() => setHoveredRadarLabel(null)}
+                            >
+                              <text x={safeX} y={safeY} textAnchor={anchor} fontSize={10} fill="currentColor" style={{ cursor: 'default' }}>
+                                {short}
+                              </text>
+                            </g>
                           );
                         }}
                       />
@@ -426,6 +418,24 @@ export default function PostulantDetail() {
                       <Legend />
                     </RadarChart>
                   </ResponsiveContainer>
+
+                  {hoveredRadarLabel && (
+                    <div
+                      className="pointer-events-none absolute z-50 max-w-[260px] rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
+                      style={{
+                        left: hoveredRadarLabel.x,
+                        top: hoveredRadarLabel.y - 8,
+                        transform:
+                          hoveredRadarLabel.anchor === 'end'
+                            ? 'translate(-100%, -100%)'
+                            : hoveredRadarLabel.anchor === 'start'
+                              ? 'translate(0, -100%)'
+                              : 'translate(-50%, -100%)',
+                      }}
+                    >
+                      {hoveredRadarLabel.text}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   {detalles.map((d, i) => (
