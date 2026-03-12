@@ -17,6 +17,7 @@ import { formatDate, formatDateTime, formatCurrency, getScoreColor, getEtapaColo
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download, ArrowLeft } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
+import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Postulante, CvScore, UserProfile, ScoreDetalle } from '@/types/database';
