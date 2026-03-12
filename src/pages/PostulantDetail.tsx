@@ -60,6 +60,7 @@ export default function PostulantDetail() {
     y: number;
     anchor: 'start' | 'middle' | 'end';
   } | null>(null);
+  const radarChartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
