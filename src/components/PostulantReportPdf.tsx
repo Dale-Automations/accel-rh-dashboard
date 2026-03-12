@@ -168,7 +168,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       if (score?.razones_top3 && score.razones_top3.length > 0) {
         y = drawSectionTitle(page, helveticaBold, 'Key Strengths (Value for the Client)', y);
         for (const r of score.razones_top3) {
-          y = drawWrappedText(page, helvetica, `• ${r}`, y, 11, TEXT_COLOR);
+          y = drawWrappedText(page, helvetica, `- ${r}`, y, 11, TEXT_COLOR);
           y -= 14;
         }
       }
