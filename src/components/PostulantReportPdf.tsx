@@ -402,72 +402,74 @@ function drawFooter(page: PDFPage, font: PDFFont, fontBold: PDFFont) {
 }
 
 function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, startY: number): number {
-  const chartH = 280;
+  if (detalles.length === 0) return startY;
+
+  const chartH = 248;
   const cx = PW / 2;
-  const cy = startY - chartH / 2;
-  const r = 110;
+  const cy = startY - chartH / 2 - 6;
+  const r = 98;
   const n = detalles.length;
-  const maxVal = Math.max(...detalles.map(d => d.puntaje_max), 1);
+  const maxVal = Math.max(...detalles.map((d) => Number(d.puntaje_max) || 0), 1);
   const levels = 5;
 
   const getPoint = (index: number, value: number) => {
     const angle = (Math.PI * 2 * index) / n - Math.PI / 2;
-    const ratio = value / maxVal;
-    return { x: cx + r * ratio * Math.cos(angle), y: cy + r * ratio * Math.sin(angle) };
+    const ratio = (Number(value) || 0) / maxVal;
+    return { x: cx + r * ratio * Math.cos(angle), y: cy + r * ratio * Math.sin(angle), angle };
   };
 
-  // Build SVG path for a polygon from points
-  const buildSvgPath = (pts: { x: number; y: number }[]) => {
-    // pdf-lib drawSvgPath uses standard SVG path syntax, but coordinates are relative to the options x,y
-    // So we use absolute coordinates with M and L, passing x:0, y:0
-    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
+  const drawPolygon = (pts: { x: number; y: number }[], thickness: number, color: ReturnType<typeof rgb>) => {
+    for (let i = 0; i < pts.length; i++) {
+      const next = (i + 1) % pts.length;
+      page.drawLine({ start: pts[i], end: pts[next], thickness, color });
+    }
   };
 
-  // Grid polygons (filled very lightly)
+  // Grid polygons
   for (let l = 1; l <= levels; l++) {
     const pts = Array.from({ length: n }, (_, i) => getPoint(i, (maxVal * l) / levels));
-    for (let i = 0; i < n; i++) {
-      const next = (i + 1) % n;
-      page.drawLine({ start: pts[i], end: pts[next], thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
-    }
+    drawPolygon(pts, 0.7, rgb(0.85, 0.85, 0.85));
   }
 
   // Axes
   for (let i = 0; i < n; i++) {
     const p = getPoint(i, maxVal);
-    page.drawLine({ start: { x: cx, y: cy }, end: p, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+    page.drawLine({ start: { x: cx, y: cy }, end: p, thickness: 0.7, color: rgb(0.83, 0.83, 0.83) });
   }
 
-  // Max polygon (light fill)
-  const maxPts = detalles.map((d, i) => getPoint(i, d.puntaje_max));
-  page.drawSvgPath(buildSvgPath(maxPts), {
-    x: 0, y: 0,
-    borderColor: rgb(0.75, 0.75, 0.82),
-    borderWidth: 1,
-    color: rgb(0.92, 0.91, 0.95),
-    opacity: 0.3,
-    borderOpacity: 0.5,
+  // Max + value polygons (outline, always visible)
+  const maxPts = detalles.map((d, i) => getPoint(i, Number(d.puntaje_max) || 0));
+  drawPolygon(maxPts, 1.2, rgb(0.78, 0.78, 0.82));
+
+  const valPts = detalles.map((d, i) => getPoint(i, Number(d.puntaje) || 0));
+  drawPolygon(valPts, 2, ACCENT);
+
+  // Light spokes to improve readability of value area
+  for (const p of valPts) {
+    page.drawLine({ start: { x: cx, y: cy }, end: p, thickness: 0.6, color: rgb(0.75, 0.72, 0.88), opacity: 0.45 });
+  }
+
+  // Value points + numeric labels
+  valPts.forEach((p, i) => {
+    const d = detalles[i];
+    const value = Number(d.puntaje) || 0;
+    page.drawCircle({ x: p.x, y: p.y, size: 2.6, color: ACCENT });
+
+    const offset = 8;
+    const tx = p.x + Math.cos(p.angle) * offset;
+    const ty = p.y + Math.sin(p.angle) * offset;
+    page.drawText(`${value}`, { x: tx, y: ty, size: 7, font, color: ACCENT });
   });
 
-  // Value polygon (filled with accent color)
-  const valPts = detalles.map((d, i) => getPoint(i, d.puntaje));
-  page.drawSvgPath(buildSvgPath(valPts), {
-    x: 0, y: 0,
-    borderColor: rgb(0.357, 0.31, 0.71),
-    borderWidth: 1.5,
-    color: rgb(0.357, 0.31, 0.71),
-    opacity: 0.25,
-    borderOpacity: 0.8,
-  });
-
-  // Labels
+  // Criteria labels
   detalles.forEach((d, i) => {
-    const p = getPoint(i, maxVal * 1.25);
+    const p = getPoint(i, maxVal * 1.34);
     const words = d.criterio.split(' ');
     const lines: string[] = [];
     let current = '';
-    words.forEach(w => {
-      if ((current + ' ' + w).trim().length > 18) {
+
+    words.forEach((w) => {
+      if ((current + ' ' + w).trim().length > 22) {
         lines.push(current.trim());
         current = w;
       } else {
@@ -479,6 +481,7 @@ function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, 
     lines.forEach((line, li) => {
       const safeLine = line.replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
       if (!safeLine) return;
+
       const textW = font.widthOfTextAtSize(safeLine, 8);
       let tx = p.x;
       if (p.x < cx - 10) tx = p.x - textW;
@@ -486,7 +489,7 @@ function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, 
       else tx = p.x - textW / 2;
 
       try {
-        page.drawText(safeLine, { x: tx, y: p.y - li * 10, size: 8, font, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(safeLine, { x: tx, y: p.y - li * 10, size: 8, font, color: rgb(0.25, 0.25, 0.25) });
       } catch {
         // Skip unencodable text
       }
@@ -497,10 +500,10 @@ function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, 
   for (let l = 1; l <= levels; l++) {
     const pct = `${Math.round((l / levels) * 100)}%`;
     const p = getPoint(0, (maxVal * l) / levels);
-    page.drawText(pct, { x: p.x + 4, y: p.y + 2, size: 7, font, color: rgb(0.6, 0.6, 0.6) });
+    page.drawText(pct, { x: p.x + 6, y: p.y + 2, size: 7, font, color: rgb(0.6, 0.6, 0.6) });
   }
 
-  return startY - chartH - 8;
+  return startY - chartH - 12;
 }
 
 function drawBarChart(
