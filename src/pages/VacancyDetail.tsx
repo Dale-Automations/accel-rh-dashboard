@@ -272,7 +272,7 @@ export default function VacancyDetail() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
-          <KpiCard title="Total" value={totalPost} icon={Users} onClick={() => toggleKpiFilter('all_reset')} active={!kpiFilter} />
+          <KpiCard title="Total" value={totalPost} icon={Users} onClick={() => { setKpiFilter(null); setPage(0); }} active={!kpiFilter} />
           <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} onClick={() => toggleKpiFilter('evaluados')} active={kpiFilter === 'evaluados'} />
           <KpiCard title="Pendientes" value={pendientes} icon={Clock} onClick={() => toggleKpiFilter('pendientes')} active={kpiFilter === 'pendientes'} />
           <KpiCard title="Score Prom." value={avgScore ?? '—'} icon={TrendingUp} />
