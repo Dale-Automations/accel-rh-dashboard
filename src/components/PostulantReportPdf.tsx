@@ -495,3 +495,61 @@ function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, 
 
   return startY - chartH - 8;
 }
+
+function drawBarChart(
+  page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, fontBold: PDFFont, startY: number,
+): number {
+  const barH = 14;
+  const gap = 8;
+  const labelW = 200;
+  const scoreW = 50;
+  const barMaxW = CW - labelW - scoreW - 10;
+  let y = startY;
+
+  // Legend
+  const legendY = y + 2;
+  // Max legend
+  page.drawRectangle({ x: ML + labelW, y: legendY, width: 12, height: 8, color: rgb(0.88, 0.87, 0.92) });
+  page.drawText('Máximo', { x: ML + labelW + 16, y: legendY + 1, size: 8, font, color: GRAY });
+  // Score legend
+  page.drawRectangle({ x: ML + labelW + 70, y: legendY, width: 12, height: 8, color: ACCENT });
+  page.drawText('Puntaje', { x: ML + labelW + 86, y: legendY + 1, size: 8, font: fontBold, color: ACCENT });
+  y -= 18;
+
+  for (const d of detalles) {
+    // Truncate label
+    let label = d.criterio;
+    const maxLabelChars = 28;
+    if (label.length > maxLabelChars) label = label.substring(0, maxLabelChars) + '...';
+
+    // Label
+    page.drawText(label, { x: ML, y: y + 2, size: 9, font: fontBold, color: TEXT_COLOR });
+
+    // Background bar (max)
+    const barX = ML + labelW;
+    const maxBarW = barMaxW;
+    page.drawRectangle({
+      x: barX, y: y - 1, width: maxBarW, height: barH,
+      color: rgb(0.88, 0.87, 0.92),
+    });
+
+    // Score bar
+    const ratio = d.puntaje_max > 0 ? d.puntaje / d.puntaje_max : 0;
+    const scoreBarW = Math.max(barMaxW * ratio, 2);
+    page.drawRectangle({
+      x: barX, y: y - 1, width: scoreBarW, height: barH,
+      color: ACCENT,
+    });
+
+    // Score text
+    const scoreText = `${d.puntaje}/${d.puntaje_max}`;
+    const scoreTextW = font.widthOfTextAtSize(scoreText, 9);
+    page.drawText(scoreText, {
+      x: PW - MR - scoreTextW, y: y + 2, size: 9, font, color: TEXT_COLOR,
+    });
+
+    y -= barH + gap;
+  }
+
+  return y;
+}
