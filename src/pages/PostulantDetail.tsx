@@ -146,8 +146,7 @@ export default function PostulantDetail() {
 
   const detalles = (score?.detalles || []) as ScoreDetalle[];
   const radarData = detalles.map(d => ({
-    criterio: d.criterio.length > 20 ? d.criterio.slice(0, 18) + '...' : d.criterio,
-    fullName: d.criterio,
+    criterio: d.criterio,
     puntaje: d.puntaje,
     puntaje_max: d.puntaje_max,
   }));
