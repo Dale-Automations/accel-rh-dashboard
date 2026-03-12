@@ -399,7 +399,6 @@ function drawFooter(page: PDFPage, font: PDFFont, fontBold: PDFFont) {
 }
 
 function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, startY: number): number {
-  const chartW = 360;
   const chartH = 280;
   const cx = PW / 2;
   const cy = startY - chartH / 2;
@@ -414,7 +413,14 @@ function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, 
     return { x: cx + r * ratio * Math.cos(angle), y: cy + r * ratio * Math.sin(angle) };
   };
 
-  // Grid
+  // Build SVG path for a polygon from points
+  const buildSvgPath = (pts: { x: number; y: number }[]) => {
+    // pdf-lib drawSvgPath uses standard SVG path syntax, but coordinates are relative to the options x,y
+    // So we use absolute coordinates with M and L, passing x:0, y:0
+    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
+  };
+
+  // Grid polygons (filled very lightly)
   for (let l = 1; l <= levels; l++) {
     const pts = Array.from({ length: n }, (_, i) => getPoint(i, (maxVal * l) / levels));
     for (let i = 0; i < n; i++) {
@@ -429,17 +435,27 @@ function drawRadarChart(page: PDFPage, detalles: ScoreDetalle[], font: PDFFont, 
     page.drawLine({ start: { x: cx, y: cy }, end: p, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
   }
 
-  // Value polygon (draw lines)
-  const valPts = detalles.map((d, i) => getPoint(i, d.puntaje));
-  for (let i = 0; i < n; i++) {
-    const next = (i + 1) % n;
-    page.drawLine({ start: valPts[i], end: valPts[next], thickness: 1.5, color: rgb(0.357, 0.31, 0.71) });
-  }
+  // Max polygon (light fill)
+  const maxPts = detalles.map((d, i) => getPoint(i, d.puntaje_max));
+  page.drawSvgPath(buildSvgPath(maxPts), {
+    x: 0, y: 0,
+    borderColor: rgb(0.75, 0.75, 0.82),
+    borderWidth: 1,
+    color: rgb(0.92, 0.91, 0.95),
+    opacity: 0.3,
+    borderOpacity: 0.5,
+  });
 
-  // Value dots
-  for (const pt of valPts) {
-    page.drawCircle({ x: pt.x, y: pt.y, size: 2.5, color: rgb(0.357, 0.31, 0.71) });
-  }
+  // Value polygon (filled with accent color)
+  const valPts = detalles.map((d, i) => getPoint(i, d.puntaje));
+  page.drawSvgPath(buildSvgPath(valPts), {
+    x: 0, y: 0,
+    borderColor: rgb(0.357, 0.31, 0.71),
+    borderWidth: 1.5,
+    color: rgb(0.357, 0.31, 0.71),
+    opacity: 0.25,
+    borderOpacity: 0.8,
+  });
 
   // Labels
   detalles.forEach((d, i) => {
