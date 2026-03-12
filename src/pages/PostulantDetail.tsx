@@ -380,38 +380,37 @@ export default function PostulantDetail() {
             {radarData.length > 0 && (
               <div className="bg-card rounded-lg border p-4 space-y-4">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Detalle Evaluación</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RadarChart data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis
-                      dataKey="criterio"
-                      tick={({ payload, x, y, textAnchor }) => {
-                        const fullLabel = payload.value || '';
-                        const maxLen = 18;
-                        const truncated = fullLabel.length > maxLen ? fullLabel.slice(0, maxLen) + '…' : fullLabel;
-                        return (
-                          <g className="recharts-polar-angle-axis-tick">
-                            <text x={x} y={y} textAnchor={textAnchor} fontSize={10} fill="currentColor">
-                              <title>{fullLabel}</title>
-                              {truncated}
-                            </text>
-                          </g>
-                        );
-                      }}
-                    />
-                    <PolarRadiusAxis angle={30} />
-                    <Radar name="Máximo" dataKey="puntaje_max" stroke="hsl(250, 15%, 80%)" fill="hsl(250, 15%, 80%)" fillOpacity={0.2} />
-                    <Radar name="Puntaje" dataKey="puntaje" stroke="hsl(260, 50%, 55%)" fill="hsl(260, 50%, 55%)" fillOpacity={0.4} />
-                    <Legend />
-                  </RadarChart>
-                </ResponsiveContainer>
+                <div className="relative">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RadarChart data={radarData}>
+                      <PolarGrid />
+                      <PolarAngleAxis
+                        dataKey="criterio"
+                        tick={false}
+                      />
+                      <PolarRadiusAxis angle={30} />
+                      <Radar name="Máximo" dataKey="puntaje_max" stroke="hsl(250, 15%, 80%)" fill="hsl(250, 15%, 80%)" fillOpacity={0.2} />
+                      <Radar name="Puntaje" dataKey="puntaje" stroke="hsl(260, 50%, 55%)" fill="hsl(260, 50%, 55%)" fillOpacity={0.4} />
+                      <Legend />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
                 <div className="space-y-2">
                   {detalles.map((d, i) => (
-                    <div key={i} className="flex items-center gap-3 group relative">
-                      <span className="text-xs text-foreground w-40 truncate cursor-default" title={d.criterio}>{d.criterio}</span>
-                      <Progress value={(d.puntaje / d.puntaje_max) * 100} className="flex-1 h-2" />
-                      <span className="text-xs text-muted-foreground w-16 text-right">{d.puntaje}/{d.puntaje_max}</span>
-                    </div>
+                    <TooltipProvider key={i}>
+                      <UITooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-3 cursor-default">
+                            <span className="text-xs text-foreground w-40 truncate">{d.criterio}</span>
+                            <Progress value={(d.puntaje / d.puntaje_max) * 100} className="flex-1 h-2" />
+                            <span className="text-xs text-muted-foreground w-16 text-right">{d.puntaje}/{d.puntaje_max}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p className="text-sm">{d.criterio}</p>
+                        </TooltipContent>
+                      </UITooltip>
+                    </TooltipProvider>
                   ))}
                 </div>
                 <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
