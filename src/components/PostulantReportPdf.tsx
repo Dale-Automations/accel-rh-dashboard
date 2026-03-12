@@ -192,7 +192,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
               y = PH - MT;
               y = drawHeader(page, ctx, y);
             }
-            y = drawWrappedText(page, helvetica, `⚠ ${r}`, y, 10.5, TEXT_COLOR);
+            y = drawWrappedText(page, helvetica, `[!] ${r}`, y, 10.5, TEXT_COLOR);
             y -= 8;
           }
         }
