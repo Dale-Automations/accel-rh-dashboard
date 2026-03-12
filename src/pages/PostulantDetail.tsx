@@ -396,7 +396,7 @@ export default function PostulantDetail() {
             {radarData.length > 0 && (
               <div className="bg-card rounded-lg border p-4 space-y-4">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Detalle Evaluación</h3>
-                <div className="relative">
+                <div className="relative" ref={radarChartRef}>
                   <ResponsiveContainer width="100%" height={320}>
                     <RadarChart data={radarData} outerRadius="65%">
                       <PolarGrid />
