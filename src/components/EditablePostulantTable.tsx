@@ -116,6 +116,7 @@ function EditableSelectCell({
 
 export default function EditablePostulantTable({
   postulantes, scores, profiles, role, userId, vacancyId, page, pageSize, onDataChange,
+  sortBy, sortDir, onToggleSort,
 }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
