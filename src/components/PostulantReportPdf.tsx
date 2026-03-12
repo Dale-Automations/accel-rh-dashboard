@@ -183,25 +183,11 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         y = PH - MT;
         y = drawHeader(page, ctx, y);
 
-        // Scoring Breakdown - Radar chart from DOM
+        // Scoring Breakdown - Radar chart
         if (detalles.length > 0) {
           y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
-          
-          const radarPng = await captureRadarChart();
-          if (radarPng) {
-            const radarImg = await pdfDoc.embedPng(radarPng);
-            const imgW = CW * 0.85;
-            const imgH = imgW * (radarImg.height / radarImg.width);
-            const chartH = Math.min(imgH, 280);
-            const chartW2 = chartH * (radarImg.width / radarImg.height);
-            const imgX = ML + (CW - chartW2) / 2;
-            page.drawImage(radarImg, { x: imgX, y: y - chartH, width: chartW2, height: chartH });
-            y -= chartH + 12;
-          } else {
-            // Fallback: draw programmatic chart
-            y = drawRadarChart(page, detalles, helvetica, y);
-            y -= 12;
-          }
+          y = drawRadarChart(page, detalles, helvetica, y);
+          y -= 12;
         }
 
         // Logistics
