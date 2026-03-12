@@ -297,6 +297,9 @@ export default function VacancyDetail() {
           page={page}
           pageSize={PAGE_SIZE}
           onDataChange={loadData}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onToggleSort={handleToggleSort}
         />
       </div>
 
