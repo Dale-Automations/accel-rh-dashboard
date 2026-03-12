@@ -85,11 +85,20 @@ export default function VacancyDetail() {
     return profiles.find(p => p.id === id)?.full_name || '—';
   };
 
+  // Stats (computed before filtering so KPI filter can reference them)
+  const totalPost = postulantes.length;
+  const evaluados = postulantes.filter(p => p.scoring_status === 'scored').length;
+  const pendientes = postulantes.filter(p => p.scoring_status === 'pending').length;
+  const contactados = postulantes.filter(p => p.contacted).length;
+  const scoredScores = scores.filter(s => s.score_final != null).map(s => s.score_final!);
+  const avgScore = scoredScores.length ? Math.round(scoredScores.reduce((a, b) => a + b, 0) / scoredScores.length) : null;
+  const maxScore = scoredScores.length ? Math.max(...scoredScores) : null;
+  const minScore = scoredScores.length ? Math.min(...scoredScores) : null;
+
   // Filtering
   let filtered = postulantes.filter(p => {
     if (searchQuery && !p.full_name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (etapaFilter !== 'all' && p.etapa !== etapaFilter) return false;
-    // KPI filters
     if (kpiFilter === 'evaluados' && p.scoring_status !== 'scored') return false;
     if (kpiFilter === 'pendientes' && p.scoring_status !== 'pending') return false;
     if (kpiFilter === 'contactados' && !p.contacted) return false;
@@ -121,19 +130,6 @@ export default function VacancyDetail() {
     if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
     return sortDir === 'asc' ? va - vb : vb - va;
   });
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  // Stats
-  const totalPost = postulantes.length;
-  const evaluados = postulantes.filter(p => p.scoring_status === 'scored').length;
-  const pendientes = postulantes.filter(p => p.scoring_status === 'pending').length;
-  const contactados = postulantes.filter(p => p.contacted).length;
-  const scoredScores = scores.filter(s => s.score_final != null).map(s => s.score_final!);
-  const avgScore = scoredScores.length ? Math.round(scoredScores.reduce((a, b) => a + b, 0) / scoredScores.length) : null;
-  const maxScore = scoredScores.length ? Math.max(...scoredScores) : null;
-  const minScore = scoredScores.length ? Math.min(...scoredScores) : null;
 
   const handleToggleSort = (col: string) => {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
