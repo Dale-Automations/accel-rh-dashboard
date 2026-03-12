@@ -288,7 +288,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
     } finally {
       setGenerating(false);
     }
-  }, [postulante, score, detalles, vacancyName]);
+  }, [postulante, score, detalles, vacancyName, captureRadarChart]);
 
   return (
     <Button variant="outline" size="sm" onClick={generatePdf} disabled={generating}>
