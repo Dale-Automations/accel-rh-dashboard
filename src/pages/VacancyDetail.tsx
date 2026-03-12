@@ -131,6 +131,14 @@ export default function VacancyDetail() {
     return sortDir === 'asc' ? va - vb : vb - va;
   });
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const toggleKpiFilter = (key: string) => {
+    setKpiFilter(prev => prev === key ? null : key);
+    setPage(0);
+  };
+
   const handleToggleSort = (col: string) => {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortDir('desc'); }
