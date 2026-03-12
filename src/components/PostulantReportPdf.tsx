@@ -168,7 +168,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       if (score?.razones_top3 && score.razones_top3.length > 0) {
         y = drawSectionTitle(page, helveticaBold, 'Key Strengths (Value for the Client)', y);
         for (const r of score.razones_top3) {
-          y = drawWrappedText(page, helvetica, `• ${r}`, y, 11, TEXT_COLOR);
+          y = drawWrappedText(page, helvetica, `- ${r}`, y, 11, TEXT_COLOR);
           y -= 14;
         }
       }
@@ -225,7 +225,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
               y = PH - MT;
               y = drawHeader(page, ctx, y);
             }
-            y = drawWrappedText(page, helvetica, `• ${q}`, y, 10.5, TEXT_COLOR);
+            y = drawWrappedText(page, helvetica, `- ${q}`, y, 10.5, TEXT_COLOR);
             y -= 10;
           }
           y -= 6;
@@ -249,7 +249,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
               y = PH - MT;
               y = drawHeader(page, ctx, y);
             }
-            y = drawWrappedText(page, helvetica, `⚠ ${r}`, y, 10.5, TEXT_COLOR);
+            y = drawWrappedText(page, helvetica, `[!] ${r}`, y, 10.5, TEXT_COLOR);
             y -= 8;
           }
         }
