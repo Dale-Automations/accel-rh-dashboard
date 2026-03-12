@@ -335,32 +335,32 @@ export default function PostulantDetail() {
       <div className="space-y-6">
         {score && score.score_final != null ? (
           <>
-            {/* Score + Download */}
-            <div className="bg-card rounded-lg border p-4 flex items-center gap-5">
-              <div className={`relative flex items-center justify-center w-20 h-20 rounded-full border-4 shrink-0 ${
-              score.score_final > 90 ? 'border-green-500' :
-              score.score_final >= 80 ? 'border-yellow-500' :
-              score.score_final >= 70 ? 'border-orange-500' : 'border-red-500'
-              }`}>
-                {canEdit ? (
-                  <input
-                    type="number"
-                    value={editScore}
-                    onChange={e => setEditScore(e.target.value)}
-                    className="w-12 text-2xl font-bold text-foreground text-center bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    min={0}
-                    max={100}
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-foreground">{score.score_final}{score.score_modified ? '*' : ''}</span>
-                )}
-                <span className="absolute bottom-1 text-[10px] text-muted-foreground">/100</span>
-              </div>
-              <div className="flex flex-col gap-1 flex-1">
-                <p className="text-sm font-medium text-foreground">
-                  Score Final{score.score_modified ? ' (modificado)' : ''}
-                </p>
-                <div className="flex flex-wrap gap-2 mt-1">
+            {/* Score + Download row */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Score card */}
+              <div className="bg-card rounded-lg border p-4 flex items-center gap-4">
+                <div className={`relative flex items-center justify-center w-16 h-16 rounded-full border-4 shrink-0 ${
+                score.score_final > 90 ? 'border-green-500' :
+                score.score_final >= 80 ? 'border-yellow-500' :
+                score.score_final >= 70 ? 'border-orange-500' : 'border-red-500'
+                }`}>
+                  {canEdit ? (
+                    <input
+                      type="number"
+                      value={editScore}
+                      onChange={e => setEditScore(e.target.value)}
+                      className="w-10 text-xl font-bold text-foreground text-center bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      min={0}
+                      max={100}
+                    />
+                  ) : (
+                    <span className="text-xl font-bold text-foreground">{score.score_final}{score.score_modified ? '*' : ''}</span>
+                  )}
+                  <span className="absolute bottom-0.5 text-[9px] text-muted-foreground">/100</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium text-foreground">Score Final</p>
+                  {score.score_modified && <p className="text-xs text-muted-foreground">(modificado)</p>}
                   {canEdit && editScore !== (score.score_final?.toString() || '') && (
                     <Button
                       size="sm"
@@ -379,11 +379,16 @@ export default function PostulantDetail() {
                         }
                       }}
                     >
-                      <Save className="h-3 w-3 mr-1" /> Guardar Score
+                      <Save className="h-3 w-3 mr-1" /> Guardar
                     </Button>
                   )}
-                  <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} />
                 </div>
+              </div>
+
+              {/* Download card */}
+              <div className="bg-card rounded-lg border p-4 flex flex-col items-center justify-center gap-2">
+                <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} />
+                <p className="text-xs text-muted-foreground text-center">Generar reporte PDF</p>
               </div>
             </div>
 
