@@ -35,6 +35,7 @@ export default function VacancyDetail() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [etapaFilter, setEtapaFilter] = useState<string>('all');
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('score');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
