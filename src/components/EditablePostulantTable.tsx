@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getScoreColor, getEtapaColor, formatCurrency } from '@/lib/formatters';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import type { Postulante, CvScore, UserProfile, UserRole } from '@/types/database';
 import { ETAPAS } from '@/types/database';
