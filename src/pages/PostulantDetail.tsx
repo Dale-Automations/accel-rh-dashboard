@@ -383,7 +383,22 @@ export default function PostulantDetail() {
                 <ResponsiveContainer width="100%" height={300}>
                   <RadarChart data={radarData}>
                     <PolarGrid />
-                    <PolarAngleAxis dataKey="criterio" tick={{ fontSize: 10 }} />
+                    <PolarAngleAxis
+                      dataKey="criterio"
+                      tick={({ payload, x, y, textAnchor, ...rest }) => {
+                        const label = payload.value || '';
+                        const maxLen = 18;
+                        const truncated = label.length > maxLen ? label.slice(0, maxLen) + '…' : label;
+                        return (
+                          <g>
+                            <title>{label}</title>
+                            <text x={x} y={y} textAnchor={textAnchor} fontSize={10} fill="currentColor">
+                              {truncated}
+                            </text>
+                          </g>
+                        );
+                      }}
+                    />
                     <PolarRadiusAxis angle={30} />
                     <Radar name="Máximo" dataKey="puntaje_max" stroke="hsl(250, 15%, 80%)" fill="hsl(250, 15%, 80%)" fillOpacity={0.2} />
                     <Radar name="Puntaje" dataKey="puntaje" stroke="hsl(260, 50%, 55%)" fill="hsl(260, 50%, 55%)" fillOpacity={0.4} />
