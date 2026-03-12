@@ -98,6 +98,11 @@ export default function VacancyDetail() {
       case 'score': va = getScore(a.id_postulant) ?? -1; vb = getScore(b.id_postulant) ?? -1; break;
       case 'name': va = a.full_name || ''; vb = b.full_name || ''; break;
       case 'salary': va = a.salary_pretended ?? 0; vb = b.salary_pretended ?? 0; break;
+      case 'etapa': va = a.etapa || ''; vb = b.etapa || ''; break;
+      case 'source': va = a.source || ''; vb = b.source || ''; break;
+      case 'status': va = a.status || ''; vb = b.status || ''; break;
+      case 'contact_status': va = a.contact_status || ''; vb = b.contact_status || ''; break;
+      case 'selectora': va = getSelectoraName(a.selectora_id); vb = getSelectoraName(b.selectora_id); break;
       default: va = getScore(a.id_postulant) ?? -1; vb = getScore(b.id_postulant) ?? -1;
     }
     if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
