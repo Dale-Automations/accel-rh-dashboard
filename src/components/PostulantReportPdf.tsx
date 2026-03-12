@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, RefObject } from 'react';
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
@@ -10,6 +10,7 @@ interface Props {
   postulante: Postulante;
   score: CvScore | null;
   vacancyName?: string;
+  radarChartRef?: RefObject<HTMLDivElement | null>;
 }
 
 // A4 in points (72 dpi)
