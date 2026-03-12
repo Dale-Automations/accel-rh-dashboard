@@ -188,18 +188,18 @@ export default function EditablePostulantTable({
           <TableRow className="bg-muted/50">
             <TableHead className="w-10 text-center">#</TableHead>
             {!isCliente ? (
-              <TableHead className="min-w-[160px]">Nombre</TableHead>
+              <SortableHead col="name" className="min-w-[160px]">Nombre</SortableHead>
             ) : (
               <TableHead>ID</TableHead>
             )}
-            <TableHead className="text-center w-16">Score</TableHead>
-            <TableHead className="min-w-[140px]">Etapa</TableHead>
-            {!isCliente && <TableHead className="min-w-[130px]">Selector/a</TableHead>}
-            <TableHead className="w-20">Fuente</TableHead>
-            {!isCliente && <TableHead className="min-w-[120px]">Estado</TableHead>}
-            {!isCliente && <TableHead className="min-w-[110px]">Rem. Pret.</TableHead>}
+            <SortableHead col="score" className="text-center w-16">Score</SortableHead>
+            <SortableHead col="etapa" className="min-w-[140px]">Etapa</SortableHead>
+            {!isCliente && <SortableHead col="selectora" className="min-w-[130px]">Selector/a</SortableHead>}
+            <SortableHead col="source" className="w-20">Fuente</SortableHead>
+            {!isCliente && <SortableHead col="status" className="min-w-[120px]">Estado</SortableHead>}
+            {!isCliente && <SortableHead col="salary" className="min-w-[110px]">Rem. Pret.</SortableHead>}
             {!isCliente && <TableHead className="w-10 text-center">✓</TableHead>}
-            {!isCliente && <TableHead className="min-w-[160px]">Estado Contacto</TableHead>}
+            {!isCliente && <SortableHead col="contact_status" className="min-w-[160px]">Estado Contacto</SortableHead>}
             {!isCliente && <TableHead className="min-w-[180px]">Coment. Selector/a</TableHead>}
             {role === 'manager' && <TableHead className="min-w-[180px]">Coment. Manager</TableHead>}
             {!isCliente && <TableHead className="min-w-[160px]">Screening</TableHead>}
