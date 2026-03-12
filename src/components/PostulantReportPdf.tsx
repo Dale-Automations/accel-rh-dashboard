@@ -13,14 +13,13 @@ interface Props {
   vacancyName?: string;
 }
 
-// A4 at 96dpi: 794 x 1123 px
+// A4 at 96dpi
 const A4_W_PX = 794;
 const A4_H_PX = 1123;
 const A4_W_MM = 210;
 const A4_H_MM = 297;
-const MARGIN_PX = 56; // ~15mm margin
-const CONTENT_W_PX = A4_W_PX - MARGIN_PX * 2;
-const FOOTER_H_PX = 80;
+const MARGIN = 56;
+const FOOTER_H = 72;
 
 export default function PostulantReportPdf({ postulante, score, vacancyName }: Props) {
   const page1Ref = useRef<HTMLDivElement>(null);
@@ -42,24 +41,21 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
           backgroundColor: '#ffffff',
           logging: false,
           width: A4_W_PX,
+          height: A4_H_PX,
           windowWidth: A4_W_PX,
         });
-        return canvas;
+        return canvas.toDataURL('image/jpeg', 0.92);
       };
 
       if (page1Ref.current) {
-        const canvas = await captureEl(page1Ref.current);
-        const imgData = canvas.toDataURL('image/jpeg', 0.92);
-        const imgH = (canvas.height / canvas.width) * A4_W_MM;
-        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W_MM, imgH);
+        const img = await captureEl(page1Ref.current);
+        pdf.addImage(img, 'JPEG', 0, 0, A4_W_MM, A4_H_MM);
       }
 
       if (page2Ref.current && hasPage2) {
         pdf.addPage();
-        const canvas = await captureEl(page2Ref.current);
-        const imgData = canvas.toDataURL('image/jpeg', 0.92);
-        const imgH = (canvas.height / canvas.width) * A4_W_MM;
-        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W_MM, imgH);
+        const img = await captureEl(page2Ref.current);
+        pdf.addImage(img, 'JPEG', 0, 0, A4_W_MM, A4_H_MM);
       }
 
       const safeName = (postulante.full_name || 'Candidato').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').trim().replace(/\s+/g, '_');
@@ -78,18 +74,14 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
 
   const pageStyle: React.CSSProperties = {
     width: `${A4_W_PX}px`,
-    minHeight: `${A4_H_PX}px`,
+    height: `${A4_H_PX}px`,
     backgroundColor: '#fff',
     fontFamily: 'Helvetica, Arial, sans-serif',
     color: '#1a1a1a',
     boxSizing: 'border-box',
     position: 'relative',
+    overflow: 'hidden',
     border: '3px solid #2d3561',
-    paddingBottom: `${FOOTER_H_PX + 16}px`,
-  };
-
-  const contentPad: React.CSSProperties = {
-    padding: `${MARGIN_PX}px ${MARGIN_PX}px 0`,
   };
 
   return (
@@ -99,20 +91,15 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
         {generating ? 'Generando...' : 'Descargar PDF'}
       </Button>
 
-      {/* Hidden pages for capture */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-        {/* PAGE 1 */}
+        {/* ===== PAGE 1 ===== */}
         <div ref={page1Ref} style={pageStyle}>
-          <div style={contentPad}>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-              <img src={logoSrc} alt="AccelRH" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
-              <span style={{ fontSize: '28px', fontWeight: 300, color: '#333', letterSpacing: '0.5px' }}>Candidate Report</span>
-            </div>
-            <hr style={{ border: 'none', borderTop: '2px solid #2d3561', margin: '0 0 20px' }} />
+          <div style={{ padding: `${MARGIN}px ${MARGIN}px 0` }}>
+            <PageHeader />
+            <hr style={{ border: 'none', borderTop: '2px solid #2d3561', margin: '0 0 24px' }} />
 
-            {/* Metadata */}
-            <table style={{ fontSize: '13px', lineHeight: '1.8', marginBottom: '20px', maxWidth: `${CONTENT_W_PX}px` }}>
+            {/* Metadata table */}
+            <table style={{ fontSize: '13px', lineHeight: '2', marginBottom: '24px' }}>
               <tbody>
                 <MetaRow label="Customer" value={vacancyName || postulante.vacancy_name || '—'} />
                 <MetaRow label="Role" value={postulante.vacancy_name || '—'} />
@@ -122,19 +109,19 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
               </tbody>
             </table>
 
-            {/* Score */}
-            <p style={{ fontSize: '15px', marginBottom: '4px' }}>
+            {/* Score + Status */}
+            <p style={{ fontSize: '15px', marginBottom: '2px' }}>
               <strong>AcceleRATE Match Score:</strong> {scoreVal != null ? `${scoreVal}/100` : '—'}
             </p>
-            <p style={{ fontSize: '13px', marginBottom: '24px' }}>
+            <p style={{ fontSize: '13px', marginBottom: '28px' }}>
               <strong>Status:</strong> {statusText}
             </p>
 
             {/* Profile Summary */}
             {(postulante.screening_responses || postulante.comments_selectora || postulante.comments_manager) && (
               <>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px' }}>Professional Profile Summary</h3>
-                <p style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '24px', color: '#333', maxWidth: `${CONTENT_W_PX}px`, wordWrap: 'break-word' }}>
+                <SectionTitle>Professional Profile Summary</SectionTitle>
+                <p style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '24px', color: '#333' }}>
                   {postulante.screening_responses || postulante.comments_selectora || postulante.comments_manager}
                 </p>
               </>
@@ -143,43 +130,38 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
             {/* Key Strengths */}
             {score?.razones_top3 && score.razones_top3.length > 0 && (
               <>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px' }}>Key Strengths (Value for the Client)</h3>
+                <SectionTitle>Key Strengths (Value for the Client)</SectionTitle>
                 {score.razones_top3.map((r, i) => (
-                  <p key={i} style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '10px', color: '#333', maxWidth: `${CONTENT_W_PX}px`, wordWrap: 'break-word' }}>
-                    • {r}
+                  <p key={i} style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '12px', color: '#333' }}>
+                    {r}
                   </p>
                 ))}
               </>
             )}
           </div>
-
           <PageFooter />
         </div>
 
-        {/* PAGE 2 */}
+        {/* ===== PAGE 2 ===== */}
         {hasPage2 && (
           <div ref={page2Ref} style={pageStyle}>
-            <div style={contentPad}>
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-                <img src={logoSrc} alt="AccelRH" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
-                <span style={{ fontSize: '28px', fontWeight: 300, color: '#333', letterSpacing: '0.5px' }}>Candidate Report</span>
-              </div>
+            <div style={{ padding: `${MARGIN}px ${MARGIN}px 0` }}>
+              <PageHeader />
 
               {/* Scoring Breakdown */}
               {detalles.length > 0 && (
                 <>
-                  <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '12px' }}>Scoring Breakdown</h3>
+                  <SectionTitle>Scoring Breakdown</SectionTitle>
                   <div
-                    style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', maxWidth: `${CONTENT_W_PX}px` }}
+                    style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}
                     dangerouslySetInnerHTML={{ __html: radarSvg }}
                   />
                 </>
               )}
 
               {/* Logistics */}
-              <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px' }}>Logistics &amp; Salary Expectations</h3>
-              <div style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '20px', color: '#333', maxWidth: `${CONTENT_W_PX}px` }}>
+              <SectionTitle>Logistics &amp; Salary Expectations</SectionTitle>
+              <div style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '20px', color: '#333' }}>
                 <p>Salary Expectation: {postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}</p>
                 <p>Availability: {postulante.contact_status || '—'}</p>
                 <p>Stage: {postulante.etapa || '—'}</p>
@@ -188,11 +170,9 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
               {/* Interviewer Notes */}
               {score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0 && (
                 <>
-                  <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px' }}>
-                    Interviewer Notes (Suggested points to validate)
-                  </h3>
+                  <SectionTitle>Interviewer Notes (Suggested points to validate in your internal interview)</SectionTitle>
                   {score.preguntas_sugeridas.map((q, i) => (
-                    <p key={i} style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '8px', color: '#333', maxWidth: `${CONTENT_W_PX}px`, wordWrap: 'break-word' }}>
+                    <p key={i} style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '8px', color: '#333' }}>
                       {q}
                     </p>
                   ))}
@@ -202,21 +182,21 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
               {/* Risks */}
               {score?.riesgos_top3 && score.riesgos_top3.length > 0 && (
                 <>
-                  <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '8px', marginTop: '16px' }}>Risks to Consider</h3>
+                  <SectionTitle style={{ marginTop: '16px' }}>Risks to Consider</SectionTitle>
                   {score.riesgos_top3.map((r, i) => (
-                    <p key={i} style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '6px', color: '#333', maxWidth: `${CONTENT_W_PX}px`, wordWrap: 'break-word' }}>
+                    <p key={i} style={{ fontSize: '12px', lineHeight: '1.7', marginBottom: '6px', color: '#333' }}>
                       ⚠ {r}
                     </p>
                   ))}
                 </>
               )}
 
-              <div style={{ marginTop: '24px' }}>
+              {/* Signature */}
+              <div style={{ marginTop: '20px' }}>
                 <p style={{ fontSize: '12px' }}>Sincerely,</p>
-                <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#5b4fb5', marginTop: '4px' }}>AccelRH Recruitment Team</h4>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#5b4fb5', marginTop: '4px' }}>AccelRH Recruitment Team</p>
               </div>
             </div>
-
             <PageFooter />
           </div>
         )}
@@ -225,11 +205,28 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
   );
 }
 
+function PageHeader() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
+      <img src={logoSrc} alt="AccelRH" style={{ width: '52px', height: '52px', objectFit: 'contain' }} />
+      <span style={{ fontSize: '28px', fontWeight: 300, color: '#333', letterSpacing: '0.5px' }}>Candidate Report</span>
+    </div>
+  );
+}
+
+function SectionTitle({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '10px', marginTop: '0', ...style }}>
+      {children}
+    </h3>
+  );
+}
+
 function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <tr>
-      <td style={{ paddingRight: '36px', color: '#666', verticalAlign: 'top' }}>{label}</td>
-      <td style={{ fontWeight: 500, maxWidth: '400px', wordWrap: 'break-word' }}>{value}</td>
+      <td style={{ paddingRight: '40px', color: '#666', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{label}</td>
+      <td style={{ fontWeight: 500 }}>{value}</td>
     </tr>
   );
 }
@@ -242,18 +239,22 @@ function PageFooter() {
         bottom: '0',
         left: '0',
         right: '0',
-        padding: `12px ${MARGIN_PX}px 16px`,
+        height: `${FOOTER_H}px`,
+        padding: `10px ${MARGIN}px 14px`,
         textAlign: 'center',
-        fontSize: '9px',
+        fontSize: '8.5px',
         color: '#666',
         lineHeight: '1.5',
-        borderTop: '1px solid #eee',
+        borderTop: '1px solid #e5e5e5',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
       }}
     >
       <p style={{ marginBottom: '4px' }}>
         <strong>Confidentiality Notice:</strong> The information contained in this report is confidential and intended exclusively for processes
         managed by AccelRH. Any direct contact with the candidate without prior coordination with our team will be considered a
-        deviation from the established procedure.
+        deviation from the established procedure. We kindly ask you to maintain confidentiality and respect the formal communication channels.
       </p>
       <p>1+54 9 11 5581-3098 | seleccion.2@accel-rh.com | www.accel-rh.com</p>
     </div>
@@ -263,9 +264,9 @@ function PageFooter() {
 function buildRadarSvg(detalles: ScoreDetalle[]): string {
   if (detalles.length === 0) return '';
 
-  const svgW = 620;
-  const svgH = 420;
-  const cx = svgW / 2, cy = svgH / 2, r = 140;
+  const svgW = 580;
+  const svgH = 400;
+  const cx = svgW / 2, cy = svgH / 2, r = 130;
   const n = detalles.length;
   const maxVal = Math.max(...detalles.map(d => d.puntaje_max), 1);
   const levels = 5;
@@ -306,7 +307,7 @@ function buildRadarSvg(detalles: ScoreDetalle[]): string {
 
   let labels = '';
   detalles.forEach((d, i) => {
-    const p = getPoint(i, maxVal * 1.22);
+    const p = getPoint(i, maxVal * 1.2);
     const anchor = p.x < cx - 10 ? 'end' : p.x > cx + 10 ? 'start' : 'middle';
     const words = d.criterio.split(' ');
     const lines: string[] = [];
