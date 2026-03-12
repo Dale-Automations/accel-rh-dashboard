@@ -385,14 +385,14 @@ export default function PostulantDetail() {
                     <PolarGrid />
                     <PolarAngleAxis
                       dataKey="criterio"
-                      tick={({ payload, x, y, textAnchor, ...rest }) => {
-                        const label = payload.value || '';
+                      tick={({ payload, x, y, textAnchor }) => {
+                        const fullLabel = payload.value || '';
                         const maxLen = 18;
-                        const truncated = label.length > maxLen ? label.slice(0, maxLen) + '…' : label;
+                        const truncated = fullLabel.length > maxLen ? fullLabel.slice(0, maxLen) + '…' : fullLabel;
                         return (
-                          <g>
-                            <title>{label}</title>
+                          <g className="recharts-polar-angle-axis-tick">
                             <text x={x} y={y} textAnchor={textAnchor} fontSize={10} fill="currentColor">
+                              <title>{fullLabel}</title>
                               {truncated}
                             </text>
                           </g>
