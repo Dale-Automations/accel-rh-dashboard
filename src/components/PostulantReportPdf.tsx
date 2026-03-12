@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, RefObject } from 'react';
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
@@ -10,6 +10,7 @@ interface Props {
   postulante: Postulante;
   score: CvScore | null;
   vacancyName?: string;
+  radarChartRef?: RefObject<HTMLDivElement | null>;
 }
 
 // A4 in points (72 dpi)
@@ -27,10 +28,64 @@ const GRAY = rgb(0.4, 0.4, 0.4);
 const LIGHT_GRAY = rgb(0.6, 0.6, 0.6);
 const ACCENT = rgb(0.357, 0.31, 0.71); // #5b4fb5
 
-export default function PostulantReportPdf({ postulante, score, vacancyName }: Props) {
+export default function PostulantReportPdf({ postulante, score, vacancyName, radarChartRef }: Props) {
   const [generating, setGenerating] = useState(false);
 
   const detalles = (score?.detalles || []) as ScoreDetalle[];
+
+  const captureRadarChart = useCallback(async (): Promise<Uint8Array | null> => {
+    if (!radarChartRef?.current) return null;
+    const svgEl = radarChartRef.current.querySelector('svg');
+    if (!svgEl) return null;
+
+    // Clone SVG and set explicit dimensions
+    const clone = svgEl.cloneNode(true) as SVGSVGElement;
+    const bbox = svgEl.getBoundingClientRect();
+    clone.setAttribute('width', String(bbox.width));
+    clone.setAttribute('height', String(bbox.height));
+    
+    // Apply computed styles to text elements
+    const originalTexts = svgEl.querySelectorAll('text');
+    const cloneTexts = clone.querySelectorAll('text');
+    originalTexts.forEach((orig, i) => {
+      const computed = window.getComputedStyle(orig);
+      cloneTexts[i]?.setAttribute('fill', computed.color || '#333');
+    });
+
+    const svgData = new XMLSerializer().serializeToString(clone);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = 2;
+        canvas.width = bbox.width * scale;
+        canvas.height = bbox.height * scale;
+        const ctx2d = canvas.getContext('2d');
+        if (ctx2d) {
+          ctx2d.fillStyle = '#ffffff';
+          ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+          ctx2d.scale(scale, scale);
+          ctx2d.drawImage(img, 0, 0, bbox.width, bbox.height);
+        }
+        canvas.toBlob((blob) => {
+          if (blob) {
+            blob.arrayBuffer().then(buf => {
+              resolve(new Uint8Array(buf));
+              URL.revokeObjectURL(url);
+            });
+          } else {
+            resolve(null);
+            URL.revokeObjectURL(url);
+          }
+        }, 'image/png');
+      };
+      img.onerror = () => { resolve(null); URL.revokeObjectURL(url); };
+      img.src = url;
+    });
+  }, [radarChartRef]);
 
   const generatePdf = useCallback(async () => {
     setGenerating(true);
@@ -128,11 +183,25 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
         y = PH - MT;
         y = drawHeader(page, ctx, y);
 
-        // Scoring Breakdown - Radar chart
+        // Scoring Breakdown - Radar chart from DOM
         if (detalles.length > 0) {
           y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
-          y = drawRadarChart(page, detalles, helvetica, y);
-          y -= 12;
+          
+          const radarPng = await captureRadarChart();
+          if (radarPng) {
+            const radarImg = await pdfDoc.embedPng(radarPng);
+            const imgW = CW * 0.85;
+            const imgH = imgW * (radarImg.height / radarImg.width);
+            const chartH = Math.min(imgH, 280);
+            const chartW2 = chartH * (radarImg.width / radarImg.height);
+            const imgX = ML + (CW - chartW2) / 2;
+            page.drawImage(radarImg, { x: imgX, y: y - chartH, width: chartW2, height: chartH });
+            y -= chartH + 12;
+          } else {
+            // Fallback: draw programmatic chart
+            y = drawRadarChart(page, detalles, helvetica, y);
+            y -= 12;
+          }
         }
 
         // Logistics
@@ -219,7 +288,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName }: P
     } finally {
       setGenerating(false);
     }
-  }, [postulante, score, detalles, vacancyName]);
+  }, [postulante, score, detalles, vacancyName, captureRadarChart]);
 
   return (
     <Button variant="outline" size="sm" onClick={generatePdf} disabled={generating}>

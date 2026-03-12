@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabaseExternal as supabase } from '@/lib/supabaseExternal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -60,6 +60,7 @@ export default function PostulantDetail() {
     y: number;
     anchor: 'start' | 'middle' | 'end';
   } | null>(null);
+  const radarChartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
@@ -386,7 +387,7 @@ export default function PostulantDetail() {
 
               {/* Download card */}
               <div className="bg-card rounded-lg border p-5 flex flex-col items-center justify-center gap-2">
-                <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} />
+                <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} radarChartRef={radarChartRef} />
                 <p className="text-xs text-muted-foreground text-center">Generar Candidate Report</p>
               </div>
             </div>
@@ -395,7 +396,7 @@ export default function PostulantDetail() {
             {radarData.length > 0 && (
               <div className="bg-card rounded-lg border p-4 space-y-4">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Detalle Evaluación</h3>
-                <div className="relative">
+                <div className="relative" ref={radarChartRef}>
                   <ResponsiveContainer width="100%" height={320}>
                     <RadarChart data={radarData} outerRadius="65%">
                       <PolarGrid />
