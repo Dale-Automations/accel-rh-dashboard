@@ -25,6 +25,9 @@ interface Props {
   page: number;
   pageSize: number;
   onDataChange: () => void;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  onToggleSort?: (col: string) => void;
 }
 
 // A cell that becomes an input on click
