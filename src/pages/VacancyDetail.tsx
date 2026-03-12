@@ -272,13 +272,13 @@ export default function VacancyDetail() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
-          <KpiCard title="Total" value={totalPost} icon={Users} />
-          <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} />
-          <KpiCard title="Pendientes" value={pendientes} icon={Clock} />
+          <KpiCard title="Total" value={totalPost} icon={Users} onClick={() => toggleKpiFilter('all_reset')} active={!kpiFilter} />
+          <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} onClick={() => toggleKpiFilter('evaluados')} active={kpiFilter === 'evaluados'} />
+          <KpiCard title="Pendientes" value={pendientes} icon={Clock} onClick={() => toggleKpiFilter('pendientes')} active={kpiFilter === 'pendientes'} />
           <KpiCard title="Score Prom." value={avgScore ?? '—'} icon={TrendingUp} />
-          <KpiCard title="Score Máx." value={maxScore ?? '—'} icon={TrendingUp} />
-          <KpiCard title="Score Mín." value={minScore ?? '—'} icon={TrendingDown} />
-          <KpiCard title="Contactados" value={contactados} icon={Phone} />
+          <KpiCard title="Score Máx." value={maxScore ?? '—'} icon={TrendingUp} onClick={() => maxScore != null ? toggleKpiFilter('score_max') : undefined} active={kpiFilter === 'score_max'} />
+          <KpiCard title="Score Mín." value={minScore ?? '—'} icon={TrendingDown} onClick={() => minScore != null ? toggleKpiFilter('score_min') : undefined} active={kpiFilter === 'score_min'} />
+          <KpiCard title="Contactados" value={contactados} icon={Phone} onClick={() => toggleKpiFilter('contactados')} active={kpiFilter === 'contactados'} />
         </div>
 
         {/* Filters */}
