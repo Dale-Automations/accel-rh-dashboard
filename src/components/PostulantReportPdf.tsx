@@ -129,9 +129,9 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       // Divider line
       page.drawLine({ start: { x: ML, y }, end: { x: PW - MR, y }, thickness: 1.5, color: BORDER_COLOR });
-      y -= 24;
+      y -= 32;
 
-      // Metadata
+      // Metadata with better spacing
       const metaFields = [
         ['Customer', vacancyName || postulante.vacancy_name || '—'],
         ['Role', postulante.vacancy_name || '—'],
@@ -141,37 +141,46 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       ];
       for (const [label, value] of metaFields) {
         page.drawText(label, { x: ML, y, size: 11, font: helvetica, color: GRAY });
-        page.drawText(value, { x: ML + 130, y, size: 11, font: helveticaBold, color: TEXT_COLOR });
-        y -= 20;
+        page.drawText(value, { x: ML + 140, y, size: 11, font: helveticaBold, color: TEXT_COLOR });
+        y -= 24;
       }
-      y -= 10;
+      y -= 16;
 
-      // Score
+      // Score - bigger and more prominent
       page.drawText(`AcceleRATE Match Score: ${scoreVal != null ? `${scoreVal}/100` : '—'}`, {
-        x: ML, y, size: 13, font: helveticaBold, color: TEXT_COLOR,
+        x: ML, y, size: 15, font: helveticaBold, color: ACCENT,
       });
-      y -= 18;
+      y -= 22;
       page.drawText(`Status: ${statusText}`, {
-        x: ML, y, size: 11, font: helveticaBold, color: TEXT_COLOR,
+        x: ML, y, size: 12, font: helveticaBold, color: TEXT_COLOR,
       });
-      y -= 28;
+      y -= 36;
 
       // Profile Summary
       const summaryText = postulante.screening_responses || postulante.comments_selectora || postulante.comments_manager;
       if (summaryText) {
         y = drawSectionTitle(page, helveticaBold, 'Professional Profile Summary', y);
-        y = drawWrappedText(page, helvetica, summaryText, y, 10.5, TEXT_COLOR);
-        y -= 16;
+        y = drawWrappedText(page, helvetica, summaryText, y, 11, TEXT_COLOR);
+        y -= 24;
       }
 
       // Key Strengths
       if (score?.razones_top3 && score.razones_top3.length > 0) {
         y = drawSectionTitle(page, helveticaBold, 'Key Strengths (Value for the Client)', y);
         for (const r of score.razones_top3) {
-          y = drawWrappedText(page, helvetica, r, y, 10.5, TEXT_COLOR);
-          y -= 12;
+          y = drawWrappedText(page, helvetica, `• ${r}`, y, 11, TEXT_COLOR);
+          y -= 14;
         }
       }
+
+      // Logistics on page 1 since we have space
+      y -= 8;
+      y = drawSectionTitle(page, helveticaBold, 'Logistics & Salary Expectations', y);
+      y = drawWrappedText(page, helvetica, `Salary Expectation: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 11, TEXT_COLOR);
+      y -= 4;
+      y = drawWrappedText(page, helvetica, `Availability: ${postulante.contact_status || '—'}`, y, 11, TEXT_COLOR);
+      y -= 4;
+      y = drawWrappedText(page, helvetica, `Stage: ${postulante.etapa || '—'}`, y, 11, TEXT_COLOR);
 
       drawFooter(page, helvetica, helveticaBold);
 
