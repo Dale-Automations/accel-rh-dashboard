@@ -89,6 +89,18 @@ export default function VacancyDetail() {
   let filtered = postulantes.filter(p => {
     if (searchQuery && !p.full_name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (etapaFilter !== 'all' && p.etapa !== etapaFilter) return false;
+    // KPI filters
+    if (kpiFilter === 'evaluados' && p.scoring_status !== 'scored') return false;
+    if (kpiFilter === 'pendientes' && p.scoring_status !== 'pending') return false;
+    if (kpiFilter === 'contactados' && !p.contacted) return false;
+    if (kpiFilter === 'score_max') {
+      const s = getScore(p.id_postulant);
+      if (s !== maxScore) return false;
+    }
+    if (kpiFilter === 'score_min') {
+      const s = getScore(p.id_postulant);
+      if (s !== minScore) return false;
+    }
     return true;
   });
 
