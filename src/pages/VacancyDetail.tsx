@@ -35,6 +35,7 @@ export default function VacancyDetail() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [etapaFilter, setEtapaFilter] = useState<string>('all');
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('score');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
@@ -84,10 +85,31 @@ export default function VacancyDetail() {
     return profiles.find(p => p.id === id)?.full_name || '—';
   };
 
+  // Stats (computed before filtering so KPI filter can reference them)
+  const totalPost = postulantes.length;
+  const evaluados = postulantes.filter(p => p.scoring_status === 'scored').length;
+  const pendientes = postulantes.filter(p => p.scoring_status === 'pending').length;
+  const contactados = postulantes.filter(p => p.contacted).length;
+  const scoredScores = scores.filter(s => s.score_final != null).map(s => s.score_final!);
+  const avgScore = scoredScores.length ? Math.round(scoredScores.reduce((a, b) => a + b, 0) / scoredScores.length) : null;
+  const maxScore = scoredScores.length ? Math.max(...scoredScores) : null;
+  const minScore = scoredScores.length ? Math.min(...scoredScores) : null;
+
   // Filtering
   let filtered = postulantes.filter(p => {
     if (searchQuery && !p.full_name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (etapaFilter !== 'all' && p.etapa !== etapaFilter) return false;
+    if (kpiFilter === 'evaluados' && p.scoring_status !== 'scored') return false;
+    if (kpiFilter === 'pendientes' && p.scoring_status !== 'pending') return false;
+    if (kpiFilter === 'contactados' && !p.contacted) return false;
+    if (kpiFilter === 'score_max') {
+      const s = getScore(p.id_postulant);
+      if (s !== maxScore) return false;
+    }
+    if (kpiFilter === 'score_min') {
+      const s = getScore(p.id_postulant);
+      if (s !== minScore) return false;
+    }
     return true;
   });
 
@@ -112,15 +134,10 @@ export default function VacancyDetail() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  // Stats
-  const totalPost = postulantes.length;
-  const evaluados = postulantes.filter(p => p.scoring_status === 'scored').length;
-  const pendientes = postulantes.filter(p => p.scoring_status === 'pending').length;
-  const contactados = postulantes.filter(p => p.contacted).length;
-  const scoredScores = scores.filter(s => s.score_final != null).map(s => s.score_final!);
-  const avgScore = scoredScores.length ? Math.round(scoredScores.reduce((a, b) => a + b, 0) / scoredScores.length) : null;
-  const maxScore = scoredScores.length ? Math.max(...scoredScores) : null;
-  const minScore = scoredScores.length ? Math.min(...scoredScores) : null;
+  const toggleKpiFilter = (key: string) => {
+    setKpiFilter(prev => prev === key ? null : key);
+    setPage(0);
+  };
 
   const handleToggleSort = (col: string) => {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -255,13 +272,13 @@ export default function VacancyDetail() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
-          <KpiCard title="Total" value={totalPost} icon={Users} />
-          <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} />
-          <KpiCard title="Pendientes" value={pendientes} icon={Clock} />
+          <KpiCard title="Total" value={totalPost} icon={Users} onClick={() => { setKpiFilter(null); setPage(0); }} active={!kpiFilter} />
+          <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} onClick={() => toggleKpiFilter('evaluados')} active={kpiFilter === 'evaluados'} />
+          <KpiCard title="Pendientes" value={pendientes} icon={Clock} onClick={() => toggleKpiFilter('pendientes')} active={kpiFilter === 'pendientes'} />
           <KpiCard title="Score Prom." value={avgScore ?? '—'} icon={TrendingUp} />
-          <KpiCard title="Score Máx." value={maxScore ?? '—'} icon={TrendingUp} />
-          <KpiCard title="Score Mín." value={minScore ?? '—'} icon={TrendingDown} />
-          <KpiCard title="Contactados" value={contactados} icon={Phone} />
+          <KpiCard title="Score Máx." value={maxScore ?? '—'} icon={TrendingUp} onClick={() => maxScore != null ? toggleKpiFilter('score_max') : undefined} active={kpiFilter === 'score_max'} />
+          <KpiCard title="Score Mín." value={minScore ?? '—'} icon={TrendingDown} onClick={() => minScore != null ? toggleKpiFilter('score_min') : undefined} active={kpiFilter === 'score_min'} />
+          <KpiCard title="Contactados" value={contactados} icon={Phone} onClick={() => toggleKpiFilter('contactados')} active={kpiFilter === 'contactados'} />
         </div>
 
         {/* Filters */}
