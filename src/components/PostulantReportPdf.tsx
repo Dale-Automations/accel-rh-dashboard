@@ -194,10 +194,11 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
         // Section title
         y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
+        y -= 6;
 
         // Radar chart
         y = drawRadarChart(page, detalles, helvetica, y);
-        y -= 20;
+        y -= 30;
 
         // Horizontal bar chart with scores
         y = drawBarChart(page, detalles, helvetica, helveticaBold, y);
