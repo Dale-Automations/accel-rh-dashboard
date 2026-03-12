@@ -387,7 +387,7 @@ export default function PostulantDetail() {
 
               {/* Download card */}
               <div className="bg-card rounded-lg border p-5 flex flex-col items-center justify-center gap-2">
-                <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} />
+                <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} radarChartRef={radarChartRef} />
                 <p className="text-xs text-muted-foreground text-center">Generar Candidate Report</p>
               </div>
             </div>
