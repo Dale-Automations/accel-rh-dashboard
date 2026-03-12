@@ -184,42 +184,35 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       drawFooter(page, helvetica, helveticaBold);
 
-      // ===== PAGE 2 =====
-      const hasPage2 = detalles.length > 0 || (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0);
+      // ===== PAGE 2: Full Evaluation Detail =====
+      const hasPage2 = detalles.length > 0;
       if (hasPage2) {
         page = pdfDoc.addPage([PW, PH]);
         drawBorder(page);
         y = PH - MT;
         y = drawHeader(page, ctx, y);
 
-        // Scoring Breakdown - Radar chart
-        if (detalles.length > 0) {
-          y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
-          y = drawRadarChart(page, detalles, helvetica, y);
-          y -= 12;
-        }
+        // Section title
+        y = drawSectionTitle(page, helveticaBold, 'Evaluation Detail', y);
 
-        // Logistics
-        y = drawSectionTitle(page, helveticaBold, 'Logistics & Salary Expectations', y);
-        y = drawWrappedText(page, helvetica, `Salary Expectation: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 10.5, TEXT_COLOR);
-        y -= 2;
-        y = drawWrappedText(page, helvetica, `Availability: ${postulante.contact_status || '—'}`, y, 10.5, TEXT_COLOR);
-        y -= 2;
-        y = drawWrappedText(page, helvetica, `Stage: ${postulante.etapa || '—'}`, y, 10.5, TEXT_COLOR);
-        y -= 16;
+        // Radar chart
+        y = drawRadarChart(page, detalles, helvetica, y);
+        y -= 20;
 
-        // Check if we need a new page
-        const estimatedNotesHeight = estimateTextHeight(score?.preguntas_sugeridas || [], helvetica, 10.5) + 
-          estimateTextHeight(score?.riesgos_top3 || [], helvetica, 10.5) + 100;
+        // Horizontal bar chart with scores
+        y = drawBarChart(page, detalles, helvetica, helveticaBold, y);
 
-        if (y - estimatedNotesHeight < MB + 20) {
-          // Content would overflow - add new page
-          drawFooter(page, helvetica, helveticaBold);
-          page = pdfDoc.addPage([PW, PH]);
-          drawBorder(page);
-          y = PH - MT;
-          y = drawHeader(page, ctx, y);
-        }
+        drawFooter(page, helvetica, helveticaBold);
+      }
+
+      // ===== PAGE 3: Notes, Risks, Signature =====
+      const hasPage3 = (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0) ||
+                        (score?.riesgos_top3 && score.riesgos_top3.length > 0);
+      if (hasPage3) {
+        page = pdfDoc.addPage([PW, PH]);
+        drawBorder(page);
+        y = PH - MT;
+        y = drawHeader(page, ctx, y);
 
         // Interviewer Notes
         if (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0) {
@@ -232,7 +225,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
               y = PH - MT;
               y = drawHeader(page, ctx, y);
             }
-            y = drawWrappedText(page, helvetica, q, y, 10.5, TEXT_COLOR);
+            y = drawWrappedText(page, helvetica, `• ${q}`, y, 10.5, TEXT_COLOR);
             y -= 10;
           }
           y -= 6;
@@ -256,13 +249,13 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
               y = PH - MT;
               y = drawHeader(page, ctx, y);
             }
-            y = drawWrappedText(page, helvetica, `[!] ${r}`, y, 10.5, TEXT_COLOR);
+            y = drawWrappedText(page, helvetica, `⚠ ${r}`, y, 10.5, TEXT_COLOR);
             y -= 8;
           }
         }
 
         // Signature
-        y -= 16;
+        y -= 24;
         page.drawText('Sincerely,', { x: ML, y, size: 10.5, font: helvetica, color: TEXT_COLOR });
         y -= 16;
         page.drawText('AccelRH Recruitment Team', { x: ML, y, size: 12, font: helveticaBold, color: ACCENT });
