@@ -381,12 +381,44 @@ export default function PostulantDetail() {
               <div className="bg-card rounded-lg border p-4 space-y-4">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Detalle Evaluación</h3>
                 <div className="relative">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <RadarChart data={radarData}>
+                  <ResponsiveContainer width="100%" height={320}>
+                    <RadarChart data={radarData} outerRadius="65%">
                       <PolarGrid />
                       <PolarAngleAxis
                         dataKey="criterio"
-                        tick={false}
+                        tick={({ payload, x, y, textAnchor }) => {
+                          const full = payload.value || '';
+                          const maxLen = 16;
+                          const short = full.length > maxLen ? full.slice(0, maxLen) + '…' : full;
+                          // Use foreignObject to render HTML with proper CSS tooltip
+                          const width = 160;
+                          const height = 40;
+                          const fx = textAnchor === 'end' ? x - width : textAnchor === 'middle' ? x - width / 2 : x;
+                          const fy = y - height / 2;
+                          return (
+                            <foreignObject x={fx} y={fy} width={width} height={height} style={{ overflow: 'visible' }}>
+                              <div
+                                title={full}
+                                style={{
+                                  fontSize: 10,
+                                  lineHeight: '14px',
+                                  textAlign: textAnchor === 'end' ? 'right' : textAnchor === 'middle' ? 'center' : 'left',
+                                  cursor: 'default',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  height: '100%',
+                                  justifyContent: textAnchor === 'end' ? 'flex-end' : textAnchor === 'middle' ? 'center' : 'flex-start',
+                                }}
+                                className="group relative"
+                              >
+                                <span className="truncate block max-w-[150px] group-hover:whitespace-normal group-hover:overflow-visible group-hover:bg-popover group-hover:border group-hover:border-border group-hover:rounded group-hover:px-2 group-hover:py-1 group-hover:shadow-md group-hover:z-50 group-hover:max-w-none group-hover:absolute">
+                                  {short}
+                                  <span className="hidden group-hover:inline">{full.length > maxLen ? full.slice(maxLen) : ''}</span>
+                                </span>
+                              </div>
+                            </foreignObject>
+                          );
+                        }}
                       />
                       <PolarRadiusAxis angle={30} />
                       <Radar name="Máximo" dataKey="puntaje_max" stroke="hsl(250, 15%, 80%)" fill="hsl(250, 15%, 80%)" fillOpacity={0.2} />
