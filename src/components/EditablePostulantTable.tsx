@@ -163,6 +163,23 @@ export default function EditablePostulantTable({
 
   const etapaOptions = ETAPAS.map(e => ({ value: e, label: e }));
 
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortBy !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  const SortableHead = ({ col, children, className = '' }: { col: string; children: React.ReactNode; className?: string }) => (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/70 ${className}`}
+      onClick={() => onToggleSort?.(col)}
+    >
+      <div className="flex items-center">
+        {children}
+        <SortIcon col={col} />
+      </div>
+    </TableHead>
+  );
+
   return (
     <TooltipProvider>
     <div className="bg-card rounded-lg border shadow-sm overflow-x-auto">
