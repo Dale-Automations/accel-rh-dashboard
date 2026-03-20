@@ -364,6 +364,8 @@ export default function VacancyDetail() {
           sortBy={sortBy}
           sortDir={sortDir}
           onToggleSort={handleToggleSort}
+          selectedIds={selectedPostulants}
+          onSelectionChange={setSelectedPostulants}
         />
       </div>
 
