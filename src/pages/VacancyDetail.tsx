@@ -147,6 +147,30 @@ export default function VacancyDetail() {
   };
 
   const handleExportXlsx = () => {
+  };
+
+  const handleScoring = async (model: 'gpt' | 'gemini') => {
+    const ids = Array.from(selectedPostulants);
+    const url = model === 'gpt'
+      ? 'https://accelrh.daleautomations.com/webhook/scorer-gpt'
+      : 'https://accelrh.daleautomations.com/webhook/scorer-gemini';
+    setScoringLoading(true);
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postulant_ids: ids }),
+      });
+      toast({ title: `Evaluación iniciada para ${ids.length} postulante${ids.length > 1 ? 's' : ''}` });
+      setSelectedPostulants(new Set());
+    } catch {
+      toast({ title: 'Error al iniciar evaluación', variant: 'destructive' });
+    } finally {
+      setScoringLoading(false);
+    }
+  };
+
+  const handleExportXlsxInner = () => {
     const rows = filtered.map(p => {
       const score = getScore(p.id_postulant);
       return {
