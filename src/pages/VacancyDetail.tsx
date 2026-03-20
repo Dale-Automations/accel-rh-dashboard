@@ -337,7 +337,7 @@ export default function VacancyDetail() {
               Evaluar con GPT 4.1 mini
             </Button>
             <Button
-              variant="outline"
+              className="bg-blue-600 text-white hover:bg-blue-700"
               size="sm"
               disabled={scoringLoading}
               onClick={() => handleScoring('gemini')}
