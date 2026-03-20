@@ -146,9 +146,6 @@ export default function VacancyDetail() {
     else { setSortBy(col); setSortDir('desc'); }
   };
 
-  const handleExportXlsx = () => {
-  };
-
   const handleScoring = async (model: 'gpt' | 'gemini') => {
     const ids = Array.from(selectedPostulants);
     const url = model === 'gpt'
@@ -170,7 +167,7 @@ export default function VacancyDetail() {
     }
   };
 
-  const handleExportXlsxInner = () => {
+  const handleExportXlsx = () => {
     const rows = filtered.map(p => {
       const score = getScore(p.id_postulant);
       return {
