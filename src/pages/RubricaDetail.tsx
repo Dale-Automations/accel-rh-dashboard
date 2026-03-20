@@ -105,8 +105,8 @@ export default function RubricaDetail() {
       let rubricJson: RubricaCriterio[] | undefined;
       if (data.rubric_json && Array.isArray(data.rubric_json)) {
         rubricJson = data.rubric_json;
-        const parsed = parseRubricJson(data.rubric_json);
-        setPreviewData(parsed);
+        const palabras = Array.isArray(data.palabras_clave) ? data.palabras_clave : [];
+        setPreviewData({ criterios: data.rubric_json, palabras_clave: palabras });
       }
 
       setChatMessages(prev => [
