@@ -84,7 +84,12 @@ export interface VacancyAssignment {
 
 export interface RubricaCriterio {
   criterio: string;
+  descripcion?: string;
   puntaje_max: number;
+}
+
+export interface RubricaData {
+  criterios: RubricaCriterio[];
   palabras_clave: string[];
 }
 
@@ -92,12 +97,29 @@ export interface Rubrica {
   id: number;
   vacancy_id: string;
   version_number: number;
-  rubric_json: RubricaCriterio[];
+  rubric_json: RubricaCriterio[] | RubricaData;
   suma_total: number;
   is_active: boolean;
   job_description: string | null;
   created_at: string;
   created_by: string | null;
+}
+
+/** Helper to normalize rubric_json which can be old format (array) or new format (object) */
+export function parseRubricJson(json: RubricaCriterio[] | RubricaData): RubricaData {
+  if (Array.isArray(json)) {
+    // Old format: migrate by extracting palabras_clave from criteria
+    const allKeywords = json.flatMap((c: any) => c.palabras_clave || []);
+    return {
+      criterios: json.map(c => ({
+        criterio: c.criterio,
+        descripcion: (c as any).descripcion || '',
+        puntaje_max: c.puntaje_max,
+      })),
+      palabras_clave: [...new Set(allKeywords)],
+    };
+  }
+  return json;
 }
 
 export type UserRole = 'manager' | 'selectora' | 'cliente';
