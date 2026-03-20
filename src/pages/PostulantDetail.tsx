@@ -71,7 +71,7 @@ export default function PostulantDetail() {
     setLoading(true);
     const [postRes, scoreRes, profRes] = await Promise.all([
       sb.from('postulantes').select('*').eq('id_postulant', id_postulant).single(),
-      sb.from('cv_scores').select('*').eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId).maybeSingle(),
+      sb.from('cv_scores').select('*').eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       sb.from('user_profiles').select('*').eq('role', 'selectora'),
     ]);
     const post = postRes.data as Postulante;

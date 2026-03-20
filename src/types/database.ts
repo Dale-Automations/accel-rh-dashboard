@@ -57,6 +57,7 @@ export interface CvScore {
   ai_model: string | null;
   scored_at: string | null;
   score_modified: boolean | null;
+  created_at: string | null;
 }
 
 export interface ScoreDetalle {
