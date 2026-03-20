@@ -495,10 +495,10 @@ export default function PostulantDetail() {
                 <div className="text-xs text-muted-foreground space-y-1.5 pt-2 border-t">
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium text-foreground/70">Rúbrica:</span>
-                    {score.rubric_used ? (
-                      <Badge variant="outline" className="text-xs font-normal">{score.rubric_used}</Badge>
+                    {(score as any).rubric_version ? (
+                      <Badge variant="outline" className="text-xs font-normal">v{(score as any).rubric_version}</Badge>
                     ) : (
-                      <span className="italic">Sin rúbrica</span>
+                      <span className="italic text-muted-foreground">Sin rúbrica</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5">
