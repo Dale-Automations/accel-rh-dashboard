@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiCard } from '@/components/KpiCard';
 import { formatDate } from '@/lib/formatters';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download } from 'lucide-react';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download, Zap } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
 import { useToast } from '@/hooks/use-toast';
