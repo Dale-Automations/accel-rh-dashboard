@@ -331,6 +331,12 @@ export default function PostulantDetail() {
                     />
                   </PopoverContent>
                 </Popover>
+                <Button onClick={() => handleScoring('gpt')} disabled={scoringLoading}>
+                  <Brain className="h-4 w-4 mr-2" /> Evaluar con GPT 4.1 mini
+                </Button>
+                <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => handleScoring('gemini')} disabled={scoringLoading}>
+                  <Sparkles className="h-4 w-4 mr-2" /> Evaluar con Gemini Flash
+                </Button>
               </div>
             )}
           </div>
