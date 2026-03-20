@@ -196,9 +196,22 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
         y -= 6;
 
-        // Radar chart
-        y = drawRadarChart(page, detalles, helvetica, y);
-        y -= 30;
+        // Radar chart — capture from web if available, fallback to programmatic
+        const radarPng = await captureRadarChart();
+        if (radarPng) {
+          const radarImg = await pdfDoc.embedPng(radarPng);
+          const radarW = CW * 0.85;
+          const radarH = radarW * (radarImg.height / radarImg.width);
+          const maxH = 280;
+          const finalH = Math.min(radarH, maxH);
+          const finalW = finalH * (radarImg.width / radarImg.height);
+          const rx = ML + (CW - finalW) / 2;
+          page.drawImage(radarImg, { x: rx, y: y - finalH, width: finalW, height: finalH });
+          y -= finalH + 16;
+        } else {
+          y = drawRadarChart(page, detalles, helvetica, y);
+          y -= 30;
+        }
 
         // Horizontal bar chart with scores
         y = drawBarChart(page, detalles, helvetica, helveticaBold, y);
