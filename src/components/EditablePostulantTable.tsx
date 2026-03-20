@@ -123,7 +123,13 @@ export default function EditablePostulantTable({
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const getScore = (id: string) => scores.find(s => s.postulant_id === id)?.score_final ?? null;
+  const getScore = (id: string) => {
+    // Pick the most recent score if multiple exist
+    const matching = scores.filter(s => s.postulant_id === id);
+    if (matching.length === 0) return null;
+    matching.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+    return matching[0]?.score_final ?? null;
+  };
   const getSelectoraName = (id: string | null) => {
     if (!id) return '—';
     return profiles.find(p => p.id === id)?.full_name || '—';

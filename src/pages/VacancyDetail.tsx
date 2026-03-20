@@ -77,8 +77,20 @@ export default function VacancyDetail() {
     setLoading(false);
   };
 
+  // Deduplicate scores: keep only the most recent per postulant
+  const latestScores = (() => {
+    const map = new Map<string, CvScore>();
+    for (const s of scores) {
+      const existing = map.get(s.postulant_id);
+      if (!existing || (s.created_at && (!existing.created_at || s.created_at > existing.created_at))) {
+        map.set(s.postulant_id, s);
+      }
+    }
+    return Array.from(map.values());
+  })();
+
   const getScore = (postulantId: string) => {
-    const s = scores.find(sc => sc.postulant_id === postulantId);
+    const s = latestScores.find(sc => sc.postulant_id === postulantId);
     return s?.score_final ?? null;
   };
 
