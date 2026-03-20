@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiCard } from '@/components/KpiCard';
 import { formatDate } from '@/lib/formatters';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download } from 'lucide-react';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download, Zap } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +42,8 @@ export default function VacancyDetail() {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedAssignments, setSelectedAssignments] = useState<Record<string, boolean>>({});
   const [assignTab, setAssignTab] = useState('selectora');
+  const [selectedPostulants, setSelectedPostulants] = useState<Set<string>>(new Set());
+  const [scoringLoading, setScoringLoading] = useState(false);
   const PAGE_SIZE = 25;
 
   useEffect(() => {
@@ -142,6 +144,27 @@ export default function VacancyDetail() {
   const handleToggleSort = (col: string) => {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortDir('desc'); }
+  };
+
+  const handleScoring = async (model: 'gpt' | 'gemini') => {
+    const ids = Array.from(selectedPostulants);
+    const url = model === 'gpt'
+      ? 'https://accelrh.daleautomations.com/webhook/scorer-gpt'
+      : 'https://accelrh.daleautomations.com/webhook/scorer-gemini';
+    setScoringLoading(true);
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postulant_ids: ids }),
+      });
+      toast({ title: `Evaluación iniciada para ${ids.length} postulante${ids.length > 1 ? 's' : ''}` });
+      setSelectedPostulants(new Set());
+    } catch {
+      toast({ title: 'Error al iniciar evaluación', variant: 'destructive' });
+    } finally {
+      setScoringLoading(false);
+    }
   };
 
   const handleExportXlsx = () => {
@@ -298,8 +321,32 @@ export default function VacancyDetail() {
               <SelectItem value="all">Todas las etapas</SelectItem>
               {ETAPAS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
             </SelectContent>
-          </Select>
+           </Select>
         </div>
+
+        {/* Scoring buttons */}
+        {selectedPostulants.size > 0 && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">{selectedPostulants.size} seleccionados</span>
+            <Button
+              size="sm"
+              disabled={scoringLoading}
+              onClick={() => handleScoring('gpt')}
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Evaluar con GPT 4.1 mini
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={scoringLoading}
+              onClick={() => handleScoring('gemini')}
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Evaluar con Gemini Flash
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Scrollable table area */}
@@ -317,6 +364,8 @@ export default function VacancyDetail() {
           sortBy={sortBy}
           sortDir={sortDir}
           onToggleSort={handleToggleSort}
+          selectedIds={selectedPostulants}
+          onSelectionChange={setSelectedPostulants}
         />
       </div>
 

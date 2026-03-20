@@ -28,6 +28,8 @@ interface Props {
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   onToggleSort?: (col: string) => void;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
 }
 
 // A cell that becomes an input on click
@@ -116,7 +118,7 @@ function EditableSelectCell({
 
 export default function EditablePostulantTable({
   postulantes, scores, profiles, role, userId, vacancyId, page, pageSize, onDataChange,
-  sortBy, sortDir, onToggleSort,
+  sortBy, sortDir, onToggleSort, selectedIds, onSelectionChange,
 }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -186,6 +188,19 @@ export default function EditablePostulantTable({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
+            {selectedIds && onSelectionChange && (
+              <TableHead className="w-10 text-center">
+                <Checkbox
+                  checked={postulantes.length > 0 && postulantes.every(p => selectedIds.has(p.id_postulant))}
+                  onCheckedChange={(c) => {
+                    const next = new Set(selectedIds);
+                    if (c) { postulantes.forEach(p => next.add(p.id_postulant)); }
+                    else { postulantes.forEach(p => next.delete(p.id_postulant)); }
+                    onSelectionChange(next);
+                  }}
+                />
+              </TableHead>
+            )}
             <TableHead className="w-10 text-center">#</TableHead>
             {!isCliente ? (
               <SortableHead col="name" className="min-w-[160px]">Nombre</SortableHead>
@@ -219,6 +234,18 @@ export default function EditablePostulantTable({
 
               return (
                 <TableRow key={p.id_postulant} className="hover:bg-muted/20">
+                  {selectedIds && onSelectionChange && (
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={selectedIds.has(p.id_postulant)}
+                        onCheckedChange={(c) => {
+                          const next = new Set(selectedIds);
+                          if (c) next.add(p.id_postulant); else next.delete(p.id_postulant);
+                          onSelectionChange(next);
+                        }}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="text-center text-muted-foreground text-xs">{page * pageSize + idx + 1}</TableCell>
 
                   {/* Name - clickable link */}
