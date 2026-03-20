@@ -355,22 +355,57 @@ export default function RubricaDetail() {
           })()}
 
           {/* Preview from chat */}
-          {previewData && (
-            <Card className="border-primary/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Previsualización de rúbrica (IA)</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderCriteriaTable(previewData)}
-                <div className="flex justify-end gap-2">
-                  <Button variant="ghost" onClick={() => setPreviewData(null)}>Descartar</Button>
-                  <Button onClick={() => saveVersion(previewData.criterios, previewData.palabras_clave)} disabled={saving}>
-                    {saving ? 'Guardando…' : 'Guardar como nueva versión'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {previewData && (() => {
+            const total = previewData.criterios.reduce((s, c) => s + c.puntaje_max, 0);
+            const sumOk = total === 100;
+            return (
+              <Card className="border-primary/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Previsualización de rúbrica (IA)</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="font-semibold">Criterio</TableHead>
+                        <TableHead className="font-semibold">Descripción</TableHead>
+                        <TableHead className="font-semibold text-center w-[100px]">Puntaje máx.</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {previewData.criterios.map((c, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium">{c.criterio}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{c.descripcion || '—'}</TableCell>
+                          <TableCell className="text-center">{c.puntaje_max}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {previewData.palabras_clave.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2 border-t">
+                      <span className="text-sm font-medium text-foreground mr-1">Palabras clave:</span>
+                      {previewData.palabras_clave.map((kw, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">{kw}</Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className={`text-sm font-medium pt-2 border-t ${sumOk ? 'text-green-600' : 'text-destructive'}`}>
+                    Total: {total}/100 {sumOk ? '✓' : '✗'}
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" onClick={() => setPreviewData(null)}>Descartar</Button>
+                    <Button onClick={() => saveVersion(previewData.criterios, previewData.palabras_clave)} disabled={saving}>
+                      {saving ? 'Guardando…' : 'Guardar como nueva versión'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
 
         {/* Right: Chat */}
