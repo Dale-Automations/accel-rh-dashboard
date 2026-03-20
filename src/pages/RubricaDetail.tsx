@@ -141,6 +141,7 @@ export default function RubricaDetail() {
         vacancy_id,
         version_number: nextVersion,
         rubric_json: rubricData,
+        palabras_clave: keywords,
         suma_total: total,
         is_active: false,
         job_description: jobDescription || activeRubric?.job_description || null,
