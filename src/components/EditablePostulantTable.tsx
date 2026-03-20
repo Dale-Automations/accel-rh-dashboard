@@ -28,6 +28,8 @@ interface Props {
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   onToggleSort?: (col: string) => void;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
 }
 
 // A cell that becomes an input on click
