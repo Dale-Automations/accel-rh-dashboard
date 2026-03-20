@@ -234,6 +234,18 @@ export default function EditablePostulantTable({
 
               return (
                 <TableRow key={p.id_postulant} className="hover:bg-muted/20">
+                  {selectedIds && onSelectionChange && (
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={selectedIds.has(p.id_postulant)}
+                        onCheckedChange={(c) => {
+                          const next = new Set(selectedIds);
+                          if (c) next.add(p.id_postulant); else next.delete(p.id_postulant);
+                          onSelectionChange(next);
+                        }}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="text-center text-muted-foreground text-xs">{page * pageSize + idx + 1}</TableCell>
 
                   {/* Name - clickable link */}
