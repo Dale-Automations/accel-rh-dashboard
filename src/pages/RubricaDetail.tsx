@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import type { Vacante, Rubrica, RubricaCriterio } from '@/types/database';
+import type { Vacante, Rubrica, RubricaCriterio, RubricaData } from '@/types/database';
+import { parseRubricJson } from '@/types/database';
 
 const sb = supabase as any;
 const WEBHOOK_URL = 'https://accelrh.daleautomations.com/webhook/rubrica-chat';
@@ -43,13 +44,11 @@ export default function RubricaDetail() {
   const [rubricas, setRubricas] = useState<Rubrica[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const [previewJson, setPreviewJson] = useState<RubricaCriterio[] | null>(null);
+  const [previewData, setPreviewData] = useState<RubricaData | null>(null);
 
-  // Modal/editor state
   const [viewRubric, setViewRubric] = useState<Rubrica | null>(null);
   const [editRubric, setEditRubric] = useState<Rubrica | null>(null);
   const [showManualEditor, setShowManualEditor] = useState(false);
@@ -87,6 +86,7 @@ export default function RubricaDetail() {
     setChatLoading(true);
 
     try {
+      const activeData = activeRubric ? parseRubricJson(activeRubric.rubric_json) : null;
       const res = await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,7 +95,7 @@ export default function RubricaDetail() {
           vacancy_id,
           vacancy_name: vacancy?.vacancy_name,
           job_description: activeRubric?.job_description || '',
-          current_rubric: activeRubric?.rubric_json || null,
+          current_rubric: activeData,
         }),
       });
 
@@ -105,7 +105,8 @@ export default function RubricaDetail() {
       let rubricJson: RubricaCriterio[] | undefined;
       if (data.rubric_json && Array.isArray(data.rubric_json)) {
         rubricJson = data.rubric_json;
-        setPreviewJson(rubricJson);
+        const parsed = parseRubricJson(data.rubric_json);
+        setPreviewData(parsed);
       }
 
       setChatMessages(prev => [
@@ -127,17 +128,19 @@ export default function RubricaDetail() {
   };
 
   // --- Save new version ---
-  const saveVersion = async (criteria: RubricaCriterio[], jobDescription?: string) => {
+  const saveVersion = async (criteria: RubricaCriterio[], keywords: string[], jobDescription?: string) => {
     if (!vacancy_id || !user) return;
     setSaving(true);
     try {
       const nextVersion = rubricas.length ? Math.max(...rubricas.map(r => r.version_number)) + 1 : 1;
       const total = criteria.reduce((s, c) => s + c.puntaje_max, 0);
 
+      const rubricData: RubricaData = { criterios: criteria, palabras_clave: keywords };
+
       const { error } = await sb.from('rubricas').insert({
         vacancy_id,
         version_number: nextVersion,
-        rubric_json: criteria,
+        rubric_json: rubricData,
         suma_total: total,
         is_active: false,
         job_description: jobDescription || activeRubric?.job_description || null,
@@ -146,7 +149,7 @@ export default function RubricaDetail() {
 
       if (error) throw error;
       toast({ title: 'Versión guardada', description: `Versión ${nextVersion} creada.` });
-      setPreviewJson(null);
+      setPreviewData(null);
       setShowManualEditor(false);
       setEditRubric(null);
       await loadData();
@@ -156,15 +159,12 @@ export default function RubricaDetail() {
     setSaving(false);
   };
 
-  // --- Activate version ---
   const activateVersion = async (rubric: Rubrica) => {
     setSaving(true);
     try {
-      // Deactivate current
       if (activeRubric) {
         await sb.from('rubricas').update({ is_active: false }).eq('id', activeRubric.id);
       }
-      // Activate selected
       const { error } = await sb.from('rubricas').update({ is_active: true }).eq('id', rubric.id);
       if (error) throw error;
       toast({ title: 'Versión activada', description: `v${rubric.version_number} ahora está activa.` });
@@ -175,10 +175,42 @@ export default function RubricaDetail() {
     setSaving(false);
   };
 
-  // --- Duplicate ---
   const duplicateVersion = async (rubric: Rubrica) => {
-    await saveVersion(rubric.rubric_json, rubric.job_description || undefined);
+    const parsed = parseRubricJson(rubric.rubric_json);
+    await saveVersion(parsed.criterios, parsed.palabras_clave, rubric.job_description || undefined);
   };
+
+  /** Render criteria table for view/preview */
+  const renderCriteriaTable = (data: RubricaData) => (
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead className="font-semibold">Criterio</TableHead>
+            <TableHead className="font-semibold">Descripción</TableHead>
+            <TableHead className="font-semibold text-center w-[100px]">Puntaje máx.</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.criterios.map((c, i) => (
+            <TableRow key={i}>
+              <TableCell className="font-medium">{c.criterio}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">{c.descripcion || '—'}</TableCell>
+              <TableCell className="text-center">{c.puntaje_max}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {data.palabras_clave.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-2 border-t">
+          <span className="text-sm font-medium text-foreground mr-1">Palabras clave:</span>
+          {data.palabras_clave.map((kw, i) => (
+            <Badge key={i} variant="secondary" className="text-xs">{kw}</Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -217,7 +249,6 @@ export default function RubricaDetail() {
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Left: Versions + Editor */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Versions table */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-lg">Versiones</CardTitle>
@@ -294,7 +325,7 @@ export default function RubricaDetail() {
               </CardHeader>
               <CardContent>
                 <RubricEditor
-                  onSave={(c) => saveVersion(c)}
+                  onSave={(c, kw) => saveVersion(c, kw)}
                   onCancel={() => setShowManualEditor(false)}
                   saving={saving}
                 />
@@ -303,50 +334,37 @@ export default function RubricaDetail() {
           )}
 
           {/* Edit existing inline */}
-          {editRubric && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Editar v{editRubric.version_number} → nueva versión</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RubricEditor
-                  initialCriteria={editRubric.rubric_json}
-                  onSave={(c) => saveVersion(c, editRubric.job_description || undefined)}
-                  onCancel={() => setEditRubric(null)}
-                  saving={saving}
-                />
-              </CardContent>
-            </Card>
-          )}
+          {editRubric && (() => {
+            const parsed = parseRubricJson(editRubric.rubric_json);
+            return (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Editar v{editRubric.version_number} → nueva versión</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RubricEditor
+                    initialCriteria={parsed.criterios}
+                    initialKeywords={parsed.palabras_clave}
+                    onSave={(c, kw) => saveVersion(c, kw, editRubric.job_description || undefined)}
+                    onCancel={() => setEditRubric(null)}
+                    saving={saving}
+                  />
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Preview from chat */}
-          {previewJson && (
+          {previewData && (
             <Card className="border-primary/30">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Previsualización de rúbrica (IA)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold">Criterio</TableHead>
-                      <TableHead className="font-semibold text-center">Puntaje máx.</TableHead>
-                      <TableHead className="font-semibold">Palabras clave</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {previewJson.map((c, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="font-medium">{c.criterio}</TableCell>
-                        <TableCell className="text-center">{c.puntaje_max}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{c.palabras_clave?.join(', ') || '—'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {renderCriteriaTable(previewData)}
                 <div className="flex justify-end gap-2">
-                  <Button variant="ghost" onClick={() => setPreviewJson(null)}>Descartar</Button>
-                  <Button onClick={() => saveVersion(previewJson)} disabled={saving}>
+                  <Button variant="ghost" onClick={() => setPreviewData(null)}>Descartar</Button>
+                  <Button onClick={() => saveVersion(previewData.criterios, previewData.palabras_clave)} disabled={saving}>
                     {saving ? 'Guardando…' : 'Guardar como nueva versión'}
                   </Button>
                 </div>
@@ -368,7 +386,6 @@ export default function RubricaDetail() {
               </p>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col p-0">
-              {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[300px] max-h-[500px]">
                 {chatMessages.length === 0 && (
                   <div className="text-center text-muted-foreground text-sm py-8">
@@ -401,7 +418,6 @@ export default function RubricaDetail() {
                 )}
               </div>
 
-              {/* Input */}
               <div className="border-t p-3 flex gap-2">
                 <Textarea
                   placeholder="Describí el puesto o pedí cambios..."
@@ -422,30 +438,11 @@ export default function RubricaDetail() {
 
       {/* View rubric modal */}
       <Dialog open={!!viewRubric} onOpenChange={() => setViewRubric(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Rúbrica v{viewRubric?.version_number}</DialogTitle>
           </DialogHeader>
-          {viewRubric && (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Criterio</TableHead>
-                  <TableHead className="font-semibold text-center">Puntaje máx.</TableHead>
-                  <TableHead className="font-semibold">Palabras clave</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {viewRubric.rubric_json.map((c, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{c.criterio}</TableCell>
-                    <TableCell className="text-center">{c.puntaje_max}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{c.palabras_clave?.join(', ') || '—'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          {viewRubric && renderCriteriaTable(parseRubricJson(viewRubric.rubric_json))}
         </DialogContent>
       </Dialog>
     </div>
