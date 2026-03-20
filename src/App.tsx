@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import VacancyDetail from "./pages/VacancyDetail";
 import PostulantDetail from "./pages/PostulantDetail";
 import UserManagement from "./pages/UserManagement";
+import RubricasList from "./pages/RubricasList";
+import RubricaDetail from "./pages/RubricaDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
               <Route path="/vacantes" element={<Dashboard />} />
               <Route path="/vacantes/:vacancy_id" element={<VacancyDetail />} />
               <Route path="/postulantes/:id_postulant" element={<PostulantDetail />} />
+              <Route path="/rubricas" element={<RubricasList />} />
+              <Route path="/rubricas/:vacancy_id" element={<RubricaDetail />} />
               <Route path="/usuarios" element={<UserManagement />} />
             </Route>
             <Route path="*" element={<NotFound />} />

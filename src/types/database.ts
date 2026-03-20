@@ -82,6 +82,24 @@ export interface VacancyAssignment {
   assigned_at: string;
 }
 
+export interface RubricaCriterio {
+  criterio: string;
+  puntaje_max: number;
+  palabras_clave: string[];
+}
+
+export interface Rubrica {
+  id: number;
+  vacancy_id: string;
+  version_number: number;
+  rubric_json: RubricaCriterio[];
+  suma_total: number;
+  is_active: boolean;
+  job_description: string | null;
+  created_at: string;
+  created_by: string | null;
+}
+
 export type UserRole = 'manager' | 'selectora' | 'cliente';
 
 export const ETAPAS = [

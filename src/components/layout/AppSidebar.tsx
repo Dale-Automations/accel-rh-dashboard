@@ -1,4 +1,4 @@
-import { LayoutDashboard, Briefcase, Users, LogOut } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.png';
@@ -22,6 +22,10 @@ export function AppSidebar() {
     { title: 'Dashboard', url: '/', icon: LayoutDashboard },
     { title: 'Vacantes', url: '/vacantes', icon: Briefcase },
   ];
+
+  if (role !== 'cliente') {
+    menuItems.push({ title: 'Rúbricas', url: '/rubricas', icon: ClipboardCheck });
+  }
 
   if (role === 'manager') {
     menuItems.push({ title: 'Usuarios', url: '/usuarios', icon: Users });
