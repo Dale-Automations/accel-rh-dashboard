@@ -1,4 +1,4 @@
-import { LayoutDashboard, Briefcase, Users, LogOut } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.png';
