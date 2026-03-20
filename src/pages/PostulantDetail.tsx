@@ -139,6 +139,26 @@ export default function PostulantDetail() {
     loadData();
   };
 
+  const handleScoring = async (model: 'gpt' | 'gemini') => {
+    if (!id_postulant) return;
+    setScoringLoading(true);
+    const url = model === 'gpt'
+      ? 'https://accelrh.daleautomations.com/webhook/scorer-gpt'
+      : 'https://accelrh.daleautomations.com/webhook/scorer-gemini';
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postulant_ids: [id_postulant] }),
+      });
+      toast({ title: 'Evaluación iniciada', description: `Se envió a evaluar con ${model === 'gpt' ? 'GPT 4.1 mini' : 'Gemini Flash'}` });
+    } catch {
+      toast({ title: 'Error al iniciar evaluación', variant: 'destructive' });
+    } finally {
+      setScoringLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="space-y-4">{Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-32 rounded-lg" />)}</div>;
   }
