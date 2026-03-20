@@ -42,6 +42,8 @@ export default function VacancyDetail() {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedAssignments, setSelectedAssignments] = useState<Record<string, boolean>>({});
   const [assignTab, setAssignTab] = useState('selectora');
+  const [selectedPostulants, setSelectedPostulants] = useState<Set<string>>(new Set());
+  const [scoringLoading, setScoringLoading] = useState(false);
   const PAGE_SIZE = 25;
 
   useEffect(() => {
