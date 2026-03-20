@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import VacancyDetail from "./pages/VacancyDetail";
 import PostulantDetail from "./pages/PostulantDetail";
 import UserManagement from "./pages/UserManagement";
+import RubricasList from "./pages/RubricasList";
+import RubricaDetail from "./pages/RubricaDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
