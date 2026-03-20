@@ -188,6 +188,19 @@ export default function EditablePostulantTable({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
+            {selectedIds && onSelectionChange && (
+              <TableHead className="w-10 text-center">
+                <Checkbox
+                  checked={postulantes.length > 0 && postulantes.every(p => selectedIds.has(p.id_postulant))}
+                  onCheckedChange={(c) => {
+                    const next = new Set(selectedIds);
+                    if (c) { postulantes.forEach(p => next.add(p.id_postulant)); }
+                    else { postulantes.forEach(p => next.delete(p.id_postulant)); }
+                    onSelectionChange(next);
+                  }}
+                />
+              </TableHead>
+            )}
             <TableHead className="w-10 text-center">#</TableHead>
             {!isCliente ? (
               <SortableHead col="name" className="min-w-[160px]">Nombre</SortableHead>
