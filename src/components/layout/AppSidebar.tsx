@@ -23,6 +23,10 @@ export function AppSidebar() {
     { title: 'Vacantes', url: '/vacantes', icon: Briefcase },
   ];
 
+  if (role !== 'cliente') {
+    menuItems.push({ title: 'Rúbricas', url: '/rubricas', icon: ClipboardCheck });
+  }
+
   if (role === 'manager') {
     menuItems.push({ title: 'Usuarios', url: '/usuarios', icon: Users });
   }
