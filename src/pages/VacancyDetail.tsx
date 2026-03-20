@@ -300,8 +300,32 @@ export default function VacancyDetail() {
               <SelectItem value="all">Todas las etapas</SelectItem>
               {ETAPAS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
             </SelectContent>
-          </Select>
+           </Select>
         </div>
+
+        {/* Scoring buttons */}
+        {selectedPostulants.size > 0 && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">{selectedPostulants.size} seleccionados</span>
+            <Button
+              size="sm"
+              disabled={scoringLoading}
+              onClick={() => handleScoring('gpt')}
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Evaluar con GPT 4.1 mini
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={scoringLoading}
+              onClick={() => handleScoring('gemini')}
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Evaluar con Gemini Flash
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Scrollable table area */}
