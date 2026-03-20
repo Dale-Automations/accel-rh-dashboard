@@ -492,10 +492,29 @@ export default function PostulantDetail() {
                     </TooltipProvider>
                   ))}
                 </div>
-                <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
-                  {score.rubric_used && <p>Rúbrica: {score.rubric_used}</p>}
-                  {score.ai_model && <p>Modelo: {score.ai_model}</p>}
-                  {score.scored_at && <p>Evaluado: {formatDateTime(score.scored_at)}</p>}
+                <div className="text-xs text-muted-foreground space-y-1.5 pt-2 border-t">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-foreground/70">Rúbrica:</span>
+                    {score.rubric_used ? (
+                      <Badge variant="outline" className="text-xs font-normal">{score.rubric_used}</Badge>
+                    ) : (
+                      <span className="italic">Sin rúbrica</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-foreground/70">Modelo:</span>
+                    {score.ai_model ? (
+                      <Badge variant="secondary" className="text-xs font-normal">{score.ai_model}</Badge>
+                    ) : (
+                      <span className="italic">—</span>
+                    )}
+                  </div>
+                  {score.scored_at && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-foreground/70">Evaluado:</span>
+                      <span>{formatDateTime(score.scored_at)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
