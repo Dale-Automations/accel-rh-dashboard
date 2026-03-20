@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Progress } from '@/components/ui/progress';
 import { formatDate, formatDateTime, formatCurrency, getScoreColor, getEtapaColor, extractLinks } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download, ArrowLeft } from 'lucide-react';
+import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download, ArrowLeft, Sparkles, Brain } from 'lucide-react';
 import PostulantReportPdf from '@/components/PostulantReportPdf';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
@@ -54,6 +54,7 @@ export default function PostulantDetail() {
   const [savingPreguntas, setSavingPreguntas] = useState(false);
   const [editScore, setEditScore] = useState('');
   const [savingScore, setSavingScore] = useState(false);
+  const [scoringLoading, setScoringLoading] = useState(false);
   const [hoveredRadarLabel, setHoveredRadarLabel] = useState<{
     text: string;
     x: number;
@@ -136,6 +137,26 @@ export default function PostulantDetail() {
     await sb.from('postulantes').update({ contacted: newVal, contact_status: newVal ? `Contactado el ${format(new Date(), 'dd/MM/yyyy')}` : '' }).eq('id_postulant', id_postulant);
     toast({ title: newVal ? 'Marcado como contactado' : 'Desmarcado' });
     loadData();
+  };
+
+  const handleScoring = async (model: 'gpt' | 'gemini') => {
+    if (!id_postulant) return;
+    setScoringLoading(true);
+    const url = model === 'gpt'
+      ? 'https://accelrh.daleautomations.com/webhook/scorer-gpt'
+      : 'https://accelrh.daleautomations.com/webhook/scorer-gemini';
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postulant_ids: [id_postulant] }),
+      });
+      toast({ title: 'Evaluación iniciada', description: `Se envió a evaluar con ${model === 'gpt' ? 'GPT 4.1 mini' : 'Gemini Flash'}` });
+    } catch {
+      toast({ title: 'Error al iniciar evaluación', variant: 'destructive' });
+    } finally {
+      setScoringLoading(false);
+    }
   };
 
   if (loading) {
@@ -310,6 +331,12 @@ export default function PostulantDetail() {
                     />
                   </PopoverContent>
                 </Popover>
+                <Button onClick={() => handleScoring('gpt')} disabled={scoringLoading}>
+                  <Brain className="h-4 w-4 mr-2" /> Evaluar con GPT 4.1 mini
+                </Button>
+                <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => handleScoring('gemini')} disabled={scoringLoading}>
+                  <Sparkles className="h-4 w-4 mr-2" /> Evaluar con Gemini Flash
+                </Button>
               </div>
             )}
           </div>
