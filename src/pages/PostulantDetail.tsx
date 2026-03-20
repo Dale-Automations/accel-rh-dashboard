@@ -54,6 +54,7 @@ export default function PostulantDetail() {
   const [savingPreguntas, setSavingPreguntas] = useState(false);
   const [editScore, setEditScore] = useState('');
   const [savingScore, setSavingScore] = useState(false);
+  const [scoringLoading, setScoringLoading] = useState(false);
   const [hoveredRadarLabel, setHoveredRadarLabel] = useState<{
     text: string;
     x: number;
