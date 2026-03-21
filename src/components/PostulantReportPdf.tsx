@@ -154,27 +154,42 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       drawFooter(page, helvetica, helveticaBold);
 
-      // ===== PAGE 2: Full Evaluation Detail =====
-      const hasPage2 = detalles.length > 0;
-      if (hasPage2) {
+      // ===== PAGE 2: Evaluation Screenshot =====
+      const evalImage = await captureEvaluationSection();
+      if (evalImage) {
         page = pdfDoc.addPage([PW, PH]);
         drawBorder(page);
         y = PH - MT;
         y = drawHeader(page, ctx, y);
 
-        // Section title
         y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
         y -= 6;
 
-        // Radar chart (programmatic, stable and readable)
+        const pngImg = await pdfDoc.embedPng(evalImage);
+        const imgDims = pngImg.scale(1);
+        const availW = CW;
+        const availH = y - MB - 20;
+        const scale = Math.min(availW / imgDims.width, availH / imgDims.height, 1);
+        const drawW = imgDims.width * scale;
+        const drawH = imgDims.height * scale;
+        const imgX = ML + (CW - drawW) / 2;
+
+        page.drawImage(pngImg, { x: imgX, y: y - drawH, width: drawW, height: drawH });
+
+        drawFooter(page, helvetica, helveticaBold);
+      } else if (detalles.length > 0) {
+        // Fallback to programmatic charts
+        page = pdfDoc.addPage([PW, PH]);
+        drawBorder(page);
+        y = PH - MT;
+        y = drawHeader(page, ctx, y);
+        y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
+        y -= 6;
         y = drawRadarChart(page, detalles, helvetica, y);
         y -= 22;
-
-        // Horizontal bar chart with scores
         y = drawBarChart(page, detalles, helvetica, helveticaBold, y);
 
         drawFooter(page, helvetica, helveticaBold);
-      }
 
       // ===== PAGE 3: Notes, Risks, Signature =====
       const hasPage3 = (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0) ||
