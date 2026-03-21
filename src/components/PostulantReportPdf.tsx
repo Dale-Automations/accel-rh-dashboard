@@ -238,7 +238,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         drawBorder(page);
         y = PH - MT;
         y = drawHeader(page, ctx, y);
-        y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
+        y = drawSectionTitle(page, helveticaBold, l.scoringBreakdown, y);
         y -= 6;
         y = drawRadarChart(page, detalles, helvetica, y);
         y -= 22;
