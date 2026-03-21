@@ -313,7 +313,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       const link = document.createElement('a');
       link.href = url;
       const safeName = (postulante.full_name || 'Candidato').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').trim().replace(/\s+/g, '_');
-      link.download = `Report_${safeName}.pdf`;
+      link.download = `${l.fileName}_${safeName}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
     } finally {
