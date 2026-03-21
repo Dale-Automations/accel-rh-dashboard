@@ -28,6 +28,62 @@ const TEXT_COLOR = rgb(0.1, 0.1, 0.1);
 const GRAY = rgb(0.4, 0.4, 0.4);
 const LIGHT_GRAY = rgb(0.6, 0.6, 0.6);
 const ACCENT = rgb(0.357, 0.31, 0.71); // #5b4fb5
+type Lang = 'es' | 'en';
+
+const t = {
+  es: {
+    candidateReport: 'Reporte de Candidato',
+    customer: 'Cliente',
+    role: 'Puesto',
+    date: 'Fecha',
+    candidateName: 'Nombre del Candidato',
+    recruiter: 'Reclutador',
+    matchScore: 'Puntaje de Compatibilidad AcceleRATE',
+    status: 'Estado',
+    recommended: 'Recomendado para Entrevista',
+    underReview: 'En Revision',
+    notRecommended: 'No Recomendado',
+    profileSummary: 'Resumen del Perfil Profesional',
+    keyStrengths: 'Fortalezas Clave (Valor para el Cliente)',
+    logistics: 'Logistica y Expectativas Salariales',
+    salaryExpectation: 'Expectativa Salarial',
+    availability: 'Disponibilidad',
+    stage: 'Etapa',
+    scoringBreakdown: 'Desglose de Evaluacion',
+    interviewerNotes: 'Notas para el Entrevistador (Puntos sugeridos para validar en su entrevista interna)',
+    risks: 'Riesgos a Considerar',
+    sincerely: 'Atentamente,',
+    confidential: 'CONFIDENCIAL - Solo para uso interno del cliente',
+    contact: 'AccelRH | contacto@accelrh.com',
+    fileName: 'Reporte',
+  },
+  en: {
+    candidateReport: 'Candidate Report',
+    customer: 'Customer',
+    role: 'Role',
+    date: 'Date',
+    candidateName: 'Candidate Name',
+    recruiter: 'Recruiter',
+    matchScore: 'AcceleRATE Match Score',
+    status: 'Status',
+    recommended: 'Recommended for Interview',
+    underReview: 'Under Review',
+    notRecommended: 'Not Recommended',
+    profileSummary: 'Professional Profile Summary',
+    keyStrengths: 'Key Strengths (Value for the Client)',
+    logistics: 'Logistics & Salary Expectations',
+    salaryExpectation: 'Salary Expectation',
+    availability: 'Availability',
+    stage: 'Stage',
+    scoringBreakdown: 'Scoring Breakdown',
+    interviewerNotes: 'Interviewer Notes (Suggested points to validate in your internal interview)',
+    risks: 'Risks to Consider',
+    sincerely: 'Sincerely,',
+    confidential: 'CONFIDENTIAL - For client internal use only',
+    contact: 'AccelRH | contacto@accelrh.com',
+    fileName: 'Report',
+  },
+};
 
 export default function PostulantReportPdf({ postulante, score, vacancyName, radarChartRef }: Props) {
   const [generating, setGenerating] = useState(false);
