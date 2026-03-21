@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Briefcase, Users, CheckCircle, Clock, Phone, BarChart3, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import type { Vacante, Postulante, UserProfile, VacancyAssignment } from '@/types/database';
 
 const sb = supabase as any;
