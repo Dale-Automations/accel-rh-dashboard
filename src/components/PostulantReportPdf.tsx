@@ -113,8 +113,8 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
     }
   }, [radarChartRef]);
 
-  const generatePdf = useCallback(async () => {
-    setGenerating(true);
+  const generatePdf = useCallback(async (lang: Lang = 'es') => {
+    const l = t[lang];
     try {
       const pdfDoc = await PDFDocument.create();
       const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
