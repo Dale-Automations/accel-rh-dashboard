@@ -431,7 +431,7 @@ export default function PostulantDetail() {
                 <div className="relative" ref={radarChartRef}>
                   <ResponsiveContainer width="100%" height={380}>
                     <RadarChart data={radarData} outerRadius="75%">
-                      <PolarGrid stroke="hsl(var(--border))" />
+                      <PolarGrid gridType="circle" stroke="hsl(var(--border))" />
                       <PolarAngleAxis
                         dataKey="criterio"
                         tick={({ payload, x, y, textAnchor, index }) => {
