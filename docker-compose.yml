@@ -1,0 +1,22 @@
+services:
+  accelrh-dashboard:
+    build:
+      context: .
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID}
+    container_name: accelrh-dashboard
+    restart: unless-stopped
+    networks:
+      - n8n_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.accelrh-app.rule=Host(`accelrhapp.daleautomations.com`)"
+      - "traefik.http.routers.accelrh-app.entrypoints=websecure"
+      - "traefik.http.routers.accelrh-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.accelrh-app.loadbalancer.server.port=80"
+
+networks:
+  n8n_default:
+    external: true
