@@ -421,58 +421,53 @@ export default function PostulantDetail() {
 
             {/* Radar Chart - always expanded */}
             {radarData.length > 0 && (
-              <div className="bg-card rounded-lg border p-4 space-y-4">
-                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Detalle Evaluación</h3>
+              <div className="bg-card rounded-lg border p-6 space-y-4">
+                <div className="text-center space-y-0.5">
+                  <h3 className="font-semibold text-base text-foreground">Perfil: Candidato Evaluado</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Puntaje Total: <span className="font-semibold text-foreground">{score.score_final}</span>/100
+                  </p>
+                </div>
                 <div className="relative" ref={radarChartRef}>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <RadarChart data={radarData} outerRadius="65%">
-                      <PolarGrid />
+                  <ResponsiveContainer width="100%" height={380}>
+                    <RadarChart data={radarData} outerRadius="75%">
+                      <PolarGrid stroke="hsl(var(--border))" />
                       <PolarAngleAxis
                         dataKey="criterio"
-                        tick={({ payload, x, y, textAnchor }) => {
+                        tick={({ payload, x, y, textAnchor, index }) => {
                           const full = String(payload?.value ?? '');
-                          const maxLen = 16;
-                          const short = full.length > maxLen ? full.slice(0, maxLen) + '…' : full;
+                          const words = full.split(' ');
+                          const lines: string[] = [];
+                          let current = '';
+                          for (const w of words) {
+                            if ((current + ' ' + w).trim().length > 14 && current) {
+                              lines.push(current.trim());
+                              current = w;
+                            } else {
+                              current = current ? current + ' ' + w : w;
+                            }
+                          }
+                          if (current) lines.push(current.trim());
+
                           const safeX = typeof x === 'number' ? x : 0;
                           const safeY = typeof y === 'number' ? y : 0;
                           const anchor = (textAnchor as 'start' | 'middle' | 'end') || 'middle';
 
                           return (
-                            <g
-                              onMouseEnter={() => setHoveredRadarLabel({ text: full, x: safeX, y: safeY, anchor })}
-                              onMouseLeave={() => setHoveredRadarLabel(null)}
-                            >
-                              <text x={safeX} y={safeY} textAnchor={anchor} fontSize={10} fill="currentColor" style={{ cursor: 'default' }}>
-                                {short}
-                              </text>
-                            </g>
+                            <text x={safeX} y={safeY} textAnchor={anchor} fontSize={11} fill="currentColor" fontWeight={500}>
+                              {lines.map((line, li) => (
+                                <tspan key={li} x={safeX} dy={li === 0 ? 0 : 14}>
+                                  {line}
+                                </tspan>
+                              ))}
+                            </text>
                           );
                         }}
                       />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                      <Radar name="Máximo" dataKey="max" stroke="hsl(250, 15%, 80%)" fill="hsl(250, 15%, 80%)" fillOpacity={0.2} />
-                      <Radar name="Candidato" dataKey="porcentaje" stroke="hsl(260, 50%, 55%)" fill="hsl(260, 50%, 55%)" fillOpacity={0.4} />
-                      <Legend />
+                      <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
+                      <Radar name="Candidato" dataKey="porcentaje" stroke="hsl(210, 60%, 50%)" fill="hsl(210, 60%, 50%)" fillOpacity={0.3} strokeWidth={2} />
                     </RadarChart>
                   </ResponsiveContainer>
-
-                  {hoveredRadarLabel && (
-                    <div
-                      className="pointer-events-none absolute z-50 max-w-[260px] rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
-                      style={{
-                        left: hoveredRadarLabel.x,
-                        top: hoveredRadarLabel.y - 8,
-                        transform:
-                          hoveredRadarLabel.anchor === 'end'
-                            ? 'translate(-100%, -100%)'
-                            : hoveredRadarLabel.anchor === 'start'
-                              ? 'translate(0, -100%)'
-                              : 'translate(-50%, -100%)',
-                      }}
-                    >
-                      {hoveredRadarLabel.text}
-                    </div>
-                  )}
                 </div>
                 <div className="space-y-2">
                   {detalles.map((d, i) => (
