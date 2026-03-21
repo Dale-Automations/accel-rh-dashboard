@@ -167,7 +167,27 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <KpiCard title="Vacantes Activas" value={activasCount} icon={Briefcase} />
-          <KpiCard title="Total Postulantes" value={totalPost} icon={Users} />
+          <div className="shadow-sm hover:shadow-md transition-shadow rounded-lg border-0 relative overflow-hidden group bg-card">
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-brand-gradient opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Total Postulantes</p>
+                <p className="text-2xl font-bold text-foreground">{totalPost}</p>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                  {Object.entries(sourceBreakdown)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([label, count]) => (
+                      <span key={label} className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        {label}: <span className="font-medium text-foreground">{count}</span>
+                      </span>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
           <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} />
           <KpiCard title="Pendientes" value={pendientes} icon={Clock} />
           <KpiCard title="Contactados" value={contactados} icon={Phone} />
