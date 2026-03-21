@@ -34,58 +34,27 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
   const detalles = (score?.detalles || []) as ScoreDetalle[];
 
-  const captureRadarChart = useCallback(async (): Promise<Uint8Array | null> => {
+  const captureEvaluationSection = useCallback(async (): Promise<Uint8Array | null> => {
     if (!radarChartRef?.current) return null;
-    const svgEl = radarChartRef.current.querySelector('svg');
-    if (!svgEl) return null;
-
-    // Clone SVG and set explicit dimensions
-    const clone = svgEl.cloneNode(true) as SVGSVGElement;
-    const bbox = svgEl.getBoundingClientRect();
-    clone.setAttribute('width', String(bbox.width));
-    clone.setAttribute('height', String(bbox.height));
-    
-    // Apply computed styles to text elements
-    const originalTexts = svgEl.querySelectorAll('text');
-    const cloneTexts = clone.querySelectorAll('text');
-    originalTexts.forEach((orig, i) => {
-      const computed = window.getComputedStyle(orig);
-      cloneTexts[i]?.setAttribute('fill', computed.color || '#333');
-    });
-
-    const svgData = new XMLSerializer().serializeToString(clone);
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const scale = 2;
-        canvas.width = bbox.width * scale;
-        canvas.height = bbox.height * scale;
-        const ctx2d = canvas.getContext('2d');
-        if (ctx2d) {
-          ctx2d.fillStyle = '#ffffff';
-          ctx2d.fillRect(0, 0, canvas.width, canvas.height);
-          ctx2d.scale(scale, scale);
-          ctx2d.drawImage(img, 0, 0, bbox.width, bbox.height);
-        }
+    try {
+      const canvas = await html2canvas(radarChartRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+      });
+      return new Promise((resolve) => {
         canvas.toBlob((blob) => {
           if (blob) {
-            blob.arrayBuffer().then(buf => {
-              resolve(new Uint8Array(buf));
-              URL.revokeObjectURL(url);
-            });
+            blob.arrayBuffer().then(buf => resolve(new Uint8Array(buf)));
           } else {
             resolve(null);
-            URL.revokeObjectURL(url);
           }
         }, 'image/png');
-      };
-      img.onerror = () => { resolve(null); URL.revokeObjectURL(url); };
-      img.src = url;
-    });
+      });
+    } catch {
+      return null;
+    }
   }, [radarChartRef]);
 
   const generatePdf = useCallback(async () => {
