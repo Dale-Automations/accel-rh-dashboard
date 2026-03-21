@@ -259,7 +259,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
         // Interviewer Notes
         if (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0) {
-          y = drawSectionTitle(page, helveticaBold, 'Interviewer Notes (Suggested points to validate in your internal interview)', y);
+          y = drawSectionTitle(page, helveticaBold, l.interviewerNotes, y);
           for (const q of score.preguntas_sugeridas) {
             if (y < MB + 60) {
               drawFooter(page, helvetica, helveticaBold);
