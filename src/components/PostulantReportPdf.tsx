@@ -28,6 +28,62 @@ const TEXT_COLOR = rgb(0.1, 0.1, 0.1);
 const GRAY = rgb(0.4, 0.4, 0.4);
 const LIGHT_GRAY = rgb(0.6, 0.6, 0.6);
 const ACCENT = rgb(0.357, 0.31, 0.71); // #5b4fb5
+type Lang = 'es' | 'en';
+
+const t = {
+  es: {
+    candidateReport: 'Reporte de Candidato',
+    customer: 'Cliente',
+    role: 'Puesto',
+    date: 'Fecha',
+    candidateName: 'Nombre del Candidato',
+    recruiter: 'Reclutador',
+    matchScore: 'Puntaje de Compatibilidad AcceleRATE',
+    status: 'Estado',
+    recommended: 'Recomendado para Entrevista',
+    underReview: 'En Revision',
+    notRecommended: 'No Recomendado',
+    profileSummary: 'Resumen del Perfil Profesional',
+    keyStrengths: 'Fortalezas Clave (Valor para el Cliente)',
+    logistics: 'Logistica y Expectativas Salariales',
+    salaryExpectation: 'Expectativa Salarial',
+    availability: 'Disponibilidad',
+    stage: 'Etapa',
+    scoringBreakdown: 'Desglose de Evaluacion',
+    interviewerNotes: 'Notas para el Entrevistador (Puntos sugeridos para validar en su entrevista interna)',
+    risks: 'Riesgos a Considerar',
+    sincerely: 'Atentamente,',
+    confidential: 'CONFIDENCIAL - Solo para uso interno del cliente',
+    contact: 'AccelRH | contacto@accelrh.com',
+    fileName: 'Reporte',
+  },
+  en: {
+    candidateReport: 'Candidate Report',
+    customer: 'Customer',
+    role: 'Role',
+    date: 'Date',
+    candidateName: 'Candidate Name',
+    recruiter: 'Recruiter',
+    matchScore: 'AcceleRATE Match Score',
+    status: 'Status',
+    recommended: 'Recommended for Interview',
+    underReview: 'Under Review',
+    notRecommended: 'Not Recommended',
+    profileSummary: 'Professional Profile Summary',
+    keyStrengths: 'Key Strengths (Value for the Client)',
+    logistics: 'Logistics & Salary Expectations',
+    salaryExpectation: 'Salary Expectation',
+    availability: 'Availability',
+    stage: 'Stage',
+    scoringBreakdown: 'Scoring Breakdown',
+    interviewerNotes: 'Interviewer Notes (Suggested points to validate in your internal interview)',
+    risks: 'Risks to Consider',
+    sincerely: 'Sincerely,',
+    confidential: 'CONFIDENTIAL - For client internal use only',
+    contact: 'AccelRH | contacto@accelrh.com',
+    fileName: 'Report',
+  },
+};
 
 export default function PostulantReportPdf({ postulante, score, vacancyName, radarChartRef }: Props) {
   const [generating, setGenerating] = useState(false);
@@ -57,8 +113,8 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
     }
   }, [radarChartRef]);
 
-  const generatePdf = useCallback(async () => {
-    setGenerating(true);
+  const generatePdf = useCallback(async (lang: Lang = 'es') => {
+    const l = t[lang];
     try {
       const pdfDoc = await PDFDocument.create();
       const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -77,7 +133,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       const scoreVal = score?.score_final;
       const statusText = scoreVal != null
-        ? scoreVal >= 80 ? 'Recommended for Interview' : scoreVal >= 60 ? 'Under Review' : 'Not Recommended'
+        ? scoreVal >= 80 ? l.recommended : scoreVal >= 60 ? l.underReview : l.notRecommended
         : '—';
 
       // Helper context
@@ -87,6 +143,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         helveticaBold,
         helveticaOblique,
         logoImage,
+        headerTitle: l.candidateReport,
       };
 
       // ===== PAGE 1 =====
@@ -103,11 +160,11 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       // Metadata with better spacing
       const metaFields = [
-        ['Customer', vacancyName || postulante.vacancy_name || '—'],
-        ['Role', postulante.vacancy_name || '—'],
-        ['Date', formatDate(postulante.apply_date)],
-        ['Candidate Name', postulante.full_name || '—'],
-        ['Recruiter', 'ACCELRH'],
+        [l.customer, vacancyName || postulante.vacancy_name || '—'],
+        [l.role, postulante.vacancy_name || '—'],
+        [l.date, formatDate(postulante.apply_date)],
+        [l.candidateName, postulante.full_name || '—'],
+        [l.recruiter, 'ACCELRH'],
       ];
       for (const [label, value] of metaFields) {
         page.drawText(label, { x: ML, y, size: 11, font: helvetica, color: GRAY });
@@ -117,11 +174,11 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       y -= 16;
 
       // Score - bigger and more prominent
-      page.drawText(`AcceleRATE Match Score: ${scoreVal != null ? `${scoreVal}/100` : '—'}`, {
+      page.drawText(`${l.matchScore}: ${scoreVal != null ? `${scoreVal}/100` : '—'}`, {
         x: ML, y, size: 15, font: helveticaBold, color: ACCENT,
       });
       y -= 22;
-      page.drawText(`Status: ${statusText}`, {
+      page.drawText(`${l.status}: ${statusText}`, {
         x: ML, y, size: 12, font: helveticaBold, color: TEXT_COLOR,
       });
       y -= 36;
@@ -129,14 +186,14 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       // Profile Summary
       const summaryText = postulante.screening_responses || postulante.comments_selectora || postulante.comments_manager;
       if (summaryText) {
-        y = drawSectionTitle(page, helveticaBold, 'Professional Profile Summary', y);
+        y = drawSectionTitle(page, helveticaBold, l.profileSummary, y);
         y = drawWrappedText(page, helvetica, summaryText, y, 11, TEXT_COLOR);
         y -= 24;
       }
 
       // Key Strengths
       if (score?.razones_top3 && score.razones_top3.length > 0) {
-        y = drawSectionTitle(page, helveticaBold, 'Key Strengths (Value for the Client)', y);
+        y = drawSectionTitle(page, helveticaBold, l.keyStrengths, y);
         for (const r of score.razones_top3) {
           y = drawWrappedText(page, helvetica, `- ${r}`, y, 11, TEXT_COLOR);
           y -= 14;
@@ -145,14 +202,14 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       // Logistics on page 1 since we have space
       y -= 8;
-      y = drawSectionTitle(page, helveticaBold, 'Logistics & Salary Expectations', y);
-      y = drawWrappedText(page, helvetica, `Salary Expectation: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 11, TEXT_COLOR);
+      y = drawSectionTitle(page, helveticaBold, l.logistics, y);
+      y = drawWrappedText(page, helvetica, `${l.salaryExpectation}: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 11, TEXT_COLOR);
       y -= 4;
-      y = drawWrappedText(page, helvetica, `Availability: ${postulante.contact_status || '—'}`, y, 11, TEXT_COLOR);
+      y = drawWrappedText(page, helvetica, `${l.availability}: ${postulante.contact_status || '—'}`, y, 11, TEXT_COLOR);
       y -= 4;
-      y = drawWrappedText(page, helvetica, `Stage: ${postulante.etapa || '—'}`, y, 11, TEXT_COLOR);
+      y = drawWrappedText(page, helvetica, `${l.stage}: ${postulante.etapa || '—'}`, y, 11, TEXT_COLOR);
 
-      drawFooter(page, helvetica, helveticaBold);
+      drawFooter(page, helvetica, helveticaBold, lang);
 
       // ===== PAGE 2: Evaluation Screenshot =====
       const evalImage = await captureEvaluationSection();
@@ -162,7 +219,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         y = PH - MT;
         y = drawHeader(page, ctx, y);
 
-        y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
+        y = drawSectionTitle(page, helveticaBold, l.scoringBreakdown, y);
         y -= 6;
 
         const pngImg = await pdfDoc.embedPng(evalImage);
@@ -176,20 +233,20 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
         page.drawImage(pngImg, { x: imgX, y: y - drawH, width: drawW, height: drawH });
 
-        drawFooter(page, helvetica, helveticaBold);
+        drawFooter(page, helvetica, helveticaBold, lang);
       } else if (detalles.length > 0) {
         // Fallback to programmatic charts
         page = pdfDoc.addPage([PW, PH]);
         drawBorder(page);
         y = PH - MT;
         y = drawHeader(page, ctx, y);
-        y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
+        y = drawSectionTitle(page, helveticaBold, l.scoringBreakdown, y);
         y -= 6;
         y = drawRadarChart(page, detalles, helvetica, y);
         y -= 22;
         y = drawBarChart(page, detalles, helvetica, helveticaBold, y);
 
-        drawFooter(page, helvetica, helveticaBold);
+        drawFooter(page, helvetica, helveticaBold, lang);
       }
 
       // ===== PAGE 3: Notes, Risks, Signature =====
@@ -203,10 +260,10 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
         // Interviewer Notes
         if (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0) {
-          y = drawSectionTitle(page, helveticaBold, 'Interviewer Notes (Suggested points to validate in your internal interview)', y);
+          y = drawSectionTitle(page, helveticaBold, l.interviewerNotes, y);
           for (const q of score.preguntas_sugeridas) {
             if (y < MB + 60) {
-              drawFooter(page, helvetica, helveticaBold);
+              drawFooter(page, helvetica, helveticaBold, lang);
               page = pdfDoc.addPage([PW, PH]);
               drawBorder(page);
               y = PH - MT;
@@ -221,16 +278,16 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         // Risks
         if (score?.riesgos_top3 && score.riesgos_top3.length > 0) {
           if (y < MB + 60) {
-            drawFooter(page, helvetica, helveticaBold);
+            drawFooter(page, helvetica, helveticaBold, lang);
             page = pdfDoc.addPage([PW, PH]);
             drawBorder(page);
             y = PH - MT;
             y = drawHeader(page, ctx, y);
           }
-          y = drawSectionTitle(page, helveticaBold, 'Risks to Consider', y);
+          y = drawSectionTitle(page, helveticaBold, l.risks, y);
           for (const r of score.riesgos_top3) {
             if (y < MB + 60) {
-              drawFooter(page, helvetica, helveticaBold);
+              drawFooter(page, helvetica, helveticaBold, lang);
               page = pdfDoc.addPage([PW, PH]);
               drawBorder(page);
               y = PH - MT;
@@ -243,11 +300,11 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
         // Signature
         y -= 24;
-        page.drawText('Sincerely,', { x: ML, y, size: 10.5, font: helvetica, color: TEXT_COLOR });
+        page.drawText(l.sincerely, { x: ML, y, size: 10.5, font: helvetica, color: TEXT_COLOR });
         y -= 16;
         page.drawText('AccelRH Recruitment Team', { x: ML, y, size: 12, font: helveticaBold, color: ACCENT });
 
-        drawFooter(page, helvetica, helveticaBold);
+        drawFooter(page, helvetica, helveticaBold, lang);
       }
 
       // Save
@@ -257,7 +314,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       const link = document.createElement('a');
       link.href = url;
       const safeName = (postulante.full_name || 'Candidato').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').trim().replace(/\s+/g, '_');
-      link.download = `Report_${safeName}.pdf`;
+      link.download = `${l.fileName}_${safeName}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -266,10 +323,16 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
   }, [postulante, score, detalles, vacancyName, captureEvaluationSection]);
 
   return (
-    <Button variant="outline" size="sm" onClick={generatePdf} disabled={generating}>
-      {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-      {generating ? 'Generando...' : 'Descargar PDF'}
-    </Button>
+    <div className="flex gap-1">
+      <Button variant="outline" size="sm" onClick={() => generatePdf('es')} disabled={generating}>
+        {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+        {generating ? 'Generando...' : 'PDF Español'}
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => generatePdf('en')} disabled={generating}>
+        {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+        {generating ? 'Generating...' : 'PDF English'}
+      </Button>
+    </div>
   );
 }
 
@@ -285,14 +348,14 @@ function drawBorder(page: PDFPage) {
 
 function drawHeader(
   page: PDFPage,
-  ctx: { logoImage: any; helvetica: PDFFont; helveticaBold: PDFFont },
+  ctx: { logoImage: any; helvetica: PDFFont; helveticaBold: PDFFont; headerTitle?: string },
   y: number,
 ): number {
   const logoSize = 44;
   if (ctx.logoImage) {
     page.drawImage(ctx.logoImage, { x: ML, y: y - logoSize, width: logoSize, height: logoSize });
   }
-  page.drawText('Candidate Report', {
+  page.drawText(ctx.headerTitle || 'Candidate Report', {
     x: ML + logoSize + 14, y: y - 32, size: 24, font: ctx.helvetica, color: rgb(0.2, 0.2, 0.2),
   });
   return y - logoSize - 14;
@@ -367,17 +430,18 @@ function estimateTextHeight(texts: string[], font: PDFFont, size: number): numbe
   return total;
 }
 
-function drawFooter(page: PDFPage, font: PDFFont, fontBold: PDFFont) {
+function drawFooter(page: PDFPage, font: PDFFont, fontBold: PDFFont, lang: 'es' | 'en' = 'en') {
   const footerY = 44;
-  // Separator line
   page.drawLine({ start: { x: ML, y: footerY + 22 }, end: { x: PW - MR, y: footerY + 22 }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
 
-  const notice = 'Confidentiality Notice: The information contained in this report is confidential and intended exclusively for processes managed by AccelRH. Any direct contact with the candidate without prior coordination with our team will be considered a deviation from the established procedure.';
+  const notice = lang === 'es'
+    ? 'Aviso de Confidencialidad: La informacion contenida en este reporte es confidencial y esta destinada exclusivamente a los procesos gestionados por AccelRH. Cualquier contacto directo con el candidato sin coordinacion previa con nuestro equipo sera considerado una desviacion del procedimiento establecido.'
+    : 'Confidentiality Notice: The information contained in this report is confidential and intended exclusively for processes managed by AccelRH. Any direct contact with the candidate without prior coordination with our team will be considered a deviation from the established procedure.';
+  const boldStart = lang === 'es' ? 'Aviso' : 'Confidentiality';
   const noticeLines = wrapText(font, notice, 7, CW);
   let ny = footerY + 14;
   for (const line of noticeLines) {
-    // Bold the "Confidentiality Notice:" part
-    const usedFont = line.startsWith('Confidentiality') ? fontBold : font;
+    const usedFont = line.startsWith(boldStart) ? fontBold : font;
     page.drawText(line, { x: ML, y: ny, size: 7, font: usedFont, color: LIGHT_GRAY });
     ny -= 9;
   }
