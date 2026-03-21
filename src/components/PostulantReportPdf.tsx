@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/formatters';
 import logoSrc from '@/assets/logo.png';
+import html2canvas from 'html2canvas';
 import type { Postulante, CvScore, ScoreDetalle } from '@/types/database';
 
 interface Props {
