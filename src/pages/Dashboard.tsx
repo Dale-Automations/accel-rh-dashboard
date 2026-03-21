@@ -85,6 +85,18 @@ export default function Dashboard() {
   const pendientes = postulantes.filter(p => p.scoring_status === 'pending').length;
   const contactados = postulantes.filter(p => p.contacted).length;
 
+  // Source breakdown
+  const sourceBreakdown = postulantes.reduce<Record<string, number>>((acc, p) => {
+    const raw = (p.source || '').toLowerCase().trim();
+    let label: string;
+    if (raw === 'bum' || raw === 'web') label = 'HiringRoom';
+    else if (raw.includes('linkedin') || raw.includes('phantom')) label = 'LinkedIn';
+    else if (raw === '' || raw === 'manual') label = 'Manual';
+    else label = raw.charAt(0).toUpperCase() + raw.slice(1);
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+
   const getVacancyStats = (vacancyId: string) => {
     const vPosts = postulantes.filter(p => p.vacancy_id === vacancyId);
     const scored = vPosts.filter(p => p.scoring_status === 'scored');
