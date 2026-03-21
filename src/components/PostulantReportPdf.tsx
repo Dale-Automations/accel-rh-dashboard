@@ -172,11 +172,11 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       y -= 16;
 
       // Score - bigger and more prominent
-      page.drawText(`AcceleRATE Match Score: ${scoreVal != null ? `${scoreVal}/100` : '—'}`, {
+      page.drawText(`${l.matchScore}: ${scoreVal != null ? `${scoreVal}/100` : '—'}`, {
         x: ML, y, size: 15, font: helveticaBold, color: ACCENT,
       });
       y -= 22;
-      page.drawText(`Status: ${statusText}`, {
+      page.drawText(`${l.status}: ${statusText}`, {
         x: ML, y, size: 12, font: helveticaBold, color: TEXT_COLOR,
       });
       y -= 36;
