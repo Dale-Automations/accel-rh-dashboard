@@ -143,6 +143,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         helveticaBold,
         helveticaOblique,
         logoImage,
+        headerTitle: l.candidateReport,
       };
 
       // ===== PAGE 1 =====
