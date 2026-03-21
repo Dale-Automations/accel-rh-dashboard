@@ -421,14 +421,14 @@ export default function PostulantDetail() {
 
             {/* Radar Chart - always expanded */}
             {radarData.length > 0 && (
-              <div className="bg-card rounded-lg border p-6 space-y-4">
+              <div className="bg-card rounded-lg border p-6 space-y-4" ref={radarChartRef}>
                 <div className="text-center space-y-0.5">
                   <h3 className="font-semibold text-base text-foreground">Perfil: Candidato Evaluado</h3>
                   <p className="text-sm text-muted-foreground">
                     Puntaje Total: <span className="font-semibold text-foreground">{score.score_final}</span>/100
                   </p>
                 </div>
-                <div className="relative" ref={radarChartRef}>
+                <div className="relative">
                   <ResponsiveContainer width="100%" height={380}>
                     <RadarChart data={radarData} outerRadius="75%">
                       <PolarGrid gridType="circle" stroke="hsl(var(--border))" />
