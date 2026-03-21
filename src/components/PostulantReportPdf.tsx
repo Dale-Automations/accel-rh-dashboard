@@ -184,7 +184,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       // Profile Summary
       const summaryText = postulante.screening_responses || postulante.comments_selectora || postulante.comments_manager;
       if (summaryText) {
-        y = drawSectionTitle(page, helveticaBold, 'Professional Profile Summary', y);
+        y = drawSectionTitle(page, helveticaBold, l.profileSummary, y);
         y = drawWrappedText(page, helvetica, summaryText, y, 11, TEXT_COLOR);
         y -= 24;
       }
