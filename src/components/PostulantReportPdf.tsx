@@ -190,6 +190,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         y = drawBarChart(page, detalles, helvetica, helveticaBold, y);
 
         drawFooter(page, helvetica, helveticaBold);
+      }
 
       // ===== PAGE 3: Notes, Risks, Signature =====
       const hasPage3 = (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0) ||
