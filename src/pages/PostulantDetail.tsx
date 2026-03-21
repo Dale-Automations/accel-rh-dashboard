@@ -170,8 +170,8 @@ export default function PostulantDetail() {
   const detalles = (score?.detalles || []) as ScoreDetalle[];
   const radarData = detalles.map(d => ({
     criterio: d.criterio,
-    puntaje: d.puntaje,
-    puntaje_max: d.puntaje_max,
+    porcentaje: d.puntaje_max > 0 ? Math.round((d.puntaje / d.puntaje_max) * 100) : 0,
+    max: 100,
   }));
 
   const showSignoff = etapa === 'Descartado' || etapa === 'Rechazado por cliente';
