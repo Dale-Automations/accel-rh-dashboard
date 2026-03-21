@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/formatters';
 import logoSrc from '@/assets/logo.png';
+import html2canvas from 'html2canvas';
 import type { Postulante, CvScore, ScoreDetalle } from '@/types/database';
 
 interface Props {
@@ -33,58 +34,27 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
   const detalles = (score?.detalles || []) as ScoreDetalle[];
 
-  const captureRadarChart = useCallback(async (): Promise<Uint8Array | null> => {
+  const captureEvaluationSection = useCallback(async (): Promise<Uint8Array | null> => {
     if (!radarChartRef?.current) return null;
-    const svgEl = radarChartRef.current.querySelector('svg');
-    if (!svgEl) return null;
-
-    // Clone SVG and set explicit dimensions
-    const clone = svgEl.cloneNode(true) as SVGSVGElement;
-    const bbox = svgEl.getBoundingClientRect();
-    clone.setAttribute('width', String(bbox.width));
-    clone.setAttribute('height', String(bbox.height));
-    
-    // Apply computed styles to text elements
-    const originalTexts = svgEl.querySelectorAll('text');
-    const cloneTexts = clone.querySelectorAll('text');
-    originalTexts.forEach((orig, i) => {
-      const computed = window.getComputedStyle(orig);
-      cloneTexts[i]?.setAttribute('fill', computed.color || '#333');
-    });
-
-    const svgData = new XMLSerializer().serializeToString(clone);
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const scale = 2;
-        canvas.width = bbox.width * scale;
-        canvas.height = bbox.height * scale;
-        const ctx2d = canvas.getContext('2d');
-        if (ctx2d) {
-          ctx2d.fillStyle = '#ffffff';
-          ctx2d.fillRect(0, 0, canvas.width, canvas.height);
-          ctx2d.scale(scale, scale);
-          ctx2d.drawImage(img, 0, 0, bbox.width, bbox.height);
-        }
+    try {
+      const canvas = await html2canvas(radarChartRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+      });
+      return new Promise((resolve) => {
         canvas.toBlob((blob) => {
           if (blob) {
-            blob.arrayBuffer().then(buf => {
-              resolve(new Uint8Array(buf));
-              URL.revokeObjectURL(url);
-            });
+            blob.arrayBuffer().then(buf => resolve(new Uint8Array(buf)));
           } else {
             resolve(null);
-            URL.revokeObjectURL(url);
           }
         }, 'image/png');
-      };
-      img.onerror = () => { resolve(null); URL.revokeObjectURL(url); };
-      img.src = url;
-    });
+      });
+    } catch {
+      return null;
+    }
   }, [radarChartRef]);
 
   const generatePdf = useCallback(async () => {
@@ -184,23 +154,39 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       drawFooter(page, helvetica, helveticaBold);
 
-      // ===== PAGE 2: Full Evaluation Detail =====
-      const hasPage2 = detalles.length > 0;
-      if (hasPage2) {
+      // ===== PAGE 2: Evaluation Screenshot =====
+      const evalImage = await captureEvaluationSection();
+      if (evalImage) {
         page = pdfDoc.addPage([PW, PH]);
         drawBorder(page);
         y = PH - MT;
         y = drawHeader(page, ctx, y);
 
-        // Section title
         y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
         y -= 6;
 
-        // Radar chart (programmatic, stable and readable)
+        const pngImg = await pdfDoc.embedPng(evalImage);
+        const imgDims = pngImg.scale(1);
+        const availW = CW;
+        const availH = y - MB - 20;
+        const scale = Math.min(availW / imgDims.width, availH / imgDims.height, 1);
+        const drawW = imgDims.width * scale;
+        const drawH = imgDims.height * scale;
+        const imgX = ML + (CW - drawW) / 2;
+
+        page.drawImage(pngImg, { x: imgX, y: y - drawH, width: drawW, height: drawH });
+
+        drawFooter(page, helvetica, helveticaBold);
+      } else if (detalles.length > 0) {
+        // Fallback to programmatic charts
+        page = pdfDoc.addPage([PW, PH]);
+        drawBorder(page);
+        y = PH - MT;
+        y = drawHeader(page, ctx, y);
+        y = drawSectionTitle(page, helveticaBold, 'Scoring Breakdown', y);
+        y -= 6;
         y = drawRadarChart(page, detalles, helvetica, y);
         y -= 22;
-
-        // Horizontal bar chart with scores
         y = drawBarChart(page, detalles, helvetica, helveticaBold, y);
 
         drawFooter(page, helvetica, helveticaBold);
@@ -277,7 +263,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
     } finally {
       setGenerating(false);
     }
-  }, [postulante, score, detalles, vacancyName, captureRadarChart]);
+  }, [postulante, score, detalles, vacancyName, captureEvaluationSection]);
 
   return (
     <Button variant="outline" size="sm" onClick={generatePdf} disabled={generating}>
