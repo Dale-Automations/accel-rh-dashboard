@@ -323,13 +323,13 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
   }, [postulante, score, detalles, vacancyName, captureEvaluationSection]);
 
   return (
-    <div className="flex gap-1">
-      <Button variant="outline" size="sm" onClick={() => generatePdf('es')} disabled={generating}>
-        {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+    <div className="flex flex-col gap-1 w-full">
+      <Button variant="outline" size="sm" className="w-full" onClick={() => generatePdf('es')} disabled={generating}>
+        {generating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
         {generating ? 'Generando...' : 'PDF Español'}
       </Button>
-      <Button variant="outline" size="sm" onClick={() => generatePdf('en')} disabled={generating}>
-        {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+      <Button variant="outline" size="sm" className="w-full" onClick={() => generatePdf('en')} disabled={generating}>
+        {generating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
         {generating ? 'Generating...' : 'PDF English'}
       </Button>
     </div>
