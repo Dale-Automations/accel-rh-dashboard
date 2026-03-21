@@ -283,7 +283,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
             y = PH - MT;
             y = drawHeader(page, ctx, y);
           }
-          y = drawSectionTitle(page, helveticaBold, 'Risks to Consider', y);
+          y = drawSectionTitle(page, helveticaBold, l.risks, y);
           for (const r of score.riesgos_top3) {
             if (y < MB + 60) {
               drawFooter(page, helvetica, helveticaBold);
