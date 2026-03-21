@@ -299,7 +299,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
         // Signature
         y -= 24;
-        page.drawText('Sincerely,', { x: ML, y, size: 10.5, font: helvetica, color: TEXT_COLOR });
+        page.drawText(l.sincerely, { x: ML, y, size: 10.5, font: helvetica, color: TEXT_COLOR });
         y -= 16;
         page.drawText('AccelRH Recruitment Team', { x: ML, y, size: 12, font: helveticaBold, color: ACCENT });
 
