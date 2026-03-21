@@ -449,9 +449,9 @@ export default function PostulantDetail() {
                           );
                         }}
                       />
-                      <PolarRadiusAxis angle={30} />
-                      <Radar name="Máximo" dataKey="puntaje_max" stroke="hsl(250, 15%, 80%)" fill="hsl(250, 15%, 80%)" fillOpacity={0.2} />
-                      <Radar name="Puntaje" dataKey="puntaje" stroke="hsl(260, 50%, 55%)" fill="hsl(260, 50%, 55%)" fillOpacity={0.4} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                      <Radar name="Máximo" dataKey="max" stroke="hsl(250, 15%, 80%)" fill="hsl(250, 15%, 80%)" fillOpacity={0.2} />
+                      <Radar name="Candidato" dataKey="porcentaje" stroke="hsl(260, 50%, 55%)" fill="hsl(260, 50%, 55%)" fillOpacity={0.4} />
                       <Legend />
                     </RadarChart>
                   </ResponsiveContainer>
