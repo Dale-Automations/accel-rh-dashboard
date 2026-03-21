@@ -209,7 +209,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       y -= 4;
       y = drawWrappedText(page, helvetica, `${l.stage}: ${postulante.etapa || '—'}`, y, 11, TEXT_COLOR);
 
-      drawFooter(page, helvetica, helveticaBold);
+      drawFooter(page, helvetica, helveticaBold, lang);
 
       // ===== PAGE 2: Evaluation Screenshot =====
       const evalImage = await captureEvaluationSection();
@@ -233,7 +233,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
         page.drawImage(pngImg, { x: imgX, y: y - drawH, width: drawW, height: drawH });
 
-        drawFooter(page, helvetica, helveticaBold);
+        drawFooter(page, helvetica, helveticaBold, lang);
       } else if (detalles.length > 0) {
         // Fallback to programmatic charts
         page = pdfDoc.addPage([PW, PH]);
@@ -246,7 +246,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         y -= 22;
         y = drawBarChart(page, detalles, helvetica, helveticaBold, y);
 
-        drawFooter(page, helvetica, helveticaBold);
+        drawFooter(page, helvetica, helveticaBold, lang);
       }
 
       // ===== PAGE 3: Notes, Risks, Signature =====
@@ -263,7 +263,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
           y = drawSectionTitle(page, helveticaBold, l.interviewerNotes, y);
           for (const q of score.preguntas_sugeridas) {
             if (y < MB + 60) {
-              drawFooter(page, helvetica, helveticaBold);
+              drawFooter(page, helvetica, helveticaBold, lang);
               page = pdfDoc.addPage([PW, PH]);
               drawBorder(page);
               y = PH - MT;
@@ -278,7 +278,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         // Risks
         if (score?.riesgos_top3 && score.riesgos_top3.length > 0) {
           if (y < MB + 60) {
-            drawFooter(page, helvetica, helveticaBold);
+            drawFooter(page, helvetica, helveticaBold, lang);
             page = pdfDoc.addPage([PW, PH]);
             drawBorder(page);
             y = PH - MT;
@@ -287,7 +287,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
           y = drawSectionTitle(page, helveticaBold, l.risks, y);
           for (const r of score.riesgos_top3) {
             if (y < MB + 60) {
-              drawFooter(page, helvetica, helveticaBold);
+              drawFooter(page, helvetica, helveticaBold, lang);
               page = pdfDoc.addPage([PW, PH]);
               drawBorder(page);
               y = PH - MT;
@@ -304,7 +304,7 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         y -= 16;
         page.drawText('AccelRH Recruitment Team', { x: ML, y, size: 12, font: helveticaBold, color: ACCENT });
 
-        drawFooter(page, helvetica, helveticaBold);
+        drawFooter(page, helvetica, helveticaBold, lang);
       }
 
       // Save
