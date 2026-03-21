@@ -200,12 +200,12 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       // Logistics on page 1 since we have space
       y -= 8;
-      y = drawSectionTitle(page, helveticaBold, 'Logistics & Salary Expectations', y);
-      y = drawWrappedText(page, helvetica, `Salary Expectation: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 11, TEXT_COLOR);
+      y = drawSectionTitle(page, helveticaBold, l.logistics, y);
+      y = drawWrappedText(page, helvetica, `${l.salaryExpectation}: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 11, TEXT_COLOR);
       y -= 4;
-      y = drawWrappedText(page, helvetica, `Availability: ${postulante.contact_status || '—'}`, y, 11, TEXT_COLOR);
+      y = drawWrappedText(page, helvetica, `${l.availability}: ${postulante.contact_status || '—'}`, y, 11, TEXT_COLOR);
       y -= 4;
-      y = drawWrappedText(page, helvetica, `Stage: ${postulante.etapa || '—'}`, y, 11, TEXT_COLOR);
+      y = drawWrappedText(page, helvetica, `${l.stage}: ${postulante.etapa || '—'}`, y, 11, TEXT_COLOR);
 
       drawFooter(page, helvetica, helveticaBold);
 
