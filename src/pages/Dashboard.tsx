@@ -5,6 +5,7 @@ import { fetchAll } from '@/lib/supabaseFetchAll';
 import { useAuth } from '@/contexts/AuthContext';
 import { KpiCard } from '@/components/KpiCard';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
