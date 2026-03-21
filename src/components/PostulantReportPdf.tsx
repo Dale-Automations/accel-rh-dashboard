@@ -347,14 +347,14 @@ function drawBorder(page: PDFPage) {
 
 function drawHeader(
   page: PDFPage,
-  ctx: { logoImage: any; helvetica: PDFFont; helveticaBold: PDFFont },
+  ctx: { logoImage: any; helvetica: PDFFont; helveticaBold: PDFFont; headerTitle?: string },
   y: number,
 ): number {
   const logoSize = 44;
   if (ctx.logoImage) {
     page.drawImage(ctx.logoImage, { x: ML, y: y - logoSize, width: logoSize, height: logoSize });
   }
-  page.drawText('Candidate Report', {
+  page.drawText(ctx.headerTitle || 'Candidate Report', {
     x: ML + logoSize + 14, y: y - 32, size: 24, font: ctx.helvetica, color: rgb(0.2, 0.2, 0.2),
   });
   return y - logoSize - 14;
