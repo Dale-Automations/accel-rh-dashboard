@@ -322,10 +322,16 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
   }, [postulante, score, detalles, vacancyName, captureEvaluationSection]);
 
   return (
-    <Button variant="outline" size="sm" onClick={generatePdf} disabled={generating}>
-      {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-      {generating ? 'Generando...' : 'Descargar PDF'}
-    </Button>
+    <div className="flex gap-1">
+      <Button variant="outline" size="sm" onClick={() => generatePdf('es')} disabled={generating}>
+        {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+        {generating ? 'Generando...' : 'PDF Español'}
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => generatePdf('en')} disabled={generating}>
+        {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+        {generating ? 'Generating...' : 'PDF English'}
+      </Button>
+    </div>
   );
 }
 
