@@ -158,11 +158,11 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       // Metadata with better spacing
       const metaFields = [
-        ['Customer', vacancyName || postulante.vacancy_name || '—'],
-        ['Role', postulante.vacancy_name || '—'],
-        ['Date', formatDate(postulante.apply_date)],
-        ['Candidate Name', postulante.full_name || '—'],
-        ['Recruiter', 'ACCELRH'],
+        [l.customer, vacancyName || postulante.vacancy_name || '—'],
+        [l.role, postulante.vacancy_name || '—'],
+        [l.date, formatDate(postulante.apply_date)],
+        [l.candidateName, postulante.full_name || '—'],
+        [l.recruiter, 'ACCELRH'],
       ];
       for (const [label, value] of metaFields) {
         page.drawText(label, { x: ML, y, size: 11, font: helvetica, color: GRAY });
