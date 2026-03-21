@@ -131,9 +131,8 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         // Logo not available, continue without
       }
 
-      const scoreVal = score?.score_final;
       const statusText = scoreVal != null
-        ? scoreVal >= 80 ? 'Recommended for Interview' : scoreVal >= 60 ? 'Under Review' : 'Not Recommended'
+        ? scoreVal >= 80 ? l.recommended : scoreVal >= 60 ? l.underReview : l.notRecommended
         : '—';
 
       // Helper context
