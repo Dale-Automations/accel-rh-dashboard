@@ -429,17 +429,18 @@ function estimateTextHeight(texts: string[], font: PDFFont, size: number): numbe
   return total;
 }
 
-function drawFooter(page: PDFPage, font: PDFFont, fontBold: PDFFont) {
+function drawFooter(page: PDFPage, font: PDFFont, fontBold: PDFFont, lang: 'es' | 'en' = 'en') {
   const footerY = 44;
-  // Separator line
   page.drawLine({ start: { x: ML, y: footerY + 22 }, end: { x: PW - MR, y: footerY + 22 }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
 
-  const notice = 'Confidentiality Notice: The information contained in this report is confidential and intended exclusively for processes managed by AccelRH. Any direct contact with the candidate without prior coordination with our team will be considered a deviation from the established procedure.';
+  const notice = lang === 'es'
+    ? 'Aviso de Confidencialidad: La informacion contenida en este reporte es confidencial y esta destinada exclusivamente a los procesos gestionados por AccelRH. Cualquier contacto directo con el candidato sin coordinacion previa con nuestro equipo sera considerado una desviacion del procedimiento establecido.'
+    : 'Confidentiality Notice: The information contained in this report is confidential and intended exclusively for processes managed by AccelRH. Any direct contact with the candidate without prior coordination with our team will be considered a deviation from the established procedure.';
+  const boldStart = lang === 'es' ? 'Aviso' : 'Confidentiality';
   const noticeLines = wrapText(font, notice, 7, CW);
   let ny = footerY + 14;
   for (const line of noticeLines) {
-    // Bold the "Confidentiality Notice:" part
-    const usedFont = line.startsWith('Confidentiality') ? fontBold : font;
+    const usedFont = line.startsWith(boldStart) ? fontBold : font;
     page.drawText(line, { x: ML, y: ny, size: 7, font: usedFont, color: LIGHT_GRAY });
     ny -= 9;
   }
