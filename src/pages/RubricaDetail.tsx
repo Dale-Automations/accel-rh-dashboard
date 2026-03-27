@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { RubricEditor } from '@/components/RubricEditor';
 import {
-  ArrowLeft, Send, Bot, Copy, Eye, Power, Pencil, Plus, Loader2,
+  ArrowLeft, Send, Bot, Copy, Eye, Power, Pencil, Plus, Loader2, Users,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -237,14 +237,19 @@ export default function RubricaDetail() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/rubricas')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{vacancy.vacancy_name}</h1>
-          <p className="text-sm text-muted-foreground">Gestión de rúbricas de evaluación</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/rubricas')}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{vacancy.vacancy_name}</h1>
+            <p className="text-sm text-muted-foreground">Gestión de rúbricas de evaluación</p>
+          </div>
         </div>
+        <Button variant="outline" size="sm" onClick={() => navigate(`/vacantes/${vacancy_id}`)}>
+          <Users className="h-4 w-4 mr-2" /> Ir a Vacante
+        </Button>
       </div>
 
       <div className="grid lg:grid-cols-5 gap-6">

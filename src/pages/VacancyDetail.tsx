@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabaseExternal as supabase } from '@/lib/supabaseExternal';
 import { fetchAll } from '@/lib/supabaseFetchAll';
@@ -13,11 +13,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiCard } from '@/components/KpiCard';
 import { formatDate } from '@/lib/formatters';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download, Zap } from 'lucide-react';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
 import { useToast } from '@/hooks/use-toast';
-import type { Vacante, Postulante, CvScore, UserProfile, VacancyAssignment } from '@/types/database';
+import type { Vacante, Postulante, CvScore, UserProfile, VacancyAssignment, Rubrica } from '@/types/database';
 import { ETAPAS } from '@/types/database';
 
 const sb = supabase as any;
@@ -44,24 +44,61 @@ export default function VacancyDetail() {
   const [assignTab, setAssignTab] = useState('selectora');
   const [selectedPostulants, setSelectedPostulants] = useState<Set<string>>(new Set());
   const [scoringLoading, setScoringLoading] = useState(false);
+  const [activeRubric, setActiveRubric] = useState<Rubrica | null>(null);
   const PAGE_SIZE = 25;
+
+  // Lightweight refresh: only scores + postulantes (no profiles/vacantes/assignments reload)
+  const refreshScoring = useCallback(async () => {
+    if (!vacancy_id) return;
+    const [posts, scrs] = await Promise.all([
+      fetchAll<Postulante>('postulantes', [['vacancy_id', vacancy_id]]),
+      fetchAll<CvScore>('cv_scores', [['vacancy_id', vacancy_id]]),
+    ]);
+    setPostulantes(posts);
+    setScores(scrs);
+  }, [vacancy_id]);
 
   useEffect(() => {
     if (vacancy_id) loadData();
   }, [vacancy_id]);
 
+  // Supabase Realtime: auto-refresh when cv_scores or postulantes change
+  useEffect(() => {
+    if (!vacancy_id) return;
+
+    const channel = sb
+      .channel(`vacancy-${vacancy_id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cv_scores', filter: `vacancy_id=eq.${vacancy_id}` },
+        () => { refreshScoring(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'postulantes', filter: `vacancy_id=eq.${vacancy_id}` },
+        () => { refreshScoring(); }
+      )
+      .subscribe();
+
+    return () => {
+      sb.removeChannel(channel);
+    };
+  }, [vacancy_id, refreshScoring]);
+
   const loadData = async () => {
     setLoading(true);
-    const [vacRes, posts, scores, profs] = await Promise.all([
+    const [vacRes, posts, scores, profs, rubs] = await Promise.all([
       sb.from('vacantes').select('*').eq('vacancy_id', vacancy_id).single(),
       fetchAll<Postulante>('postulantes', [['vacancy_id', vacancy_id!]]),
       fetchAll<CvScore>('cv_scores', [['vacancy_id', vacancy_id!]]),
       fetchAll<UserProfile>('user_profiles'),
+      fetchAll<Rubrica>('rubricas', [['vacancy_id', vacancy_id!]]),
     ]);
     setVacante(vacRes.data as Vacante);
     setPostulantes(posts);
     setScores(scores);
     setProfiles(profs);
+    setActiveRubric(rubs.find(r => r.is_active) || null);
 
     // Try fetching assignments (table may not exist)
     try {
@@ -170,7 +207,7 @@ export default function VacancyDetail() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postulant_ids: ids }),
       });
-      toast({ title: `Evaluación iniciada para ${ids.length} postulante${ids.length > 1 ? 's' : ''}` });
+      toast({ title: `Evaluación iniciada para ${ids.length} postulante${ids.length > 1 ? 's' : ''}`, description: 'Los resultados se actualizarán automáticamente.' });
       setSelectedPostulants(new Set());
     } catch {
       toast({ title: 'Error al iniciar evaluación', variant: 'destructive' });
@@ -336,29 +373,55 @@ export default function VacancyDetail() {
            </Select>
         </div>
 
-        {/* Scoring buttons */}
-        {selectedPostulants.size > 0 && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">{selectedPostulants.size} seleccionados</span>
+        {/* Rubric status + Scoring buttons */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Rubric status */}
+          {activeRubric ? (
             <Button
+              variant="outline"
               size="sm"
-              disabled={scoringLoading}
-              onClick={() => handleScoring('gpt')}
+              className="text-green-700 border-green-200 bg-green-50 hover:bg-green-100"
+              onClick={() => navigate(`/rubricas/${vacancy_id}`)}
             >
-              <Zap className="h-4 w-4 mr-2" />
-              Evaluar con GPT 4.1 mini
+              <ClipboardCheck className="h-4 w-4 mr-2" />
+              Rúbrica v{activeRubric.version_number} activa
             </Button>
+          ) : (
             <Button
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              variant="outline"
               size="sm"
-              disabled={scoringLoading}
-              onClick={() => handleScoring('gemini')}
+              className="text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100"
+              onClick={() => navigate(`/rubricas/${vacancy_id}`)}
             >
-              <Zap className="h-4 w-4 mr-2" />
-              Evaluar con Gemini Flash
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Sin rúbrica activa
             </Button>
-          </div>
-        )}
+          )}
+
+          <div className="w-px h-6 bg-border" />
+
+          {/* Scoring buttons - always visible */}
+          <span className="text-sm text-muted-foreground">
+            {selectedPostulants.size > 0 ? `${selectedPostulants.size} seleccionados` : 'Seleccioná postulantes para evaluar'}
+          </span>
+          <Button
+            size="sm"
+            disabled={scoringLoading || selectedPostulants.size === 0}
+            onClick={() => handleScoring('gpt')}
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            Evaluar con GPT 4.1 mini
+          </Button>
+          <Button
+            className="bg-blue-600 text-white hover:bg-blue-700"
+            size="sm"
+            disabled={scoringLoading || selectedPostulants.size === 0}
+            onClick={() => handleScoring('gemini')}
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            Evaluar con Gemini Flash
+          </Button>
+        </div>
       </div>
 
       {/* Scrollable table area */}
