@@ -90,7 +90,8 @@ export default function Dashboard() {
   const sourceBreakdown = postulantes.reduce<Record<string, number>>((acc, p) => {
     const raw = (p.source || '').toLowerCase().trim();
     let label: string;
-    if (raw === 'bum' || raw === 'web') label = 'HiringRoom';
+    if (raw === 'bum') label = 'Bumeran';
+    else if (raw === 'web') label = 'Web Accel';
     else if (raw.includes('linkedin') || raw.includes('phantom')) label = 'LinkedIn';
     else if (raw === '' || raw === 'manual') label = 'Manual';
     else label = raw.charAt(0).toUpperCase() + raw.slice(1);
