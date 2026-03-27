@@ -127,6 +127,7 @@ export type UserRole = 'manager' | 'selectora' | 'cliente';
 
 export const ETAPAS = [
   'Nuevo',
+  'Evaluado',
   'Contactado',
   'Preguntas screening',
   'Coordinando entrevista selectora',

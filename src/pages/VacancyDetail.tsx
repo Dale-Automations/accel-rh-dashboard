@@ -45,6 +45,7 @@ export default function VacancyDetail() {
   const [selectedPostulants, setSelectedPostulants] = useState<Set<string>>(new Set());
   const [scoringLoading, setScoringLoading] = useState(false);
   const [activeRubric, setActiveRubric] = useState<Rubrica | null>(null);
+  const [scoringBatch, setScoringBatch] = useState<Set<string>>(new Set());
   const PAGE_SIZE = 25;
 
   // Lightweight refresh: only scores + postulantes (no profiles/vacantes/assignments reload)
@@ -136,6 +137,22 @@ export default function VacancyDetail() {
     return profiles.find(p => p.id === id)?.full_name || '—';
   };
 
+  // Scoring batch progress
+  const scoringDone = postulantes.filter(
+    p => scoringBatch.has(p.id_postulant) && (p.scoring_status === 'scored' || p.scoring_status === 'no_file' || p.scoring_status === 'error')
+  ).length;
+  const scoringTotal = scoringBatch.size;
+  const scoringInProgress = scoringTotal > 0 && scoringDone < scoringTotal;
+
+  useEffect(() => {
+    if (scoringBatch.size > 0 && scoringDone === scoringBatch.size) {
+      const noFile = postulantes.filter(p => scoringBatch.has(p.id_postulant) && p.scoring_status === 'no_file').length;
+      const desc = noFile > 0 ? `${scoringDone - noFile} evaluados, ${noFile} sin archivo` : `${scoringDone} evaluados`;
+      toast({ title: 'Evaluación completada', description: desc });
+      setScoringBatch(new Set());
+    }
+  }, [scoringDone, scoringBatch.size]);
+
   // Stats (computed before filtering so KPI filter can reference them)
   const totalPost = postulantes.length;
   const evaluados = postulantes.filter(p => p.scoring_status === 'scored').length;
@@ -208,6 +225,7 @@ export default function VacancyDetail() {
         body: JSON.stringify({ postulant_ids: ids }),
       });
       toast({ title: `Evaluación iniciada para ${ids.length} postulante${ids.length > 1 ? 's' : ''}`, description: 'Los resultados se actualizarán automáticamente.' });
+      setScoringBatch(new Set(ids));
       setSelectedPostulants(new Set());
     } catch {
       toast({ title: 'Error al iniciar evaluación', variant: 'destructive' });
@@ -421,6 +439,22 @@ export default function VacancyDetail() {
             <Zap className="h-4 w-4 mr-2" />
             Evaluar con Gemini Flash
           </Button>
+
+          {/* Scoring progress bar */}
+          {(scoringInProgress || (scoringTotal > 0 && scoringDone === scoringTotal)) && (
+            <>
+              <div className="w-px h-6 bg-border" />
+              <div className="flex items-center gap-2">
+                <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${scoringTotal > 0 ? (scoringDone / scoringTotal) * 100 : 0}%` }}
+                  />
+                </div>
+                <span className="text-sm text-muted-foreground">{scoringDone}/{scoringTotal} evaluados</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

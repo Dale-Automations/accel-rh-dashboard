@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { RubricEditor } from '@/components/RubricEditor';
 import {
-  ArrowLeft, Send, Bot, Copy, Eye, Power, Pencil, Plus, Loader2, Users,
+  ArrowLeft, Send, Bot, Copy, Eye, Power, Pencil, Plus, Loader2, Users, Share2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -53,6 +53,8 @@ export default function RubricaDetail() {
   const [editRubric, setEditRubric] = useState<Rubrica | null>(null);
   const [showManualEditor, setShowManualEditor] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [copyRubric, setCopyRubric] = useState<Rubrica | null>(null);
+  const [allVacantes, setAllVacantes] = useState<Vacante[]>([]);
 
   const loadData = useCallback(async () => {
     if (!vacancy_id) return;
@@ -62,6 +64,7 @@ export default function RubricaDetail() {
         fetchAll<Vacante>('vacantes'),
         fetchAll<Rubrica>('rubricas', [['vacancy_id', vacancy_id]]),
       ]);
+      setAllVacantes(vacs);
       setVacancy(vacs.find(v => v.vacancy_id === vacancy_id) || null);
       rubs.sort((a, b) => b.version_number - a.version_number);
       setRubricas(rubs);
@@ -179,6 +182,35 @@ export default function RubricaDetail() {
   const duplicateVersion = async (rubric: Rubrica) => {
     const parsed = parseRubricJson(rubric.rubric_json);
     await saveVersion(parsed.criterios, parsed.palabras_clave, rubric.job_description || undefined);
+  };
+
+  const copyToVacancy = async (rubric: Rubrica, targetVacId: string) => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      const existing = await fetchAll<Rubrica>('rubricas', [['vacancy_id', targetVacId]]);
+      const nextVersion = existing.length ? Math.max(...existing.map(r => r.version_number)) + 1 : 1;
+      const parsed = parseRubricJson(rubric.rubric_json);
+      const total = parsed.criterios.reduce((s, c) => s + c.puntaje_max, 0);
+
+      const { error } = await sb.from('rubricas').insert({
+        vacancy_id: targetVacId,
+        version_number: nextVersion,
+        rubric_json: parsed,
+        palabras_clave: parsed.palabras_clave,
+        suma_total: total,
+        is_active: false,
+        job_description: rubric.job_description || null,
+        created_by: user.id,
+      });
+      if (error) throw error;
+      const targetName = allVacantes.find(v => v.vacancy_id === targetVacId)?.vacancy_name || targetVacId;
+      toast({ title: 'Rúbrica copiada', description: `Copiada como v${nextVersion} en "${targetName}"` });
+      setCopyRubric(null);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+    setSaving(false);
   };
 
   /** Render criteria table for view/preview */
@@ -312,6 +344,9 @@ export default function RubricaDetail() {
                             )}
                             <Button variant="ghost" size="icon" title="Duplicar" onClick={() => duplicateVersion(r)} disabled={saving}>
                               <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Copiar a otra vacante" onClick={() => setCopyRubric(r)} disabled={saving}>
+                              <Share2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -484,6 +519,33 @@ export default function RubricaDetail() {
             <DialogTitle>Rúbrica v{viewRubric?.version_number}</DialogTitle>
           </DialogHeader>
           {viewRubric && renderCriteriaTable(parseRubricJson(viewRubric.rubric_json))}
+        </DialogContent>
+      </Dialog>
+
+      {/* Copy rubric to another vacancy modal */}
+      <Dialog open={!!copyRubric} onOpenChange={() => setCopyRubric(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Copiar rúbrica v{copyRubric?.version_number} a otra vacante</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {allVacantes
+              .filter(v => v.vacancy_id !== vacancy_id && v.status === 'Activa')
+              .map(v => (
+                <Button
+                  key={v.vacancy_id}
+                  variant="outline"
+                  className="w-full justify-start text-left"
+                  onClick={() => copyRubric && copyToVacancy(copyRubric, v.vacancy_id)}
+                  disabled={saving}
+                >
+                  {v.vacancy_name}
+                </Button>
+              ))}
+            {allVacantes.filter(v => v.vacancy_id !== vacancy_id && v.status === 'Activa').length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No hay otras vacantes activas</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

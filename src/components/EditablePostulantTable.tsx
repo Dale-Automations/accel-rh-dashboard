@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getScoreColor, getEtapaColor, formatCurrency } from '@/lib/formatters';
-import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown, Loader2, FileX } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import type { Postulante, CvScore, UserProfile, UserRole } from '@/types/database';
 import { ETAPAS } from '@/types/database';
@@ -261,7 +261,7 @@ export default function EditablePostulantTable({
                         className="font-medium text-sm text-accent hover:underline text-left truncate max-w-[200px] block"
                         onClick={() => navigate(`/postulantes/${p.id_postulant}?vacancy_id=${vacancyId}`)}
                       >
-                        {p.full_name || '—'}
+                        {p.full_name || (p.id_postulant?.slice(0, 8) + '…')}
                       </button>
                     </TableCell>
                   ) : (
@@ -270,7 +270,13 @@ export default function EditablePostulantTable({
 
                   {/* Score - editable */}
                   <TableCell className="text-center">
-                    {editable ? (
+                    {p.scoring_status === 'scoring' ? (
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" />
+                    ) : p.scoring_status === 'no_file' && score == null ? (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                        <FileX className="h-3 w-3 mr-1" />Sin archivo
+                      </Badge>
+                    ) : editable ? (
                       <EditableTextCell
                         value={score != null ? score.toString() : ''}
                         onSave={v => saveScore(p.id_postulant, v ? parseFloat(v) : null)}

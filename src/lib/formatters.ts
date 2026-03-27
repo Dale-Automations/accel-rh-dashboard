@@ -35,6 +35,7 @@ export function getScoreColor(score: number | null | undefined): string {
 export function getEtapaColor(etapa: string | null): string {
   const colors: Record<string, string> = {
     'Nuevo': 'bg-blue-50 text-blue-700 border-blue-200',
+    'Evaluado': 'bg-teal-50 text-teal-700 border-teal-200',
     'Contactado': 'bg-cyan-50 text-cyan-700 border-cyan-200',
     'Preguntas screening': 'bg-indigo-50 text-indigo-700 border-indigo-200',
     'Coordinando entrevista selectora': 'bg-purple-50 text-purple-700 border-purple-200',
