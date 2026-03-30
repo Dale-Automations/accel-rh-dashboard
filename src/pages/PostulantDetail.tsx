@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { createNotifications } from '@/lib/notifications';
 import type { Postulante, CvScore, UserProfile, ScoreDetalle, Rubrica, RubricaData } from '@/types/database';
 import { ETAPAS, parseRubricJson } from '@/types/database';
 
@@ -33,7 +34,7 @@ export default function PostulantDetail() {
   const [searchParams] = useSearchParams();
   const vacancyId = searchParams.get('vacancy_id') || '';
   const navigate = useNavigate();
-  const { role, user } = useAuth();
+  const { role, user, profile } = useAuth();
   const { toast } = useToast();
   const [postulante, setPostulante] = useState<Postulante | null>(null);
   const [score, setScore] = useState<CvScore | null>(null);
@@ -137,6 +138,27 @@ export default function PostulantDetail() {
       toast({ title: 'Error al guardar', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Cambios guardados' });
+      // Detect changed fields for notifications
+      const changed: string[] = [];
+      if (etapa !== (postulante.etapa || '')) changed.push('etapa');
+      if (contactStatus !== (postulante.contact_status || '')) changed.push('contact_status');
+      if (commentsSelectora !== (postulante.comments_selectora || '')) changed.push('comments_selectora');
+      if (commentsManager !== (postulante.comments_manager || '')) changed.push('comments_manager');
+      if (screeningResponses !== (postulante.screening_responses || '')) changed.push('screening_responses');
+      if (signoffReason !== (postulante.signoff_reason || '')) changed.push('signoff_reason');
+      if (selectoraId !== (postulante.selectora_id || '')) changed.push('selectora_id');
+      if (changed.length > 0 && user) {
+        createNotifications({
+          actorName: profile?.full_name || user.email || 'Usuario',
+          postulantId: id_postulant!,
+          postulantName: postulante.full_name,
+          vacancyId: vacancyId || postulante.vacancy_id,
+          vacancyName: postulante.vacancy_name || '',
+          action: 'update',
+          fieldsChanged: changed,
+          currentUserId: user.id,
+        });
+      }
       loadData();
     }
   };

@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getScoreColor, getEtapaColor, formatCurrency, formatDate } from '@/lib/formatters';
+import { createNotifications } from '@/lib/notifications';
+import { useAuth } from '@/contexts/AuthContext';
 import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown, Loader2, FileX } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import type { Postulante, CvScore, UserProfile, UserRole } from '@/types/database';
@@ -22,6 +24,7 @@ interface Props {
   role: UserRole;
   userId?: string;
   vacancyId: string;
+  vacancyName?: string;
   page: number;
   pageSize: number;
   onDataChange: () => void;
@@ -117,11 +120,12 @@ function EditableSelectCell({
 }
 
 export default function EditablePostulantTable({
-  postulantes, scores, profiles, role, userId, vacancyId, page, pageSize, onDataChange,
+  postulantes, scores, profiles, role, userId, vacancyId, vacancyName, page, pageSize, onDataChange,
   sortBy, sortDir, onToggleSort, selectedIds, onSelectionChange,
 }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, profile: authProfile } = useAuth();
 
   const getScore = (id: string) => {
     // Pick the most recent score if multiple exist
@@ -143,9 +147,22 @@ export default function EditablePostulantTable({
     if (error) {
       toast({ title: 'Error al guardar', description: error.message, variant: 'destructive' });
     } else {
+      if (user) {
+        const p = postulantes.find(p => p.id_postulant === postulantId);
+        createNotifications({
+          actorName: authProfile?.full_name || user.email || 'Usuario',
+          postulantId,
+          postulantName: p?.full_name || null,
+          vacancyId,
+          vacancyName: vacancyName || p?.vacancy_name || '',
+          action: 'update',
+          fieldsChanged: [field],
+          currentUserId: user.id,
+        });
+      }
       onDataChange();
     }
-  }, [onDataChange, toast]);
+  }, [onDataChange, toast, user, authProfile, vacancyId, vacancyName, postulantes]);
 
   const saveScore = useCallback(async (postulantId: string, newScore: number | null) => {
     // Try update first
@@ -162,8 +179,21 @@ export default function EditablePostulantTable({
         return;
       }
     }
+    if (user) {
+      const p = postulantes.find(p => p.id_postulant === postulantId);
+      createNotifications({
+        actorName: authProfile?.full_name || user.email || 'Usuario',
+        postulantId,
+        postulantName: p?.full_name || null,
+        vacancyId,
+        vacancyName: vacancyName || p?.vacancy_name || '',
+        action: 'update',
+        fieldsChanged: ['score_final'],
+        currentUserId: user.id,
+      });
+    }
     onDataChange();
-  }, [onDataChange, toast, vacancyId]);
+  }, [onDataChange, toast, vacancyId, user, authProfile, vacancyName, postulantes]);
 
   const isCliente = role === 'cliente';
   const selectoras = profiles.filter(p => p.role === 'selectora');

@@ -602,6 +602,7 @@ export default function VacancyDetail() {
           role={role as any}
           userId={user?.id}
           vacancyId={vacancy_id!}
+          vacancyName={vacante?.vacancy_name}
           page={page}
           pageSize={PAGE_SIZE}
           onDataChange={loadData}
