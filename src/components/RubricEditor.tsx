@@ -79,8 +79,8 @@ export function RubricEditor({ initialCriteria, initialKeywords, onSave, onCance
                 placeholder="Descripción del criterio (qué se evalúa, qué se espera...)"
                 value={c.descripcion || ''}
                 onChange={e => update(i, 'descripcion', e.target.value)}
-                className="text-sm min-h-[60px] resize-none"
-                rows={2}
+                className="text-sm min-h-[100px] resize-y"
+                rows={4}
               />
             </div>
             <Button
