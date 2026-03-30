@@ -73,9 +73,12 @@ export default function PostulantDetail() {
 
   const loadData = async () => {
     setLoading(true);
+    try {
     const [postRes, scoreRes, profRes] = await Promise.all([
-      sb.from('postulantes').select('*').eq('id_postulant', id_postulant).single(),
-      sb.from('cv_scores').select('*').eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      sb.from('postulantes').select('*').eq('id_postulant', id_postulant).maybeSingle(),
+      vacancyId
+        ? sb.from('cv_scores').select('*').eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+        : sb.from('cv_scores').select('*').eq('postulant_id', id_postulant).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       sb.from('user_profiles').select('*').eq('role', 'selectora'),
     ]);
     const post = postRes.data as Postulante;
@@ -95,6 +98,9 @@ export default function PostulantDetail() {
       setSignoffReason(post.signoff_reason || '');
       setSelectoraId(post.selectora_id || '');
       setInterviewDate(post.interview_date ? new Date(post.interview_date) : undefined);
+    }
+    } catch (err) {
+      console.error('Error loading postulant data:', err);
     }
     setLoading(false);
   };
