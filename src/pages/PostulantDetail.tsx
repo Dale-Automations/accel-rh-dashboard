@@ -684,30 +684,23 @@ export default function PostulantDetail() {
 
       {/* Rubric detail modal */}
       <Dialog open={rubricModalOpen} onOpenChange={setRubricModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Rúbrica v{(score as any)?.rubric_version}</DialogTitle>
           </DialogHeader>
           {rubricData && (
-            <div className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">Criterio</TableHead>
-                    <TableHead className="font-semibold">Descripción</TableHead>
-                    <TableHead className="font-semibold text-center w-[100px]">Puntaje máx.</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rubricData.criterios.map((c, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{c.criterio}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{c.descripcion || '—'}</TableCell>
-                      <TableCell className="text-center">{c.puntaje_max}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-3">
+              {rubricData.criterios.map((c, i) => (
+                <div key={i} className="p-3 bg-muted/30 rounded-lg border space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">{c.criterio}</span>
+                    <Badge variant="outline" className="text-xs ml-2 shrink-0">{c.puntaje_max} pts</Badge>
+                  </div>
+                  {c.descripcion && (
+                    <p className="text-xs text-muted-foreground leading-relaxed">{c.descripcion}</p>
+                  )}
+                </div>
+              ))}
               {rubricData.palabras_clave.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2 border-t">
                   <span className="text-sm font-medium text-foreground mr-1">Palabras clave:</span>
