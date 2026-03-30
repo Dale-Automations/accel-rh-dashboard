@@ -13,7 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { KpiCard } from '@/components/KpiCard';
 import { formatDate } from '@/lib/formatters';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +47,11 @@ export default function VacancyDetail() {
   const [scoringLoading, setScoringLoading] = useState(false);
   const [activeRubric, setActiveRubric] = useState<Rubrica | null>(null);
   const [scoringBatch, setScoringBatch] = useState<Set<string>>(new Set());
+  const [closeModalOpen, setCloseModalOpen] = useState(false);
+  const [closeReason, setCloseReason] = useState('');
+  const [closeComments, setCloseComments] = useState('');
+  const [closeConfirmed, setCloseConfirmed] = useState(false);
+  const [closing, setClosing] = useState(false);
   const PAGE_SIZE = 25;
 
   // Lightweight refresh: only scores + postulantes (no profiles/vacantes/assignments reload)
@@ -280,6 +286,27 @@ export default function VacancyDetail() {
     setAssignModalOpen(false);
   };
 
+  const handleCloseVacancy = async () => {
+    if (!closeReason || !closeConfirmed) return;
+    setClosing(true);
+    try {
+      const { error } = await sb.from('vacantes').update({
+        status: 'Cerrada',
+        close_reason: closeReason,
+        close_comments: closeComments || null,
+        closed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq('vacancy_id', vacancy_id);
+      if (error) throw error;
+      toast({ title: 'Vacante cerrada', description: `Motivo: ${closeReason}` });
+      setCloseModalOpen(false);
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Error al cerrar vacante', description: err.message, variant: 'destructive' });
+    }
+    setClosing(false);
+  };
+
   if (loading) {
     return <div className="space-y-4">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}</div>;
   }
@@ -358,8 +385,72 @@ export default function VacancyDetail() {
                 </DialogContent>
               </Dialog>
             )}
+            {role === 'manager' && vacante.status === 'Activa' && (
+              <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCloseModalOpen(true)}>
+                <XCircle className="h-4 w-4 mr-2" /> Cerrar Vacante
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* Close vacancy info for closed vacancies */}
+        {vacante.status === 'Cerrada' && vacante.close_reason && (
+          <div className="bg-muted/50 border rounded-lg p-3 flex items-start gap-3">
+            <XCircle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <span className="font-medium">Cerrada: </span>
+              <span className="text-muted-foreground">{vacante.close_reason}</span>
+              {vacante.close_comments && <p className="text-muted-foreground mt-1">{vacante.close_comments}</p>}
+              {vacante.closed_at && <p className="text-xs text-muted-foreground mt-1">{formatDate(vacante.closed_at)}</p>}
+            </div>
+          </div>
+        )}
+
+        {/* Close vacancy modal */}
+        <Dialog open={closeModalOpen} onOpenChange={setCloseModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Cerrar Vacante</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Motivo de cierre</label>
+                <Select value={closeReason} onValueChange={setCloseReason}>
+                  <SelectTrigger><SelectValue placeholder="Seleccioná un motivo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cerrada con éxito">Cerrada con éxito</SelectItem>
+                    <SelectItem value="Suspendida">Suspendida</SelectItem>
+                    <SelectItem value="Cancelada">Cancelada</SelectItem>
+                    <SelectItem value="Otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Comentarios (opcional)</label>
+                <Textarea
+                  placeholder="Detalles sobre el cierre..."
+                  value={closeComments}
+                  onChange={e => setCloseComments(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 cursor-pointer">
+                <Checkbox
+                  checked={closeConfirmed}
+                  onCheckedChange={c => setCloseConfirmed(!!c)}
+                  className="mt-0.5"
+                />
+                <span className="text-sm text-amber-800">Confirmo que esta vacante ya fue cerrada en HiringRoom</span>
+              </label>
+              <Button
+                className="w-full"
+                variant="destructive"
+                disabled={!closeReason || !closeConfirmed || closing}
+                onClick={handleCloseVacancy}
+              >
+                {closing ? 'Cerrando...' : 'Cerrar Vacante'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-7 gap-3">

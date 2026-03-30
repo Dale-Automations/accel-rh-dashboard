@@ -6,6 +6,9 @@ export interface Vacante {
   drive_folder_name: string | null;
   created_at: string;
   updated_at: string;
+  close_reason: string | null;
+  close_comments: string | null;
+  closed_at: string | null;
 }
 
 export interface Postulante {
