@@ -9,6 +9,14 @@ export interface Vacante {
   close_reason: string | null;
   close_comments: string | null;
   closed_at: string | null;
+  close_stats: {
+    total_postulantes: number;
+    evaluados: number;
+    score_promedio: number | null;
+    score_maximo: number | null;
+    contactados: number;
+    fuentes: Record<string, number>;
+  } | null;
 }
 
 export interface Postulante {

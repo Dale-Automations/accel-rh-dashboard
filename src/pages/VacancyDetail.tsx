@@ -290,12 +290,29 @@ export default function VacancyDetail() {
     if (!closeReason || !closeConfirmed) return;
     setClosing(true);
     try {
+      // Build stats snapshot
+      const scoredScoresArr = scores.filter(s => s.score_final != null).map(s => s.score_final!);
+      const fuentes = postulantes.reduce<Record<string, number>>((acc, p) => {
+        const src = p.source || 'Sin fuente';
+        acc[src] = (acc[src] || 0) + 1;
+        return acc;
+      }, {});
+      const closeStats = {
+        total_postulantes: postulantes.length,
+        evaluados: postulantes.filter(p => p.scoring_status === 'scored').length,
+        score_promedio: scoredScoresArr.length ? Math.round(scoredScoresArr.reduce((a, b) => a + b, 0) / scoredScoresArr.length) : null,
+        score_maximo: scoredScoresArr.length ? Math.max(...scoredScoresArr) : null,
+        contactados: postulantes.filter(p => p.contacted).length,
+        fuentes,
+      };
+
       const { error } = await sb.from('vacantes').update({
         status: 'Cerrada',
         close_reason: closeReason,
         close_comments: closeComments || null,
         closed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        close_stats: closeStats,
       }).eq('vacancy_id', vacancy_id);
       if (error) throw error;
       toast({ title: 'Vacante cerrada', description: `Motivo: ${closeReason}` });
@@ -395,14 +412,40 @@ export default function VacancyDetail() {
 
         {/* Close vacancy info for closed vacancies */}
         {vacante.status === 'Cerrada' && vacante.close_reason && (
-          <div className="bg-muted/50 border rounded-lg p-3 flex items-start gap-3">
-            <XCircle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-            <div className="text-sm">
-              <span className="font-medium">Cerrada: </span>
-              <span className="text-muted-foreground">{vacante.close_reason}</span>
-              {vacante.close_comments && <p className="text-muted-foreground mt-1">{vacante.close_comments}</p>}
-              {vacante.closed_at && <p className="text-xs text-muted-foreground mt-1">{formatDate(vacante.closed_at)}</p>}
+          <div className="bg-muted/50 border rounded-lg p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <XCircle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="text-sm flex-1">
+                <span className="font-medium">Cerrada: </span>
+                <span className="text-muted-foreground">{vacante.close_reason}</span>
+                {vacante.closed_at && <span className="text-xs text-muted-foreground ml-2">({formatDate(vacante.closed_at)})</span>}
+                {vacante.close_comments && <p className="text-muted-foreground mt-1">{vacante.close_comments}</p>}
+              </div>
             </div>
+            {vacante.close_stats && (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t">
+                <div className="text-center">
+                  <p className="text-lg font-bold">{vacante.close_stats.total_postulantes}</p>
+                  <p className="text-xs text-muted-foreground">Postulantes</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold">{vacante.close_stats.evaluados}</p>
+                  <p className="text-xs text-muted-foreground">Evaluados</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold">{vacante.close_stats.score_promedio ?? '—'}</p>
+                  <p className="text-xs text-muted-foreground">Score Prom.</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold">{vacante.close_stats.score_maximo ?? '—'}</p>
+                  <p className="text-xs text-muted-foreground">Score Máx.</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold">{vacante.close_stats.contactados}</p>
+                  <p className="text-xs text-muted-foreground">Contactados</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
