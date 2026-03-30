@@ -21,8 +21,10 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import type { Postulante, CvScore, UserProfile, ScoreDetalle } from '@/types/database';
-import { ETAPAS } from '@/types/database';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import type { Postulante, CvScore, UserProfile, ScoreDetalle, Rubrica, RubricaData } from '@/types/database';
+import { ETAPAS, parseRubricJson } from '@/types/database';
 
 const sb = supabase as any;
 
@@ -38,6 +40,8 @@ export default function PostulantDetail() {
   const [selectoras, setSelectoras] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [rubricModalOpen, setRubricModalOpen] = useState(false);
+  const [rubricData, setRubricData] = useState<RubricaData | null>(null);
 
   // Editable fields
   const [etapa, setEtapa] = useState('');
@@ -491,7 +495,20 @@ export default function PostulantDetail() {
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium text-foreground/70">Rúbrica:</span>
                     {(score as any).rubric_version ? (
-                      <Badge variant="outline" className="text-xs font-normal">v{(score as any).rubric_version}</Badge>
+                      <button
+                        className="inline-flex items-center"
+                        onClick={async () => {
+                          try {
+                            const { data } = await sb.from('rubricas').select('*').eq('vacancy_id', vacancyId).eq('version_number', (score as any).rubric_version).maybeSingle();
+                            if (data) {
+                              setRubricData(parseRubricJson(data.rubric_json));
+                              setRubricModalOpen(true);
+                            }
+                          } catch {}
+                        }}
+                      >
+                        <Badge variant="outline" className="text-xs font-normal cursor-pointer hover:bg-muted">v{(score as any).rubric_version} — Ver rúbrica</Badge>
+                      </button>
                     ) : (
                       <span className="italic text-muted-foreground">Sin rúbrica</span>
                     )}
@@ -658,6 +675,45 @@ export default function PostulantDetail() {
           </div>
         )}
       </div>
+
+      {/* Rubric detail modal */}
+      <Dialog open={rubricModalOpen} onOpenChange={setRubricModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Rúbrica v{(score as any)?.rubric_version}</DialogTitle>
+          </DialogHeader>
+          {rubricData && (
+            <div className="space-y-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">Criterio</TableHead>
+                    <TableHead className="font-semibold">Descripción</TableHead>
+                    <TableHead className="font-semibold text-center w-[100px]">Puntaje máx.</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rubricData.criterios.map((c, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{c.criterio}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{c.descripcion || '—'}</TableCell>
+                      <TableCell className="text-center">{c.puntaje_max}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {rubricData.palabras_clave.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t">
+                  <span className="text-sm font-medium text-foreground mr-1">Palabras clave:</span>
+                  {rubricData.palabras_clave.map((kw, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">{kw}</Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

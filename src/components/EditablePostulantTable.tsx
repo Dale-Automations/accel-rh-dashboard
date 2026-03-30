@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { getScoreColor, getEtapaColor, formatCurrency } from '@/lib/formatters';
+import { getScoreColor, getEtapaColor, formatCurrency, formatDate } from '@/lib/formatters';
 import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown, Loader2, FileX } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import type { Postulante, CvScore, UserProfile, UserRole } from '@/types/database';
@@ -214,6 +214,7 @@ export default function EditablePostulantTable({
               <TableHead>ID</TableHead>
             )}
             <SortableHead col="score" className="text-center w-16">Score</SortableHead>
+            <SortableHead col="apply_date" className="w-24">Fecha</SortableHead>
             <SortableHead col="etapa" className="min-w-[140px]">Etapa</SortableHead>
             {!isCliente && <SortableHead col="selectora" className="min-w-[130px]">Selector/a</SortableHead>}
             <SortableHead col="source" className="w-20">Fuente</SortableHead>
@@ -298,6 +299,11 @@ export default function EditablePostulantTable({
                         <TooltipContent>Modificado</TooltipContent>
                       </Tooltip>
                     )}
+                  </TableCell>
+
+                  {/* Apply date */}
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    {formatDate(p.apply_date)}
                   </TableCell>
 
                   {/* Etapa - editable select */}

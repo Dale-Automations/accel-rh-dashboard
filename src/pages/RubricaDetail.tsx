@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { RubricEditor } from '@/components/RubricEditor';
 import {
-  ArrowLeft, Send, Bot, Copy, Eye, Power, Pencil, Plus, Loader2, Users, Share2,
+  ArrowLeft, Send, Bot, Copy, Eye, Power, PowerOff, Pencil, Plus, Loader2, Users, Share2, Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -179,6 +179,33 @@ export default function RubricaDetail() {
     setSaving(false);
   };
 
+  const deactivateVersion = async (rubric: Rubrica) => {
+    setSaving(true);
+    try {
+      const { error } = await sb.from('rubricas').update({ is_active: false }).eq('id', rubric.id);
+      if (error) throw error;
+      toast({ title: 'Rúbrica desactivada', description: `v${rubric.version_number} ya no está activa.` });
+      await loadData();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+    setSaving(false);
+  };
+
+  const deleteVersion = async (rubric: Rubrica) => {
+    if (rubric.is_active) return;
+    setSaving(true);
+    try {
+      const { error } = await sb.from('rubricas').delete().eq('id', rubric.id);
+      if (error) throw error;
+      toast({ title: 'Versión eliminada', description: `v${rubric.version_number} fue eliminada.` });
+      await loadData();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+    setSaving(false);
+  };
+
   const duplicateVersion = async (rubric: Rubrica) => {
     const parsed = parseRubricJson(rubric.rubric_json);
     await saveVersion(parsed.criterios, parsed.palabras_clave, rubric.job_description || undefined);
@@ -332,7 +359,11 @@ export default function RubricaDetail() {
                             <Button variant="ghost" size="icon" title="Ver" onClick={() => setViewRubric(r)}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {!r.is_active && (
+                            {r.is_active ? (
+                              <Button variant="ghost" size="icon" title="Desactivar" onClick={() => deactivateVersion(r)} disabled={saving}>
+                                <PowerOff className="h-4 w-4 text-amber-600" />
+                              </Button>
+                            ) : (
                               <>
                                 <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditRubric(r)}>
                                   <Pencil className="h-4 w-4" />
@@ -348,6 +379,11 @@ export default function RubricaDetail() {
                             <Button variant="ghost" size="icon" title="Copiar a otra vacante" onClick={() => setCopyRubric(r)} disabled={saving}>
                               <Share2 className="h-4 w-4" />
                             </Button>
+                            {!r.is_active && (
+                              <Button variant="ghost" size="icon" title="Eliminar" onClick={() => deleteVersion(r)} disabled={saving}>
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

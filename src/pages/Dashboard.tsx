@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Briefcase, Users, CheckCircle, Clock, Phone, BarChart3, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import type { Vacante, Postulante, UserProfile, VacancyAssignment } from '@/types/database';
 
@@ -26,6 +27,7 @@ export default function Dashboard() {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('Activa');
 
   useEffect(() => {
     loadData();
@@ -147,14 +149,24 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar vacante o postulante..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex gap-3">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar vacante o postulante..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Activa">Activas</SelectItem>
+              <SelectItem value="Cerrada">Cerradas</SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -246,9 +258,12 @@ export default function Dashboard() {
           <TableBody>
             {(() => {
               const q = searchQuery.toLowerCase();
-              const filteredVacs = q.length >= 2
-                ? vacantes.filter(v => v.vacancy_name.toLowerCase().includes(q))
-                : vacantes;
+              let filteredVacs = statusFilter === 'all'
+                ? vacantes
+                : vacantes.filter(v => v.status === statusFilter);
+              if (q.length >= 2) {
+                filteredVacs = filteredVacs.filter(v => v.vacancy_name.toLowerCase().includes(q));
+              }
               if (filteredVacs.length === 0) return (
                 <TableRow>
                   <TableCell colSpan={role !== 'cliente' ? 5 : 4} className="text-center text-muted-foreground py-10">

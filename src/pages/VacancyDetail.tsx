@@ -189,6 +189,7 @@ export default function VacancyDetail() {
       case 'name': va = a.full_name || ''; vb = b.full_name || ''; break;
       case 'salary': va = a.salary_pretended ?? 0; vb = b.salary_pretended ?? 0; break;
       case 'etapa': va = a.etapa || ''; vb = b.etapa || ''; break;
+      case 'apply_date': va = a.apply_date || ''; vb = b.apply_date || ''; break;
       case 'source': va = a.source || ''; vb = b.source || ''; break;
       case 'status': va = a.status || ''; vb = b.status || ''; break;
       case 'contact_status': va = a.contact_status || ''; vb = b.contact_status || ''; break;
