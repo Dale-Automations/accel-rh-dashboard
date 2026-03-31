@@ -220,7 +220,7 @@ export default function EditablePostulantTable({
 
   return (
     <TooltipProvider>
-    <div className="bg-card rounded-lg border shadow-sm overflow-auto" style={{ scrollbarWidth: 'thin' }}>
+    <div className="bg-card rounded-lg border shadow-sm overflow-auto scrollbar-visible h-full">
       <Table className="min-w-[1400px]">
         <TableHeader>
           <TableRow className="bg-muted/50">
