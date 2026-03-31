@@ -72,6 +72,7 @@ export function RubricEditor({ initialCriteria, initialKeywords, onSave, onCance
                   placeholder="Puntaje"
                   value={c.puntaje_max || ''}
                   onChange={e => update(i, 'puntaje_max', parseInt(e.target.value) || 0)}
+                  onWheel={e => (e.target as HTMLInputElement).blur()}
                   className="w-24"
                 />
               </div>
