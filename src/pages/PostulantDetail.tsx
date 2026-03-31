@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Progress } from '@/components/ui/progress';
 import { formatDate, formatDateTime, formatCurrency, getScoreColor, getEtapaColor, extractLinks } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download, ArrowLeft, Sparkles, Brain } from 'lucide-react';
+import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download, ArrowLeft, Sparkles, Brain, Loader2 } from 'lucide-react';
 import PostulantReportPdf from '@/components/PostulantReportPdf';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
@@ -235,8 +235,8 @@ export default function PostulantDetail() {
             <>
                <div className="flex items-center gap-2">
                  <h1 className="text-2xl font-bold text-foreground">{postulante.full_name || '—'}</h1>
-                 {postulante.notes && (
-                   <a href={postulante.notes} target="_blank" rel="noopener noreferrer" title="Descargar CV">
+                 {cvUrl && (
+                   <a href={cvUrl} target="_blank" rel="noopener noreferrer" title="Ver CV">
                      <Download className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
                    </a>
                  )}
@@ -375,10 +375,12 @@ export default function PostulantDetail() {
                   </PopoverContent>
                 </Popover>
                 <Button onClick={() => handleScoring('gpt')} disabled={scoringLoading}>
-                  <Brain className="h-4 w-4 mr-2" /> Evaluar con GPT 4.1 mini
+                  {scoringLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
+                  Evaluar con GPT 4.1 mini
                 </Button>
                 <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => handleScoring('gemini')} disabled={scoringLoading}>
-                  <Sparkles className="h-4 w-4 mr-2" /> Evaluar con Gemini Flash
+                  {scoringLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  Evaluar con Gemini Flash
                 </Button>
               </div>
             )}
@@ -709,8 +711,18 @@ export default function PostulantDetail() {
           </>
         ) : (
           <div className="bg-card rounded-lg border p-10 text-center">
-            <p className="text-muted-foreground text-lg">Pendiente de evaluación</p>
-            <p className="text-sm text-muted-foreground mt-2">Este candidato aún no ha sido evaluado por IA.</p>
+            {postulante.scoring_status === 'scoring' ? (
+              <>
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-3" />
+                <p className="text-foreground text-lg">Evaluando...</p>
+                <p className="text-sm text-muted-foreground mt-2">La IA está analizando el CV. Los resultados aparecerán automáticamente.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground text-lg">Pendiente de evaluación</p>
+                <p className="text-sm text-muted-foreground mt-2">Este candidato aún no ha sido evaluado por IA.</p>
+              </>
+            )}
           </div>
         )}
       </div>
