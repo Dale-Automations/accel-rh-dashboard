@@ -344,7 +344,7 @@ export default function VacancyDetail() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)] -m-4 md:-m-6 p-4 md:p-6 overflow-hidden">
+    <div className="flex flex-col absolute inset-0 p-4 md:p-6 overflow-hidden">
       {/* Header - fixed */}
       <div className="flex-shrink-0 space-y-6 pb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -638,7 +638,8 @@ export default function VacancyDetail() {
       </div>
 
       {/* Scrollable table area - both vertical and horizontal */}
-      <div className="flex-1 min-h-0 overflow-auto scrollbar-visible">
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 overflow-auto scrollbar-visible">
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}
@@ -656,6 +657,7 @@ export default function VacancyDetail() {
           selectedIds={selectedPostulants}
           onSelectionChange={setSelectedPostulants}
         />
+      </div>
       </div>
 
       {/* Pagination - fixed at bottom */}
