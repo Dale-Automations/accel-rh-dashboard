@@ -296,7 +296,14 @@ export default function EditablePostulantTable({
                       </button>
                     </TableCell>
                   ) : (
-                    <TableCell className="font-mono text-xs">{p.id_postulant?.slice(0, 8)}...</TableCell>
+                    <TableCell>
+                      <button
+                        className="font-mono text-xs text-accent hover:underline"
+                        onClick={() => navigate(`/postulantes/${p.id_postulant}?vacancy_id=${vacancyId}`)}
+                      >
+                        {p.id_postulant}
+                      </button>
+                    </TableCell>
                   )}
 
                   {/* Score - editable */}

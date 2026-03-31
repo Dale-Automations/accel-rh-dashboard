@@ -10,6 +10,7 @@ const FIELD_LABELS: Record<string, string> = {
   comments_selectora: 'Comentario selectora',
   comments_manager: 'Comentario manager',
   signoff_reason: 'Motivo descarte',
+  comments_cliente: 'Comentario cliente',
   selectora_id: 'Selectora asignada',
   interview_date: 'Fecha entrevista',
   score_final: 'Score',

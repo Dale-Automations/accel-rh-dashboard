@@ -60,6 +60,8 @@ export default function PostulantDetail() {
   const [editScore, setEditScore] = useState('');
   const [savingScore, setSavingScore] = useState(false);
   const [scoringLoading, setScoringLoading] = useState(false);
+  const [commentsCliente, setCommentsCliente] = useState('');
+  const [savingCliente, setSavingCliente] = useState(false);
   const [hoveredRadarLabel, setHoveredRadarLabel] = useState<{
     text: string;
     x: number;
@@ -108,6 +110,7 @@ export default function PostulantDetail() {
       setCommentsSelectora(post.comments_selectora || '');
       setCommentsManager(post.comments_manager || '');
       setSignoffReason(post.signoff_reason || '');
+      setCommentsCliente(post.comments_cliente || '');
       setSelectoraId(post.selectora_id || '');
       setInterviewDate(post.interview_date ? new Date(post.interview_date) : undefined);
     }
@@ -285,6 +288,48 @@ export default function PostulantDetail() {
           </div>
         )}
 
+        {/* Client comments section */}
+        {isCliente && (
+          <div className="bg-card rounded-lg border p-4 space-y-3">
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Mis Comentarios</h3>
+            <Textarea
+              placeholder="Agregá tus comentarios sobre este candidato..."
+              value={commentsCliente}
+              onChange={e => setCommentsCliente(e.target.value)}
+              rows={4}
+              className="resize-y"
+            />
+            <Button
+              size="sm"
+              disabled={savingCliente}
+              onClick={async () => {
+                setSavingCliente(true);
+                const { error } = await sb.from('postulantes').update({ comments_cliente: commentsCliente }).eq('id_postulant', id_postulant);
+                setSavingCliente(false);
+                if (error) {
+                  toast({ title: 'Error al guardar', description: error.message, variant: 'destructive' });
+                } else {
+                  toast({ title: 'Comentario guardado' });
+                  if (user) {
+                    createNotifications({
+                      actorName: profile?.full_name || user.email || 'Cliente',
+                      postulantId: id_postulant!,
+                      postulantName: postulante.id_postulant,
+                      vacancyId: vacancyId || postulante.vacancy_id,
+                      vacancyName: postulante.vacancy_name || '',
+                      action: 'update',
+                      fieldsChanged: ['comments_cliente'],
+                      currentUserId: user.id,
+                    });
+                  }
+                }
+              }}
+            >
+              <Save className="h-4 w-4 mr-2" /> Guardar Comentario
+            </Button>
+          </div>
+        )}
+
         {/* Pipeline Section - Editable (Manager/Selector/a) */}
         {!isCliente && (
           <div className="bg-card rounded-lg border p-4 space-y-4">
@@ -384,6 +429,14 @@ export default function PostulantDetail() {
                 </Button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Client comments - visible to managers/selectoras as read-only */}
+        {!isCliente && postulante.comments_cliente && (
+          <div className="bg-card rounded-lg border p-4 space-y-2">
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Comentarios del Cliente</h3>
+            <p className="text-sm text-foreground whitespace-pre-wrap">{postulante.comments_cliente}</p>
           </div>
         )}
 

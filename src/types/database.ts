@@ -43,6 +43,7 @@ export interface Postulante {
   comments_manager: string | null;
   comments_selectora: string | null;
   signoff_reason: string | null;
+  comments_cliente: string | null;
   report_file_name: string | null;
   anonymized_file_name: string | null;
   anonymized_file_url: string | null;
