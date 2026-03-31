@@ -36,6 +36,10 @@ export default function VacancyDetail() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [etapaFilter, setEtapaFilter] = useState<string>('all');
+  const [selectoraFilter, setSelectoraFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('score');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -170,9 +174,16 @@ export default function VacancyDetail() {
   const minScore = scoredScores.length ? Math.min(...scoredScores) : null;
 
   // Filtering
+  // Compute unique sources for filter dropdown
+  const uniqueSources = Array.from(new Set(postulantes.map(p => p.source || '').filter(Boolean))).sort();
+
   let filtered = postulantes.filter(p => {
     if (searchQuery && !p.full_name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (etapaFilter !== 'all' && p.etapa !== etapaFilter) return false;
+    if (selectoraFilter !== 'all' && (p.selectora_id || '') !== selectoraFilter) return false;
+    if (sourceFilter !== 'all' && (p.source || '') !== sourceFilter) return false;
+    if (dateFrom && p.apply_date && p.apply_date < dateFrom) return false;
+    if (dateTo && p.apply_date && p.apply_date > dateTo) return false;
     if (kpiFilter === 'evaluados' && p.scoring_status !== 'scored') return false;
     if (kpiFilter === 'pendientes' && p.scoring_status !== 'pending') return false;
     if (kpiFilter === 'contactados' && !p.contacted) return false;
@@ -507,8 +518,8 @@ export default function VacancyDetail() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nombre..."
@@ -518,12 +529,45 @@ export default function VacancyDetail() {
             />
           </div>
           <Select value={etapaFilter} onValueChange={(v) => { setEtapaFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-[220px]"><SelectValue placeholder="Filtrar por etapa" /></SelectTrigger>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Etapa" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las etapas</SelectItem>
               {ETAPAS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
             </SelectContent>
-           </Select>
+          </Select>
+          <Select value={selectoraFilter} onValueChange={(v) => { setSelectoraFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Selectora" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {profiles.filter(p => p.role === 'selectora').map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Fuente" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {uniqueSources.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+              className="w-[140px] text-xs"
+              placeholder="Desde"
+            />
+            <span className="text-muted-foreground text-xs">a</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+              className="w-[140px] text-xs"
+              placeholder="Hasta"
+            />
+          </div>
         </div>
 
         {/* Rubric status + Scoring buttons */}
