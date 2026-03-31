@@ -218,11 +218,35 @@ export default function EditablePostulantTable({
     </TableHead>
   );
 
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+
+  // Sync top scrollbar with table scroll
+  const handleTopScroll = () => {
+    if (tableScrollRef.current && topScrollRef.current) {
+      tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+  const handleTableScroll = () => {
+    if (topScrollRef.current && tableScrollRef.current) {
+      topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft;
+    }
+  };
+
   return (
     <TooltipProvider>
-    <div className="bg-card rounded-lg border shadow-sm">
+    {/* Top horizontal scrollbar */}
+    <div
+      ref={topScrollRef}
+      onScroll={handleTopScroll}
+      className="overflow-x-auto scrollbar-visible"
+      style={{ height: '12px' }}
+    >
+      <div style={{ width: '1400px', height: '1px' }} />
+    </div>
+    <div ref={tableScrollRef} onScroll={handleTableScroll} className="bg-card rounded-lg border shadow-sm overflow-x-auto scrollbar-visible">
       <Table className="min-w-[1400px]">
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow className="bg-muted/50">
             {selectedIds && onSelectionChange && (
               <TableHead className="w-10 text-center">
