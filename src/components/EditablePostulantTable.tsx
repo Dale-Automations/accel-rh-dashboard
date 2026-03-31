@@ -303,9 +303,9 @@ export default function EditablePostulantTable({
                   <TableCell className="text-center">
                     {p.scoring_status === 'scoring' ? (
                       <Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" />
-                    ) : p.scoring_status === 'no_file' && score == null ? (
+                    ) : (p.scoring_status === 'no_file' && score == null) || (score === 0 && (!cvScore?.detalles || (Array.isArray(cvScore.detalles) && cvScore.detalles.length === 0))) ? (
                       <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                        <FileX className="h-3 w-3 mr-1" />Sin archivo
+                        <FileX className="h-3 w-3 mr-1" />Sin datos
                       </Badge>
                     ) : editable ? (
                       <EditableTextCell
