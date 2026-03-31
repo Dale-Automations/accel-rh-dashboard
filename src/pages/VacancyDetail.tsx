@@ -638,7 +638,7 @@ export default function VacancyDetail() {
       </div>
 
       {/* Scrollable table area - both vertical and horizontal */}
-      <div className="flex-1 min-h-0 overflow-auto" style={{ scrollbarWidth: 'thin' }}>
+      <div className="flex-1 min-h-0 overflow-auto scrollbar-visible">
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}
