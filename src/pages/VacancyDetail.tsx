@@ -344,7 +344,7 @@ export default function VacancyDetail() {
   }
 
   return (
-    <div className="flex flex-col absolute inset-0 p-4 md:p-6 overflow-y-hidden">
+    <div className="flex flex-col absolute inset-0 p-4 md:p-6 overflow-hidden">
       {/* Header - fixed */}
       <div className="flex-shrink-0 space-y-6 pb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -637,8 +637,8 @@ export default function VacancyDetail() {
         </div>
       </div>
 
-      {/* Scrollable table area */}
-      <div className="flex-1 min-h-0 overflow-auto overflow-x-auto">
+      {/* Scrollable table area - both vertical and horizontal */}
+      <div className="flex-1 min-h-0 overflow-auto" style={{ scrollbarWidth: 'thin' }}>
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}
