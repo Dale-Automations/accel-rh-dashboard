@@ -72,6 +72,17 @@ export default function PostulantDetail() {
     loadData();
   }, [id_postulant, vacancyId]);
 
+  // Realtime: auto-refresh when score or postulant changes
+  useEffect(() => {
+    if (!id_postulant) return;
+    const channel = sb
+      .channel(`postulant-${id_postulant}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cv_scores', filter: `postulant_id=eq.${id_postulant}` }, () => { loadData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'postulantes', filter: `id_postulant=eq.${id_postulant}` }, () => { loadData(); })
+      .subscribe();
+    return () => { sb.removeChannel(channel); };
+  }, [id_postulant]);
+
   const loadData = async () => {
     setLoading(true);
     try {
