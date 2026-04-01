@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { RubricEditor } from '@/components/RubricEditor';
 import {
-  ArrowLeft, Send, Bot, Copy, Eye, Power, PowerOff, Pencil, Plus, Loader2, Users, Share2, Trash2,
+  ArrowLeft, Send, Bot, Copy, Eye, Power, PowerOff, Pencil, Plus, Loader2, Users, Share2, Trash2, Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -378,6 +378,18 @@ export default function RubricaDetail() {
                             </Button>
                             <Button variant="ghost" size="icon" title="Copiar a otra vacante" onClick={() => setCopyRubric(r)} disabled={saving}>
                               <Share2 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Descargar JSON" onClick={() => {
+                              const data = parseRubricJson(r.rubric_json);
+                              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `rubrica_v${r.version_number}_${vacancy?.vacancy_name || vacancy_id}.json`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}>
+                              <Download className="h-4 w-4" />
                             </Button>
                             {!r.is_active && (
                               <Button variant="ghost" size="icon" title="Eliminar" onClick={() => deleteVersion(r)} disabled={saving}>
