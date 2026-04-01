@@ -135,7 +135,7 @@ export default function PostulantDetail() {
       updates.comments_selectora = commentsSelectora;
       updates.comments_manager = commentsManager;
       updates.signoff_reason = signoffReason;
-      updates.selectora_id = selectoraId || null;
+      updates.selectora_id = selectoraId && selectoraId !== 'none' ? selectoraId : null;
       updates.interview_date = interviewDate?.toISOString() || null;
     } else if (role === 'selectora') {
       updates.etapa = etapa;
@@ -386,7 +386,7 @@ export default function PostulantDetail() {
                   <Select value={selectoraId} onValueChange={setSelectoraId}>
                     <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin asignar</SelectItem>
+                      <SelectItem value="none">Sin asignar</SelectItem>
                       {selectoras.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name || s.email}</SelectItem>)}
                     </SelectContent>
                   </Select>
