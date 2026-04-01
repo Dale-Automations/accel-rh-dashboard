@@ -654,8 +654,8 @@ export default function VacancyDetail() {
         </div>
       </div>
 
-      {/* Scrollable table area with explicit height */}
-      <div style={{ height: `${tableHeight}px` }}>
+      {/* Scrollable table area */}
+      <div>
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}
@@ -664,6 +664,7 @@ export default function VacancyDetail() {
           userId={user?.id}
           vacancyId={vacancy_id!}
           vacancyName={vacante?.vacancy_name}
+          containerHeight={tableHeight}
           page={page}
           pageSize={PAGE_SIZE}
           onDataChange={loadData}

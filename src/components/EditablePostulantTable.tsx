@@ -25,6 +25,7 @@ interface Props {
   userId?: string;
   vacancyId: string;
   vacancyName?: string;
+  containerHeight?: number;
   page: number;
   pageSize: number;
   onDataChange: () => void;
@@ -120,7 +121,7 @@ function EditableSelectCell({
 }
 
 export default function EditablePostulantTable({
-  postulantes, scores, profiles, role, userId, vacancyId, vacancyName, page, pageSize, onDataChange,
+  postulantes, scores, profiles, role, userId, vacancyId, vacancyName, containerHeight, page, pageSize, onDataChange,
   sortBy, sortDir, onToggleSort, selectedIds, onSelectionChange,
 }: Props) {
   const navigate = useNavigate();
@@ -235,20 +236,25 @@ export default function EditablePostulantTable({
 
   return (
     <TooltipProvider>
-    <div className="flex flex-col h-full">
+    <div style={{ display: 'flex', flexDirection: 'column', height: containerHeight ? `${containerHeight}px` : '100%' }}>
       {/* Top horizontal scrollbar */}
       <div
         ref={topScrollRef}
         onScroll={handleTopScroll}
-        className="overflow-x-auto scrollbar-visible flex-shrink-0"
-        style={{ minHeight: '12px' }}
+        className="scrollbar-visible"
+        style={{ overflowX: 'auto', overflowY: 'hidden', flexShrink: 0, minHeight: '14px' }}
       >
         <div style={{ width: '1400px', height: '1px' }} />
       </div>
       {/* Table with both scrolls */}
-      <div ref={tableScrollRef} onScroll={handleTableScroll} className="bg-card rounded-lg border shadow-sm overflow-auto scrollbar-visible flex-1 min-h-0">
+      <div
+        ref={tableScrollRef}
+        onScroll={handleTableScroll}
+        className="bg-card rounded-lg border shadow-sm scrollbar-visible"
+        style={{ overflow: 'auto', flex: '1 1 0', minHeight: 0 }}
+      >
         <Table className="min-w-[1400px]">
-          <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+          <TableHeader style={{ position: 'sticky', top: 0, zIndex: 10, background: 'hsl(var(--card))' }}>
             <TableRow className="bg-muted/80">
             {selectedIds && onSelectionChange && (
               <TableHead className="w-10 text-center">
