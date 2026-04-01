@@ -56,24 +56,7 @@ export default function VacancyDetail() {
   const [closeComments, setCloseComments] = useState('');
   const [closeConfirmed, setCloseConfirmed] = useState(false);
   const [closing, setClosing] = useState(false);
-  const PAGE_SIZE = 10;
-  const headerRef = useRef<HTMLDivElement>(null);
-  const [tableHeight, setTableHeight] = useState(400);
-
-  // Measure header to compute remaining space for table
-  useEffect(() => {
-    const measure = () => {
-      if (headerRef.current) {
-        const headerBottom = headerRef.current.getBoundingClientRect().bottom;
-        const windowHeight = window.innerHeight;
-        // Leave 50px for pagination
-        setTableHeight(Math.max(200, windowHeight - headerBottom - 50));
-      }
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  });
+  const PAGE_SIZE = 25;
 
   // Lightweight refresh: only scores + postulantes (no profiles/vacantes/assignments reload)
   const refreshScoring = useCallback(async () => {
@@ -363,7 +346,7 @@ export default function VacancyDetail() {
   return (
     <div className="flex flex-col absolute inset-0 p-4 md:p-6 overflow-hidden">
       {/* Header - fixed */}
-      <div ref={headerRef} className="flex-shrink-0 space-y-6 pb-4">
+      <div className="flex-shrink-0 space-y-6 pb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground" onClick={() => navigate('/')}>
@@ -654,8 +637,8 @@ export default function VacancyDetail() {
         </div>
       </div>
 
-      {/* Scrollable table area */}
-      <div>
+      {/* Table area */}
+      <div className="flex-1 min-h-0">
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}
@@ -664,7 +647,6 @@ export default function VacancyDetail() {
           userId={user?.id}
           vacancyId={vacancy_id!}
           vacancyName={vacante?.vacancy_name}
-          containerHeight={tableHeight}
           page={page}
           pageSize={PAGE_SIZE}
           onDataChange={loadData}

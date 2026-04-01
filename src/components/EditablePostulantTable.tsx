@@ -219,43 +219,12 @@ export default function EditablePostulantTable({
     </TableHead>
   );
 
-  const topScrollRef = useRef<HTMLDivElement>(null);
-  const tableScrollRef = useRef<HTMLDivElement>(null);
-
-  // Sync top scrollbar with table scroll
-  const handleTopScroll = () => {
-    if (tableScrollRef.current && topScrollRef.current) {
-      tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
-    }
-  };
-  const handleTableScroll = () => {
-    if (topScrollRef.current && tableScrollRef.current) {
-      topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft;
-    }
-  };
-
   return (
     <TooltipProvider>
-    <div style={{ display: 'flex', flexDirection: 'column', height: containerHeight ? `${containerHeight}px` : '100%' }}>
-      {/* Top horizontal scrollbar */}
-      <div
-        ref={topScrollRef}
-        onScroll={handleTopScroll}
-        className="scrollbar-visible"
-        style={{ overflowX: 'auto', overflowY: 'hidden', flexShrink: 0, minHeight: '14px' }}
-      >
-        <div style={{ width: '1400px', height: '1px' }} />
-      </div>
-      {/* Table with both scrolls */}
-      <div
-        ref={tableScrollRef}
-        onScroll={handleTableScroll}
-        className="bg-card rounded-lg border shadow-sm scrollbar-visible"
-        style={{ overflow: 'auto', flex: '1 1 0', minHeight: 0 }}
-      >
-        <Table className="min-w-[1400px] [&_td]:py-1.5 [&_th]:py-2 text-sm">
-          <TableHeader style={{ position: 'sticky', top: 0, zIndex: 10, background: 'hsl(var(--card))' }}>
-            <TableRow className="bg-muted/80">
+    <div className="bg-card rounded-lg border shadow-sm overflow-x-auto scrollbar-visible">
+      <Table className="min-w-[1400px]">
+        <TableHeader>
+          <TableRow className="bg-muted/50">
             {selectedIds && onSelectionChange && (
               <TableHead className="w-10 text-center">
                 <Checkbox
@@ -508,8 +477,7 @@ export default function EditablePostulantTable({
             })
           )}
         </TableBody>
-        </Table>
-      </div>
+      </Table>
     </div>
     </TooltipProvider>
   );
