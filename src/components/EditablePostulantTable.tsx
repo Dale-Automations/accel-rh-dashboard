@@ -253,7 +253,7 @@ export default function EditablePostulantTable({
         className="bg-card rounded-lg border shadow-sm scrollbar-visible"
         style={{ overflow: 'auto', flex: '1 1 0', minHeight: 0 }}
       >
-        <Table className="min-w-[1400px]">
+        <Table className="min-w-[1400px] [&_td]:py-1.5 [&_th]:py-2 text-sm">
           <TableHeader style={{ position: 'sticky', top: 0, zIndex: 10, background: 'hsl(var(--card))' }}>
             <TableRow className="bg-muted/80">
             {selectedIds && onSelectionChange && (
@@ -302,7 +302,7 @@ export default function EditablePostulantTable({
               const editable = canEdit(p);
 
               return (
-                <TableRow key={p.id_postulant} className="hover:bg-muted/20">
+                <TableRow key={p.id_postulant} className="hover:bg-muted/20 h-10">
                   {selectedIds && onSelectionChange && (
                     <TableCell className="text-center">
                       <Checkbox
