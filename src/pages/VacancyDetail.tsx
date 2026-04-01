@@ -343,6 +343,15 @@ export default function VacancyDetail() {
     return <div className="text-center py-20 text-muted-foreground">Vacante no encontrada</div>;
   }
 
+  // Hide parent main scroll so our layout works
+  useEffect(() => {
+    const main = document.querySelector('main');
+    if (main) {
+      main.style.overflow = 'hidden';
+      return () => { main.style.overflow = ''; };
+    }
+  }, []);
+
   return (
     <div className="flex flex-col absolute inset-0 p-4 md:p-6 overflow-hidden">
       {/* Header - fixed */}
@@ -637,8 +646,8 @@ export default function VacancyDetail() {
         </div>
       </div>
 
-      {/* Table area */}
-      <div className="flex-1 min-h-0">
+      {/* Table area - vertical scroll here */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}
