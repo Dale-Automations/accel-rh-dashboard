@@ -93,7 +93,7 @@ export default function PostulantDetail() {
       vacancyId
         ? sb.from('cv_scores').select('*').eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId).order('created_at', { ascending: false }).limit(1).maybeSingle()
         : sb.from('cv_scores').select('*').eq('postulant_id', id_postulant).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      sb.from('user_profiles').select('*').eq('role', 'selectora'),
+      sb.from('user_profiles').select('*').in('role', ['selectora', 'manager']),
     ]);
     const post = postRes.data as Postulante;
     setPostulante(post);
