@@ -395,7 +395,7 @@ export default function PostulantDetail() {
                     {selectoras.find(s => s.id === selectoraId)?.full_name || 'Sin asignar'}
                   </p>
                 )}
-              )}
+              </div>
             </div>
 
             {/* Action buttons */}
