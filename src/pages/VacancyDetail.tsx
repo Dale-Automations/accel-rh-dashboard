@@ -56,7 +56,7 @@ export default function VacancyDetail() {
   const [closeComments, setCloseComments] = useState('');
   const [closeConfirmed, setCloseConfirmed] = useState(false);
   const [closing, setClosing] = useState(false);
-  const PAGE_SIZE = 25;
+  const PAGE_SIZE = 6;
 
   // Lightweight refresh: only scores + postulantes (no profiles/vacantes/assignments reload)
   const refreshScoring = useCallback(async () => {
