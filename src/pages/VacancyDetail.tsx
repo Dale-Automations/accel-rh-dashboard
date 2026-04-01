@@ -56,7 +56,7 @@ export default function VacancyDetail() {
   const [closeComments, setCloseComments] = useState('');
   const [closeConfirmed, setCloseConfirmed] = useState(false);
   const [closing, setClosing] = useState(false);
-  const PAGE_SIZE = 6;
+  const PAGE_SIZE = 25;
 
   // Lightweight refresh: only scores + postulantes (no profiles/vacantes/assignments reload)
   const refreshScoring = useCallback(async () => {
@@ -344,7 +344,7 @@ export default function VacancyDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col absolute inset-0 p-4 md:p-6 overflow-hidden">
       {/* Header - fixed */}
       <div className="flex-shrink-0 space-y-6 pb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -637,8 +637,8 @@ export default function VacancyDetail() {
         </div>
       </div>
 
-      {/* Table */}
-      <div>
+      {/* Table - vertical scroll only here */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}
