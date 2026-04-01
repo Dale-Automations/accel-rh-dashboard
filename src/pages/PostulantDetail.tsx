@@ -380,16 +380,21 @@ export default function PostulantDetail() {
                 </div>
               )}
 
-              {role === 'manager' && (
-                <div>
-                  <Label className="text-xs">Selector/a Asignado/a</Label>
+              <div>
+                <Label className="text-xs">Selector/a Asignado/a</Label>
+                {role === 'manager' ? (
                   <Select value={selectoraId} onValueChange={setSelectoraId}>
                     <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                     <SelectContent>
-                      {selectoras.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                      <SelectItem value="">Sin asignar</SelectItem>
+                      {selectoras.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name || s.email}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                </div>
+                ) : (
+                  <p className="text-sm text-foreground mt-1">
+                    {selectoras.find(s => s.id === selectoraId)?.full_name || 'Sin asignar'}
+                  </p>
+                )}
               )}
             </div>
 
