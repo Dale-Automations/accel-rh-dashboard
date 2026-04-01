@@ -637,9 +637,8 @@ export default function VacancyDetail() {
         </div>
       </div>
 
-      {/* Scrollable table area - both vertical and horizontal */}
-      <div className="flex-1 min-h-0 relative">
-        <div className="absolute inset-0 overflow-auto scrollbar-visible">
+      {/* Scrollable table area */}
+      <div className="flex-1 min-h-0">
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}
@@ -657,7 +656,6 @@ export default function VacancyDetail() {
           selectedIds={selectedPostulants}
           onSelectionChange={setSelectedPostulants}
         />
-      </div>
       </div>
 
       {/* Pagination - fixed at bottom */}

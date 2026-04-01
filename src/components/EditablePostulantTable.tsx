@@ -235,19 +235,21 @@ export default function EditablePostulantTable({
 
   return (
     <TooltipProvider>
-    {/* Top horizontal scrollbar */}
-    <div
-      ref={topScrollRef}
-      onScroll={handleTopScroll}
-      className="overflow-x-auto scrollbar-visible"
-      style={{ height: '12px' }}
-    >
-      <div style={{ width: '1400px', height: '1px' }} />
-    </div>
-    <div ref={tableScrollRef} onScroll={handleTableScroll} className="bg-card rounded-lg border shadow-sm overflow-x-auto scrollbar-visible">
-      <Table className="min-w-[1400px]">
-        <TableHeader className="sticky top-0 z-10 bg-card">
-          <TableRow className="bg-muted/50">
+    <div className="flex flex-col h-full">
+      {/* Top horizontal scrollbar */}
+      <div
+        ref={topScrollRef}
+        onScroll={handleTopScroll}
+        className="overflow-x-auto scrollbar-visible flex-shrink-0"
+        style={{ minHeight: '12px' }}
+      >
+        <div style={{ width: '1400px', height: '1px' }} />
+      </div>
+      {/* Table with both scrolls */}
+      <div ref={tableScrollRef} onScroll={handleTableScroll} className="bg-card rounded-lg border shadow-sm overflow-auto scrollbar-visible flex-1 min-h-0">
+        <Table className="min-w-[1400px]">
+          <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+            <TableRow className="bg-muted/80">
             {selectedIds && onSelectionChange && (
               <TableHead className="w-10 text-center">
                 <Checkbox
@@ -500,7 +502,8 @@ export default function EditablePostulantTable({
             })
           )}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
     </div>
     </TooltipProvider>
   );
