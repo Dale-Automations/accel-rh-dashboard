@@ -343,17 +343,8 @@ export default function VacancyDetail() {
     return <div className="text-center py-20 text-muted-foreground">Vacante no encontrada</div>;
   }
 
-  // Hide parent main scroll so our layout works
-  useEffect(() => {
-    const main = document.querySelector('main');
-    if (main) {
-      main.style.overflow = 'hidden';
-      return () => { main.style.overflow = ''; };
-    }
-  }, []);
-
   return (
-    <div className="flex flex-col absolute inset-0 p-4 md:p-6 overflow-hidden">
+    <div style={{ height: 'calc(100vh - 56px)', display: 'flex', flexDirection: 'column', padding: '16px', overflow: 'hidden', margin: '-16px', marginTop: '-24px', paddingTop: '24px' }}>
       {/* Header - fixed */}
       <div className="flex-shrink-0 space-y-6 pb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
