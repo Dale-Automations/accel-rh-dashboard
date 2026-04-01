@@ -56,7 +56,7 @@ export default function VacancyDetail() {
   const [closeComments, setCloseComments] = useState('');
   const [closeConfirmed, setCloseConfirmed] = useState(false);
   const [closing, setClosing] = useState(false);
-  const PAGE_SIZE = 25;
+  const PAGE_SIZE = 10;
   const headerRef = useRef<HTMLDivElement>(null);
   const [tableHeight, setTableHeight] = useState(400);
 
