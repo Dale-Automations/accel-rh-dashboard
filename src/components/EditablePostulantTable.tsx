@@ -141,7 +141,7 @@ export default function EditablePostulantTable({
   };
 
   const canEdit = (p: Postulante) =>
-    role === 'manager' || (role === 'selectora' && (p.selectora_id === userId || isAssignedToVacancy));
+    role === 'manager' || role === 'selectora';
 
   const saveField = useCallback(async (postulantId: string, field: string, value: any) => {
     const { error } = await sb.from('postulantes').update({ [field]: value }).eq('id_postulant', postulantId);

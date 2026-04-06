@@ -133,7 +133,7 @@ export default function PostulantDetail() {
     }
   }, [role, user, vacancyId]);
 
-  const canEdit = role === 'manager' || (role === 'selectora' && (postulante?.selectora_id === user?.id || isAssignedToVacancy));
+  const canEdit = role === 'manager' || role === 'selectora';
   const isCliente = role === 'cliente';
 
   const handleSave = async () => {
