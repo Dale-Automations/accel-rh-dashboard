@@ -645,6 +645,7 @@ export default function VacancyDetail() {
           profiles={profiles}
           role={role as any}
           userId={user?.id}
+          isAssignedToVacancy={assignments.some(a => a.user_id === user?.id)}
           vacancyId={vacancy_id!}
           vacancyName={vacante?.vacancy_name}
           page={page}

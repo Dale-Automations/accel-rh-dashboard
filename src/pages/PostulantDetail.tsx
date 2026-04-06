@@ -122,7 +122,18 @@ export default function PostulantDetail() {
     setLoading(false);
   };
 
-  const canEdit = role === 'manager' || (role === 'selectora' && postulante?.selectora_id === user?.id);
+  const [isAssignedToVacancy, setIsAssignedToVacancy] = useState(false);
+
+  // Check if selectora is assigned to this vacancy
+  useEffect(() => {
+    if (role === 'selectora' && user && vacancyId) {
+      sb.from('vacancy_assignments').select('id').eq('vacancy_id', vacancyId).eq('user_id', user.id).then(({ data }: any) => {
+        setIsAssignedToVacancy((data || []).length > 0);
+      }).catch(() => {});
+    }
+  }, [role, user, vacancyId]);
+
+  const canEdit = role === 'manager' || (role === 'selectora' && (postulante?.selectora_id === user?.id || isAssignedToVacancy));
   const isCliente = role === 'cliente';
 
   const handleSave = async () => {

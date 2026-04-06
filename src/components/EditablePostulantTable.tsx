@@ -23,9 +23,9 @@ interface Props {
   profiles: UserProfile[];
   role: UserRole;
   userId?: string;
+  isAssignedToVacancy?: boolean;
   vacancyId: string;
   vacancyName?: string;
-  containerHeight?: number;
   page: number;
   pageSize: number;
   onDataChange: () => void;
@@ -121,7 +121,7 @@ function EditableSelectCell({
 }
 
 export default function EditablePostulantTable({
-  postulantes, scores, profiles, role, userId, vacancyId, vacancyName, containerHeight, page, pageSize, onDataChange,
+  postulantes, scores, profiles, role, userId, isAssignedToVacancy, vacancyId, vacancyName, page, pageSize, onDataChange,
   sortBy, sortDir, onToggleSort, selectedIds, onSelectionChange,
 }: Props) {
   const navigate = useNavigate();
@@ -141,7 +141,7 @@ export default function EditablePostulantTable({
   };
 
   const canEdit = (p: Postulante) =>
-    role === 'manager' || (role === 'selectora' && p.selectora_id === userId);
+    role === 'manager' || (role === 'selectora' && (p.selectora_id === userId || isAssignedToVacancy));
 
   const saveField = useCallback(async (postulantId: string, field: string, value: any) => {
     const { error } = await sb.from('postulantes').update({ [field]: value }).eq('id_postulant', postulantId);
