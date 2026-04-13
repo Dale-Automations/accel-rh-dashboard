@@ -571,6 +571,7 @@ export default function VacancyDetail() {
                   source: newCandidate.source || 'Manual',
                   file_name: fileName,
                   has_attachments: 'manual',
+                  notes: vacante?.drive_folder_id ? `https://drive.google.com/drive/folders/${vacante.drive_folder_id}` : null,
                   status: 'New',
                   etapa: 'Nuevo',
                   scoring_status: 'pending',
