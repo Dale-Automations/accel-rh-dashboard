@@ -240,13 +240,28 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         const pngImg = await pdfDoc.embedPng(evalImage);
         const imgDims = pngImg.scale(1);
         const availW = CW;
-        const availH = y - MB - 20;
+        const availH = y - MB - 60;
         const scale = Math.min(availW / imgDims.width, availH / imgDims.height, 1);
         const drawW = imgDims.width * scale;
         const drawH = imgDims.height * scale;
         const imgX = ML + (CW - drawW) / 2;
 
         page.drawImage(pngImg, { x: imgX, y: y - drawH, width: drawW, height: drawH });
+        y = y - drawH - 16;
+
+        // Model & rubric info below chart
+        if (score?.ai_model) {
+          const modelLabel = score.ai_model.includes('gpt') ? 'GPT 4.1 mini' : score.ai_model.includes('gemini') ? 'Gemini Flash' : score.ai_model;
+          page.drawText(`Modelo: ${modelLabel}`, { x: ML, y, size: 10, font: helvetica, color: GRAY });
+          y -= 14;
+        }
+        if ((score as any)?.rubric_version) {
+          page.drawText(`Rúbrica: v${(score as any).rubric_version}`, { x: ML, y, size: 10, font: helvetica, color: GRAY });
+          y -= 14;
+        }
+        if (score?.scored_at) {
+          page.drawText(`Evaluado: ${formatDate(score.scored_at)}`, { x: ML, y, size: 10, font: helvetica, color: GRAY });
+        }
 
         drawFooter(page, helvetica, helveticaBold, lang);
       } else if (detalles.length > 0) {

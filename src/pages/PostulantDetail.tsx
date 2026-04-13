@@ -17,7 +17,7 @@ import { formatDate, formatDateTime, formatCurrency, getScoreColor, getEtapaColo
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download, ArrowLeft, Sparkles, Brain, Loader2 } from 'lucide-react';
 import PostulantReportPdf from '@/components/PostulantReportPdf';
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend, PieChart, Pie, Cell, Tooltip as RechartsTooltip } from 'recharts';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -539,7 +539,8 @@ export default function PostulantDetail() {
 
             {/* Radar Chart - always expanded */}
             {radarData.length > 0 && (
-              <div className="bg-card rounded-lg border p-6 space-y-4" ref={radarChartRef}>
+              <div className="bg-card rounded-lg border p-6 space-y-4">
+                <div ref={radarChartRef} className="space-y-4 pb-6">
                 <div className="text-center space-y-0.5">
                   <h3 className="font-semibold text-base text-foreground">Perfil: Candidato Evaluado</h3>
                   <p className="text-sm text-muted-foreground">
@@ -587,23 +588,31 @@ export default function PostulantDetail() {
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="space-y-2">
-                  {detalles.map((d, i) => (
-                    <TooltipProvider key={i}>
-                      <UITooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-3 cursor-default">
-                            <span className="text-xs text-foreground w-40 truncate">{d.criterio}</span>
-                            <Progress value={(d.puntaje / d.puntaje_max) * 100} className="flex-1 h-2" />
-                            <span className="text-xs text-muted-foreground w-16 text-right">{d.puntaje}/{d.puntaje_max}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
-                          <p className="text-sm">{d.criterio}</p>
-                        </TooltipContent>
-                      </UITooltip>
-                    </TooltipProvider>
-                  ))}
+                <div className="grid grid-cols-2 gap-3">
+                  {detalles.map((d, i) => {
+                    const pct = d.puntaje_max > 0 ? Math.round((d.puntaje / d.puntaje_max) * 100) : 0;
+                    const data = [{ value: d.puntaje }, { value: d.puntaje_max - d.puntaje }];
+                    const color = pct >= 75 ? '#7c3aed' : pct >= 50 ? '#a78bfa' : pct >= 25 ? '#c4b5fd' : '#ddd6fe';
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="w-10 h-10 shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={data} dataKey="value" cx="50%" cy="50%" outerRadius={18} innerRadius={12} startAngle={90} endAngle={-270} strokeWidth={0}>
+                                <Cell fill={color} />
+                                <Cell fill="hsl(var(--muted))" />
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-foreground leading-tight">{d.criterio}</p>
+                          <p className="text-[10px] text-muted-foreground">{d.puntaje}/{d.puntaje_max}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
                 </div>
                 <div className="text-xs text-muted-foreground space-y-1.5 pt-2 border-t">
                   <div className="flex items-center gap-1.5">

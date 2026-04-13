@@ -64,6 +64,7 @@ export default function VacancyDetail() {
   const [kpiCollapsed, setKpiCollapsed] = useState(false);
   const [newEtapaInput, setNewEtapaInput] = useState('');
   const [addCandidateOpen, setAddCandidateOpen] = useState(false);
+  const [newCandidateId, setNewCandidateId] = useState('');
   const [newCandidate, setNewCandidate] = useState({ full_name: '', email: '', phone: '', source: 'Manual' });
   const [scoreMin, setScoreMin] = useState<string>('');
   const [scoreMax, setScoreMax] = useState<string>('');
@@ -559,15 +560,17 @@ export default function VacancyDetail() {
               <div><Label className="text-xs">Teléfono</Label><Input value={newCandidate.phone} onChange={e => setNewCandidate(prev => ({ ...prev, phone: e.target.value }))} /></div>
               <div><Label className="text-xs">Fuente</Label><Input value={newCandidate.source} onChange={e => setNewCandidate(prev => ({ ...prev, source: e.target.value }))} /></div>
               <Button className="w-full" disabled={!newCandidate.full_name.trim()} onClick={async () => {
-                const id = `manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const fileName = `${newCandidate.full_name.trim()} (${newCandidateId})`;
                 const { error } = await sb.from('postulantes').insert({
-                  id_postulant: id,
+                  id_postulant: newCandidateId,
                   vacancy_id: vacancy_id,
                   vacancy_name: vacante?.vacancy_name,
                   full_name: newCandidate.full_name.trim(),
                   email: newCandidate.email || null,
                   phone: newCandidate.phone || null,
                   source: newCandidate.source || 'Manual',
+                  file_name: fileName,
+                  has_attachments: 'manual',
                   status: 'New',
                   etapa: 'Nuevo',
                   scoring_status: 'pending',
@@ -577,12 +580,18 @@ export default function VacancyDetail() {
                 if (error) {
                   toast({ title: 'Error', description: error.message, variant: 'destructive' });
                 } else {
-                  toast({ title: 'Candidato agregado' });
+                  toast({ title: 'Candidato agregado', description: `Subí el CV a la carpeta de Drive con el nombre: ${fileName}.pdf` });
                   setAddCandidateOpen(false);
                   setNewCandidate({ full_name: '', email: '', phone: '', source: 'Manual' });
                   loadData();
                 }
               }}>Agregar</Button>
+              {newCandidate.full_name.trim() && (
+                <div className="bg-muted/50 border rounded p-3 text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium text-foreground">Después de agregar, subí el CV a la carpeta de Google Drive de esta vacante con este nombre:</p>
+                  <p className="font-mono bg-card px-2 py-1 rounded border text-foreground break-all select-all">{newCandidate.full_name.trim()} ({newCandidateId}).pdf</p>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -822,7 +831,7 @@ export default function VacancyDetail() {
           {role === 'manager' && vacante.status === 'Activa' && (
             <>
               <div className="flex-1" />
-              <Button variant="outline" size="sm" onClick={() => setAddCandidateOpen(true)}>
+              <Button variant="outline" size="sm" onClick={() => { setNewCandidateId(`manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`); setAddCandidateOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" /> Agregar Candidato
               </Button>
             </>
