@@ -15,6 +15,7 @@ import { KpiCard } from '@/components/KpiCard';
 import { formatDate } from '@/lib/formatters';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle, ChevronDown, ChevronUp, List, Plus } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import * as XLSX from 'xlsx';
@@ -37,7 +38,7 @@ export default function VacancyDetail() {
   const [assignments, setAssignments] = useState<VacancyAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [etapaFilter, setEtapaFilter] = useState<string>('all');
+  const [etapaFilter, setEtapaFilter] = useState<Set<string>>(new Set());
   const [selectoraFilter, setSelectoraFilter] = useState<string>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
@@ -86,7 +87,7 @@ export default function VacancyDetail() {
       try {
         const f = JSON.parse(saved);
         if (f.searchQuery) setSearchQuery(f.searchQuery);
-        if (f.etapaFilter) setEtapaFilter(f.etapaFilter);
+        if (f.etapaFilter && Array.isArray(f.etapaFilter)) setEtapaFilter(new Set(f.etapaFilter));
         if (f.selectoraFilter) setSelectoraFilter(f.selectoraFilter);
         if (f.sourceFilter) setSourceFilter(f.sourceFilter);
         if (f.dateFrom) setDateFrom(f.dateFrom);
@@ -104,7 +105,7 @@ export default function VacancyDetail() {
   useEffect(() => {
     if (vacancy_id) {
       sessionStorage.setItem(`filters-${vacancy_id}`, JSON.stringify({
-        searchQuery, etapaFilter, selectoraFilter, sourceFilter, dateFrom, dateTo, scoreMin, scoreMax, sortBy, sortDir, page
+        searchQuery, etapaFilter: Array.from(etapaFilter), selectoraFilter, sourceFilter, dateFrom, dateTo, scoreMin, scoreMax, sortBy, sortDir, page
       }));
     }
   }, [searchQuery, etapaFilter, selectoraFilter, sourceFilter, dateFrom, dateTo, scoreMin, scoreMax, sortBy, sortDir, page, vacancy_id]);
@@ -219,7 +220,7 @@ export default function VacancyDetail() {
 
   let filtered = postulantes.filter(p => {
     if (searchQuery && !p.full_name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    if (etapaFilter !== 'all' && p.etapa !== etapaFilter) return false;
+    if (etapaFilter.size > 0 && !etapaFilter.has(p.etapa || '')) return false;
     if (selectoraFilter !== 'all' && (p.selectora_id || '') !== selectoraFilter) return false;
     if (sourceFilter !== 'all' && (p.source || '') !== sourceFilter) return false;
     if (dateFrom && p.apply_date && p.apply_date < dateFrom) return false;
@@ -456,14 +457,9 @@ export default function VacancyDetail() {
               </Dialog>
             )}
             {role === 'manager' && vacante.status === 'Activa' && (
-              <>
-                <Button variant="outline" size="sm" onClick={() => setAddCandidateOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" /> Agregar Candidato
-                </Button>
-                <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCloseModalOpen(true)}>
-                  <XCircle className="h-4 w-4 mr-2" /> Cerrar Vacante
-                </Button>
-              </>
+              <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCloseModalOpen(true)}>
+                <XCircle className="h-4 w-4 mr-2" /> Cerrar Vacante
+              </Button>
             )}
           </div>
         </div>
@@ -634,24 +630,41 @@ export default function VacancyDetail() {
               className="pl-9"
             />
           </div>
-          <Select value={etapaFilter} onValueChange={(v) => { setEtapaFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Etapa" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las etapas</SelectItem>
-              {ETAPAS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="w-[180px] justify-between text-xs font-normal">
+                {etapaFilter.size === 0 ? 'Todas las etapas' : `${etapaFilter.size} etapa${etapaFilter.size > 1 ? 's' : ''}`}
+                <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[220px] p-2 max-h-[300px] overflow-y-auto" align="start">
+              <Button variant="ghost" size="sm" className="w-full justify-start text-xs mb-1" onClick={() => { setEtapaFilter(new Set()); setPage(0); }}>
+                Todas las etapas
+              </Button>
+              {ETAPAS.map(e => (
+                <label key={e} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted cursor-pointer">
+                  <Checkbox
+                    checked={etapaFilter.has(e)}
+                    onCheckedChange={(checked) => {
+                      const next = new Set(etapaFilter);
+                      if (checked) next.add(e); else next.delete(e);
+                      setEtapaFilter(next);
+                      setPage(0);
+                    }}
+                  />
+                  <span className="text-xs">{e}</span>
+                </label>
+              ))}
               {role === 'manager' && (
-                <div className="border-t mt-1 pt-1 px-2 pb-1">
+                <div className="border-t mt-1 pt-1">
                   <div className="flex gap-1">
                     <Input
                       className="h-7 text-xs"
                       placeholder="Nueva etapa..."
                       value={newEtapaInput}
                       onChange={e => setNewEtapaInput(e.target.value)}
-                      onClick={e => e.stopPropagation()}
-                      onKeyDown={e => e.stopPropagation()}
                     />
-                    <Button size="sm" className="h-7 px-2 text-xs" disabled={!newEtapaInput.trim()} onClick={async (e) => {
-                      e.stopPropagation();
+                    <Button size="sm" className="h-7 px-2 text-xs" disabled={!newEtapaInput.trim()} onClick={async () => {
                       try {
                         await addEtapa(newEtapaInput.trim());
                         toast({ title: `Etapa "${newEtapaInput.trim()}" creada` });
@@ -663,8 +676,8 @@ export default function VacancyDetail() {
                   </div>
                 </div>
               )}
-            </SelectContent>
-          </Select>
+            </PopoverContent>
+          </Popover>
           <Select value={selectoraFilter} onValueChange={(v) => { setSelectoraFilter(v); setPage(0); }}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Selectora" /></SelectTrigger>
             <SelectContent>
@@ -719,7 +732,7 @@ export default function VacancyDetail() {
           </div>
         </div>
 
-        {/* Rubric status + Scoring buttons */}
+        {/* Rubric status + Scoring buttons + Add candidate */}
         <div className="flex items-center gap-3 flex-wrap">
           {/* Rubric status */}
           {activeRubric ? (
@@ -802,6 +815,16 @@ export default function VacancyDetail() {
                 </div>
                 <span className="text-sm text-muted-foreground">{scoringDone}/{scoringTotal} evaluados</span>
               </div>
+            </>
+          )}
+
+          {/* Add candidate - right aligned */}
+          {role === 'manager' && vacante.status === 'Activa' && (
+            <>
+              <div className="flex-1" />
+              <Button variant="outline" size="sm" onClick={() => setAddCandidateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Agregar Candidato
+              </Button>
             </>
           )}
         </div>
