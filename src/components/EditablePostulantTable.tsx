@@ -341,6 +341,11 @@ export default function EditablePostulantTable({
                         <TooltipContent>Modificado</TooltipContent>
                       </Tooltip>
                     )}
+                    {cvScore?.ai_model && score != null && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        {cvScore.ai_model.includes('gpt') ? 'GPT' : cvScore.ai_model.includes('gemini') ? 'Gemini' : cvScore.ai_model}
+                      </div>
+                    )}
                   </TableCell>
 
                   {/* Apply date */}

@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { KpiCard } from '@/components/KpiCard';
 import { formatDate } from '@/lib/formatters';
 import { Textarea } from '@/components/ui/textarea';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, TrendingDown, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle } from 'lucide-react';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle, ChevronDown, ChevronUp, List } from 'lucide-react';
+import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
 import { useToast } from '@/hooks/use-toast';
@@ -56,7 +57,10 @@ export default function VacancyDetail() {
   const [closeComments, setCloseComments] = useState('');
   const [closeConfirmed, setCloseConfirmed] = useState(false);
   const [closing, setClosing] = useState(false);
-  const PAGE_SIZE = 5;
+  const PAGE_SIZE = 25;
+  const [kpiCollapsed, setKpiCollapsed] = useState(false);
+  const [scoreMin, setScoreMin] = useState<string>('');
+  const [scoreMax, setScoreMax] = useState<string>('');
 
   // Lightweight refresh: only scores + postulantes (no profiles/vacantes/assignments reload)
   const refreshScoring = useCallback(async () => {
@@ -71,7 +75,34 @@ export default function VacancyDetail() {
 
   useEffect(() => {
     if (vacancy_id) loadData();
+    // Restore filters from sessionStorage
+    const saved = sessionStorage.getItem(`filters-${vacancy_id}`);
+    if (saved) {
+      try {
+        const f = JSON.parse(saved);
+        if (f.searchQuery) setSearchQuery(f.searchQuery);
+        if (f.etapaFilter) setEtapaFilter(f.etapaFilter);
+        if (f.selectoraFilter) setSelectoraFilter(f.selectoraFilter);
+        if (f.sourceFilter) setSourceFilter(f.sourceFilter);
+        if (f.dateFrom) setDateFrom(f.dateFrom);
+        if (f.dateTo) setDateTo(f.dateTo);
+        if (f.scoreMin) setScoreMin(f.scoreMin);
+        if (f.scoreMax) setScoreMax(f.scoreMax);
+        if (f.sortBy) setSortBy(f.sortBy);
+        if (f.sortDir) setSortDir(f.sortDir);
+        if (f.page != null) setPage(f.page);
+      } catch {}
+    }
   }, [vacancy_id]);
+
+  // Save filters to sessionStorage on change
+  useEffect(() => {
+    if (vacancy_id) {
+      sessionStorage.setItem(`filters-${vacancy_id}`, JSON.stringify({
+        searchQuery, etapaFilter, selectoraFilter, sourceFilter, dateFrom, dateTo, scoreMin, scoreMax, sortBy, sortDir, page
+      }));
+    }
+  }, [searchQuery, etapaFilter, selectoraFilter, sourceFilter, dateFrom, dateTo, scoreMin, scoreMax, sortBy, sortDir, page, vacancy_id]);
 
   // Supabase Realtime: auto-refresh when cv_scores or postulantes change
   useEffect(() => {
@@ -171,7 +202,11 @@ export default function VacancyDetail() {
   const scoredScores = scores.filter(s => s.score_final != null).map(s => s.score_final!);
   const avgScore = scoredScores.length ? Math.round(scoredScores.reduce((a, b) => a + b, 0) / scoredScores.length) : null;
   const maxScore = scoredScores.length ? Math.max(...scoredScores) : null;
-  const minScore = scoredScores.length ? Math.min(...scoredScores) : null;
+  const etapaBreakdown = postulantes.reduce<Record<string, number>>((acc, p) => {
+    const e = p.etapa || 'Sin etapa';
+    acc[e] = (acc[e] || 0) + 1;
+    return acc;
+  }, {});
 
   // Filtering
   // Compute unique sources for filter dropdown
@@ -184,6 +219,8 @@ export default function VacancyDetail() {
     if (sourceFilter !== 'all' && (p.source || '') !== sourceFilter) return false;
     if (dateFrom && p.apply_date && p.apply_date < dateFrom) return false;
     if (dateTo && p.apply_date && p.apply_date > dateTo) return false;
+    if (scoreMin) { const s = getScore(p.id_postulant); if (s == null || s < parseInt(scoreMin)) return false; }
+    if (scoreMax) { const s = getScore(p.id_postulant); if (s == null || s > parseInt(scoreMax)) return false; }
     if (kpiFilter === 'evaluados' && p.scoring_status !== 'scored') return false;
     if (kpiFilter === 'pendientes' && p.scoring_status !== 'pending') return false;
     if (kpiFilter === 'contactados' && !p.contacted) return false;
@@ -191,15 +228,15 @@ export default function VacancyDetail() {
       const s = getScore(p.id_postulant);
       if (s !== maxScore) return false;
     }
-    if (kpiFilter === 'score_min') {
-      const s = getScore(p.id_postulant);
-      if (s !== minScore) return false;
-    }
     return true;
   });
 
-  // Sorting
+  // Sorting - descartados always at bottom
+  const DISCARDED = ['Descartado', 'Rechazado por cliente', 'Rechazado por Selector/a'];
   filtered.sort((a, b) => {
+    const aDisc = DISCARDED.includes(a.etapa || '');
+    const bDisc = DISCARDED.includes(b.etapa || '');
+    if (aDisc !== bDisc) return aDisc ? 1 : -1;
     let va: any, vb: any;
     switch (sortBy) {
       case 'score': va = getScore(a.id_postulant) ?? -1; vb = getScore(b.id_postulant) ?? -1; break;
@@ -349,7 +386,7 @@ export default function VacancyDetail() {
       <div className="flex-shrink-0 space-y-6 pb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground" onClick={() => navigate('/')}>
+            <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground" onClick={() => { sessionStorage.removeItem(`filters-${vacancy_id}`); navigate('/'); }}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Volver
             </Button>
             <div className="flex items-center gap-3">
@@ -506,16 +543,37 @@ export default function VacancyDetail() {
           </DialogContent>
         </Dialog>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
-          <KpiCard title="Total" value={totalPost} icon={Users} onClick={() => { setKpiFilter(null); setPage(0); }} active={!kpiFilter} />
-          <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} onClick={() => toggleKpiFilter('evaluados')} active={kpiFilter === 'evaluados'} />
-          <KpiCard title="Pendientes" value={pendientes} icon={Clock} onClick={() => toggleKpiFilter('pendientes')} active={kpiFilter === 'pendientes'} />
-          <KpiCard title="Score Prom." value={avgScore ?? '—'} icon={TrendingUp} />
-          <KpiCard title="Score Máx." value={maxScore ?? '—'} icon={TrendingUp} onClick={() => maxScore != null ? toggleKpiFilter('score_max') : undefined} active={kpiFilter === 'score_max'} />
-          <KpiCard title="Score Mín." value={minScore ?? '—'} icon={TrendingDown} onClick={() => minScore != null ? toggleKpiFilter('score_min') : undefined} active={kpiFilter === 'score_min'} />
-          <KpiCard title="Contactados" value={contactados} icon={Phone} onClick={() => toggleKpiFilter('contactados')} active={kpiFilter === 'contactados'} />
+        {/* Stats - collapsible */}
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="text-muted-foreground p-0 h-6" onClick={() => setKpiCollapsed(!kpiCollapsed)}>
+            {kpiCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            <span className="text-xs ml-1">{kpiCollapsed ? 'Mostrar métricas' : 'Ocultar métricas'}</span>
+          </Button>
         </div>
+        {!kpiCollapsed && (
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+            <KpiCard title="Total" value={totalPost} icon={Users} onClick={() => { setKpiFilter(null); setPage(0); }} active={!kpiFilter} />
+            <KpiCard title="Evaluados" value={evaluados} icon={CheckCircle} onClick={() => toggleKpiFilter('evaluados')} active={kpiFilter === 'evaluados'} />
+            <KpiCard title="Pendientes" value={pendientes} icon={Clock} onClick={() => toggleKpiFilter('pendientes')} active={kpiFilter === 'pendientes'} />
+            <KpiCard title="Score Prom." value={avgScore ?? '—'} icon={TrendingUp} />
+            <KpiCard title="Score Máx." value={maxScore ?? '—'} icon={TrendingUp} onClick={() => maxScore != null ? toggleKpiFilter('score_max') : undefined} active={kpiFilter === 'score_max'} />
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <div><KpiCard title="Por Etapa" value={Object.keys(etapaBreakdown).length} icon={List} /></div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="p-3 space-y-1">
+                  {Object.entries(etapaBreakdown).sort((a, b) => b[1] - a[1]).map(([etapa, count]) => (
+                    <div key={etapa} className="flex items-center justify-between gap-4 text-xs">
+                      <span className="text-muted-foreground">{etapa}</span>
+                      <span className="font-medium">{count}</span>
+                    </div>
+                  ))}
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3">
@@ -568,6 +626,25 @@ export default function VacancyDetail() {
               placeholder="Hasta"
             />
           </div>
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              value={scoreMin}
+              onChange={(e) => { setScoreMin(e.target.value); setPage(0); }}
+              className="w-[70px] text-xs"
+              placeholder="Score ≥"
+              min={0} max={100}
+            />
+            <span className="text-muted-foreground text-xs">-</span>
+            <Input
+              type="number"
+              value={scoreMax}
+              onChange={(e) => { setScoreMax(e.target.value); setPage(0); }}
+              className="w-[70px] text-xs"
+              placeholder="Score ≤"
+              min={0} max={100}
+            />
+          </div>
         </div>
 
         {/* Rubric status + Scoring buttons */}
@@ -618,6 +695,27 @@ export default function VacancyDetail() {
             <Zap className="h-4 w-4 mr-2" />
             Evaluar con Gemini Flash
           </Button>
+
+          {/* Bulk etapa change */}
+          {selectedPostulants.size > 0 && (
+            <>
+              <div className="w-px h-6 bg-border" />
+              <Select onValueChange={async (v) => {
+                const ids = Array.from(selectedPostulants);
+                for (const id of ids) {
+                  await sb.from('postulantes').update({ etapa: v }).eq('id_postulant', id);
+                }
+                toast({ title: `Etapa cambiada a "${v}" para ${ids.length} postulante${ids.length > 1 ? 's' : ''}` });
+                setSelectedPostulants(new Set());
+                loadData();
+              }}>
+                <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue placeholder="Cambiar Etapa" /></SelectTrigger>
+                <SelectContent>
+                  {ETAPAS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </>
+          )}
 
           {/* Scoring progress bar */}
           {(scoringInProgress || (scoringTotal > 0 && scoringDone === scoringTotal)) && (
