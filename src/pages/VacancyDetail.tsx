@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { KpiCard } from '@/components/KpiCard';
 import { formatDate } from '@/lib/formatters';
 import { Textarea } from '@/components/ui/textarea';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle, ChevronDown, ChevronUp, List } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle, ChevronDown, ChevronUp, List, Plus } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
@@ -61,6 +62,8 @@ export default function VacancyDetail() {
   const { etapas: ETAPAS, addEtapa } = useEtapas();
   const [kpiCollapsed, setKpiCollapsed] = useState(false);
   const [newEtapaInput, setNewEtapaInput] = useState('');
+  const [addCandidateOpen, setAddCandidateOpen] = useState(false);
+  const [newCandidate, setNewCandidate] = useState({ full_name: '', email: '', phone: '', source: 'Manual' });
   const [scoreMin, setScoreMin] = useState<string>('');
   const [scoreMax, setScoreMax] = useState<string>('');
 
@@ -453,9 +456,14 @@ export default function VacancyDetail() {
               </Dialog>
             )}
             {role === 'manager' && vacante.status === 'Activa' && (
-              <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCloseModalOpen(true)}>
-                <XCircle className="h-4 w-4 mr-2" /> Cerrar Vacante
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={() => setAddCandidateOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Agregar Candidato
+                </Button>
+                <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCloseModalOpen(true)}>
+                  <XCircle className="h-4 w-4 mr-2" /> Cerrar Vacante
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -541,6 +549,44 @@ export default function VacancyDetail() {
               >
                 {closing ? 'Cerrando...' : 'Cerrar Vacante'}
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add candidate modal */}
+        <Dialog open={addCandidateOpen} onOpenChange={setAddCandidateOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Agregar Candidato</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label className="text-xs">Nombre completo *</Label><Input value={newCandidate.full_name} onChange={e => setNewCandidate(prev => ({ ...prev, full_name: e.target.value }))} /></div>
+              <div><Label className="text-xs">Email</Label><Input type="email" value={newCandidate.email} onChange={e => setNewCandidate(prev => ({ ...prev, email: e.target.value }))} /></div>
+              <div><Label className="text-xs">Teléfono</Label><Input value={newCandidate.phone} onChange={e => setNewCandidate(prev => ({ ...prev, phone: e.target.value }))} /></div>
+              <div><Label className="text-xs">Fuente</Label><Input value={newCandidate.source} onChange={e => setNewCandidate(prev => ({ ...prev, source: e.target.value }))} /></div>
+              <Button className="w-full" disabled={!newCandidate.full_name.trim()} onClick={async () => {
+                const id = `manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const { error } = await sb.from('postulantes').insert({
+                  id_postulant: id,
+                  vacancy_id: vacancy_id,
+                  vacancy_name: vacante?.vacancy_name,
+                  full_name: newCandidate.full_name.trim(),
+                  email: newCandidate.email || null,
+                  phone: newCandidate.phone || null,
+                  source: newCandidate.source || 'Manual',
+                  status: 'New',
+                  etapa: 'Nuevo',
+                  scoring_status: 'pending',
+                  apply_date: new Date().toISOString().split('T')[0],
+                  updated_at: new Date().toISOString(),
+                });
+                if (error) {
+                  toast({ title: 'Error', description: error.message, variant: 'destructive' });
+                } else {
+                  toast({ title: 'Candidato agregado' });
+                  setAddCandidateOpen(false);
+                  setNewCandidate({ full_name: '', email: '', phone: '', source: 'Manual' });
+                  loadData();
+                }
+              }}>Agregar</Button>
             </div>
           </DialogContent>
         </Dialog>

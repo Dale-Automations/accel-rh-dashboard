@@ -183,9 +183,21 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       });
       y -= 36;
 
+      // Helper: check space and create new page if needed
+      const ensureSpace = (needed: number) => {
+        if (y < MB + needed) {
+          drawFooter(page, helvetica, helveticaBold, lang);
+          page = pdfDoc.addPage([PW, PH]);
+          drawBorder(page);
+          y = PH - MT;
+          y = drawHeader(page, ctx, y);
+        }
+      };
+
       // Profile Summary
       const summaryText = postulante.screening_responses || postulante.comments_selectora || postulante.comments_manager;
       if (summaryText) {
+        ensureSpace(80);
         y = drawSectionTitle(page, helveticaBold, l.profileSummary, y);
         y = drawWrappedText(page, helvetica, summaryText, y, 11, TEXT_COLOR);
         y -= 24;
@@ -193,14 +205,17 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
       // Key Strengths
       if (score?.razones_top3 && score.razones_top3.length > 0) {
+        ensureSpace(80);
         y = drawSectionTitle(page, helveticaBold, l.keyStrengths, y);
         for (const r of score.razones_top3) {
+          ensureSpace(40);
           y = drawWrappedText(page, helvetica, `- ${r}`, y, 11, TEXT_COLOR);
           y -= 14;
         }
       }
 
-      // Logistics on page 1 since we have space
+      // Logistics
+      ensureSpace(80);
       y -= 8;
       y = drawSectionTitle(page, helveticaBold, l.logistics, y);
       y = drawWrappedText(page, helvetica, `${l.salaryExpectation}: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 11, TEXT_COLOR);

@@ -223,7 +223,7 @@ export default function EditablePostulantTable({
   return (
     <TooltipProvider>
     <div className="bg-card rounded-lg border shadow-sm overflow-x-auto scrollbar-visible">
-      <Table className="min-w-[1400px]">
+      <Table className="min-w-[1100px]">
         <TableHeader>
           <TableRow className="bg-muted/50">
             {selectedIds && onSelectionChange && (
