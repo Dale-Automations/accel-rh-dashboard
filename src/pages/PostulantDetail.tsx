@@ -25,7 +25,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { createNotifications } from '@/lib/notifications';
 import type { Postulante, CvScore, UserProfile, ScoreDetalle, Rubrica, RubricaData } from '@/types/database';
-import { ETAPAS, parseRubricJson } from '@/types/database';
+import { parseRubricJson } from '@/types/database';
+import { useEtapas } from '@/hooks/useEtapas';
 
 const sb = supabase as any;
 
@@ -35,6 +36,7 @@ export default function PostulantDetail() {
   const vacancyId = searchParams.get('vacancy_id') || '';
   const navigate = useNavigate();
   const { role, user, profile } = useAuth();
+  const { etapas: ETAPAS } = useEtapas();
   const { toast } = useToast();
   const [postulante, setPostulante] = useState<Postulante | null>(null);
   const [score, setScore] = useState<CvScore | null>(null);

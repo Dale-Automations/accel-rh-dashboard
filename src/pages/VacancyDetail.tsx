@@ -20,7 +20,7 @@ import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
 import { useToast } from '@/hooks/use-toast';
 import type { Vacante, Postulante, CvScore, UserProfile, VacancyAssignment, Rubrica } from '@/types/database';
-import { ETAPAS } from '@/types/database';
+import { useEtapas } from '@/hooks/useEtapas';
 
 const sb = supabase as any;
 
@@ -58,7 +58,9 @@ export default function VacancyDetail() {
   const [closeConfirmed, setCloseConfirmed] = useState(false);
   const [closing, setClosing] = useState(false);
   const PAGE_SIZE = 25;
+  const { etapas: ETAPAS, addEtapa } = useEtapas();
   const [kpiCollapsed, setKpiCollapsed] = useState(false);
+  const [newEtapaInput, setNewEtapaInput] = useState('');
   const [scoreMin, setScoreMin] = useState<string>('');
   const [scoreMax, setScoreMax] = useState<string>('');
 
@@ -591,6 +593,30 @@ export default function VacancyDetail() {
             <SelectContent>
               <SelectItem value="all">Todas las etapas</SelectItem>
               {ETAPAS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+              {role === 'manager' && (
+                <div className="border-t mt-1 pt-1 px-2 pb-1">
+                  <div className="flex gap-1">
+                    <Input
+                      className="h-7 text-xs"
+                      placeholder="Nueva etapa..."
+                      value={newEtapaInput}
+                      onChange={e => setNewEtapaInput(e.target.value)}
+                      onClick={e => e.stopPropagation()}
+                      onKeyDown={e => e.stopPropagation()}
+                    />
+                    <Button size="sm" className="h-7 px-2 text-xs" disabled={!newEtapaInput.trim()} onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await addEtapa(newEtapaInput.trim());
+                        toast({ title: `Etapa "${newEtapaInput.trim()}" creada` });
+                        setNewEtapaInput('');
+                      } catch (err: any) {
+                        toast({ title: 'Error', description: err.message, variant: 'destructive' });
+                      }
+                    }}>+</Button>
+                  </div>
+                </div>
+              )}
             </SelectContent>
           </Select>
           <Select value={selectoraFilter} onValueChange={(v) => { setSelectoraFilter(v); setPage(0); }}>

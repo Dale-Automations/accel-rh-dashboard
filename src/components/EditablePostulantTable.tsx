@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown, Loader2, FileX } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import type { Postulante, CvScore, UserProfile, UserRole } from '@/types/database';
-import { ETAPAS } from '@/types/database';
+import { useEtapas } from '@/hooks/useEtapas';
 
 const sb = supabase as any;
 
@@ -127,6 +127,7 @@ export default function EditablePostulantTable({
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, profile: authProfile } = useAuth();
+  const { etapas: ETAPAS } = useEtapas();
 
   const getScore = (id: string) => {
     // Pick the most recent score if multiple exist
