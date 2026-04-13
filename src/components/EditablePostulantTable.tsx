@@ -223,7 +223,7 @@ export default function EditablePostulantTable({
   return (
     <TooltipProvider>
     <div className="bg-card rounded-lg border shadow-sm overflow-x-auto scrollbar-visible">
-      <Table className="min-w-[1100px]">
+      <Table className="min-w-[1100px] [&_td]:py-1 [&_th]:py-1.5 text-sm">
         <TableHeader>
           <TableRow className="bg-muted/50">
             {selectedIds && onSelectionChange && (
@@ -268,7 +268,7 @@ export default function EditablePostulantTable({
           ) : (
             postulantes.map((p, idx) => {
               const score = getScore(p.id_postulant);
-              const cvScore = scores.find(s => s.postulant_id === p.id_postulant);
+              const cvScore = scores.filter(s => s.postulant_id === p.id_postulant).sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))[0];
               const editable = canEdit(p);
 
               return (
