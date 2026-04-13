@@ -831,7 +831,7 @@ export default function VacancyDetail() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <EditablePostulantTable
           postulantes={paginated}
           scores={scores}

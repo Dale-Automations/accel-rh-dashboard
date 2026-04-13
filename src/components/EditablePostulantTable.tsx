@@ -222,13 +222,10 @@ export default function EditablePostulantTable({
 
   return (
     <TooltipProvider>
-    <div
-      className="bg-card rounded-lg border shadow-sm scrollbar-visible"
-      style={{ overflow: 'auto', maxHeight: 'calc(100vh - 380px)' }}
-    >
+    <div className="bg-card rounded-lg border shadow-sm overflow-x-auto scrollbar-visible">
       <Table className="min-w-[1100px] [&_td]:py-1 [&_th]:py-1.5 text-sm">
-        <TableHeader style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-          <TableRow style={{ background: 'hsl(var(--muted))' }}>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
             {selectedIds && onSelectionChange && (
               <TableHead className="w-10 text-center">
                 <Checkbox
