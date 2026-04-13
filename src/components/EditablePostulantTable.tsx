@@ -362,7 +362,7 @@ export default function EditablePostulantTable({
                       onSave={v => saveField(p.id_postulant, 'etapa', v)}
                       disabled={!editable}
                       renderValue={v => (
-                        <Badge variant="outline" className={`text-xs ${getEtapaColor(v)}`}>
+                        <Badge variant="outline" className={`text-[10px] max-w-[100px] truncate ${getEtapaColor(v)}`} title={v}>
                           {v || '—'}
                         </Badge>
                       )}

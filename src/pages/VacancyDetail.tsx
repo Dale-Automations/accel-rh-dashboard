@@ -828,6 +828,22 @@ export default function VacancyDetail() {
             </>
           )}
 
+          {/* Stuck scoring indicator */}
+          {postulantes.some(p => p.scoring_status === 'scoring') && !scoringInProgress && (
+            <>
+              <div className="w-px h-6 bg-border" />
+              <span className="text-xs text-amber-600">{postulantes.filter(p => p.scoring_status === 'scoring').length} trabados</span>
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={async () => {
+                const stuck = postulantes.filter(p => p.scoring_status === 'scoring');
+                for (const p of stuck) {
+                  await sb.from('postulantes').update({ scoring_status: 'pending' }).eq('id_postulant', p.id_postulant);
+                }
+                toast({ title: `${stuck.length} postulante${stuck.length > 1 ? 's' : ''} liberados` });
+                loadData();
+              }}>Liberar</Button>
+            </>
+          )}
+
           {/* Add candidate - right aligned */}
           {role === 'manager' && vacante.status === 'Activa' && (
             <>
