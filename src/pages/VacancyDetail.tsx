@@ -16,7 +16,7 @@ import { formatDate } from '@/lib/formatters';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle, ChevronDown, ChevronUp, List, Plus } from 'lucide-react';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle, ChevronDown, ChevronUp, List, Plus, Maximize2, Minimize2 } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
@@ -61,7 +61,8 @@ export default function VacancyDetail() {
   const [closing, setClosing] = useState(false);
   const PAGE_SIZE = 25;
   const { etapas: ETAPAS, addEtapa } = useEtapas();
-  const [kpiCollapsed, setKpiCollapsed] = useState(false);
+  const [kpiCollapsed, setKpiCollapsed] = useState(true);
+  const [fullScreen, setFullScreen] = useState(false);
   const [newEtapaInput, setNewEtapaInput] = useState('');
   const [addCandidateOpen, setAddCandidateOpen] = useState(false);
   const [newCandidateId, setNewCandidateId] = useState('');
@@ -389,8 +390,24 @@ export default function VacancyDetail() {
 
   return (
     <div className="flex flex-col absolute inset-0 p-4 md:p-6 overflow-hidden">
+      {/* Fullscreen toggle bar */}
+      {fullScreen && (
+        <div className="flex-shrink-0 flex items-center justify-between pb-2">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { sessionStorage.removeItem(`filters-${vacancy_id}`); navigate('/'); }}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Volver
+            </Button>
+            <span className="font-semibold text-sm">{vacante.vacancy_name}</span>
+            <span className="text-xs text-muted-foreground">{filtered.length} postulantes</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setFullScreen(false)}>
+            <Minimize2 className="h-4 w-4 mr-1" /> Salir
+          </Button>
+        </div>
+      )}
+
       {/* Header - fixed */}
-      <div className="flex-shrink-0 space-y-6 pb-4">
+      {!fullScreen && <div className="flex-shrink-0 space-y-4 pb-2">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground" onClick={() => { sessionStorage.removeItem(`filters-${vacancy_id}`); navigate('/'); }}>
@@ -853,8 +870,13 @@ export default function VacancyDetail() {
               </Button>
             </>
           )}
+
+          {/* Fullscreen toggle */}
+          <Button variant="outline" size="sm" onClick={() => setFullScreen(true)}>
+            <Maximize2 className="h-4 w-4 mr-1" /> Expandir
+          </Button>
         </div>
-      </div>
+      </div>}
 
       {/* Table */}
       <div className="flex-1 min-h-0 overflow-y-auto">
