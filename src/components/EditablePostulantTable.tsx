@@ -10,7 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { getScoreColor, getEtapaColor, formatCurrency, formatDate } from '@/lib/formatters';
 import { createNotifications } from '@/lib/notifications';
 import { useAuth } from '@/contexts/AuthContext';
-import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown, Loader2, FileX } from 'lucide-react';
+import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown, Loader2, FileX, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import type { Postulante, CvScore, UserProfile, UserRole } from '@/types/database';
 import { useEtapas } from '@/hooks/useEtapas';
@@ -258,6 +259,7 @@ export default function EditablePostulantTable({
             {role === 'manager' && <TableHead className="min-w-[180px]">Coment. Manager</TableHead>}
             {!isCliente && <TableHead className="min-w-[160px]">Screening</TableHead>}
             {isCliente && <TableHead>Fortalezas</TableHead>}
+            {role === 'manager' && <TableHead className="w-10"></TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -476,6 +478,21 @@ export default function EditablePostulantTable({
                   {isCliente && (
                     <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                       {cvScore?.razones_top3?.[0] || '—'}
+                    </TableCell>
+                  )}
+                  {/* Delete button - manager only */}
+                  {role === 'manager' && (
+                    <TableCell className="text-center">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-red-500" onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`¿Eliminar a ${p.full_name || p.id_postulant}?`)) return;
+                        await sb.from('cv_scores').delete().eq('postulant_id', p.id_postulant);
+                        await sb.from('postulantes').delete().eq('id_postulant', p.id_postulant);
+                        toast({ title: 'Postulante eliminado' });
+                        onDataChange();
+                      }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </TableCell>
                   )}
                 </TableRow>

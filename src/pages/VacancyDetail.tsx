@@ -405,7 +405,7 @@ export default function VacancyDetail() {
                 {vacante.status}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">Creada: {formatDate(vacante.created_at)}</p>
+            <p className="text-sm text-muted-foreground mt-1">Creada: {formatDate(vacante.created_at)} · <span className="font-mono text-xs">{vacancy_id}</span></p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportXlsx}>
@@ -882,12 +882,24 @@ export default function VacancyDetail() {
       {totalPages > 1 && (
         <div className="flex-shrink-0 flex items-center justify-between py-3 border-t">
           <span className="text-sm text-muted-foreground">{filtered.length} postulantes</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Anterior</Button>
-            <span className="flex items-center text-sm text-muted-foreground px-2">
-              {page + 1} / {totalPages}
-            </span>
-            <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Siguiente</Button>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(0)}>«</Button>
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹</Button>
+            {Array.from({ length: totalPages }, (_, i) => i).filter(i => i === 0 || i === totalPages - 1 || Math.abs(i - page) <= 2).map((i, idx, arr) => (
+              <span key={i} className="contents">
+                {idx > 0 && arr[idx - 1] !== i - 1 && <span className="text-xs text-muted-foreground px-1">...</span>}
+                <Button
+                  variant={i === page ? 'default' : 'outline'}
+                  size="sm"
+                  className="w-8 h-8 p-0 text-xs"
+                  onClick={() => setPage(i)}
+                >
+                  {i + 1}
+                </Button>
+              </span>
+            ))}
+            <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>›</Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(totalPages - 1)}>»</Button>
           </div>
         </div>
       )}
