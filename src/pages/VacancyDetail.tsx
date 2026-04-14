@@ -845,7 +845,7 @@ export default function VacancyDetail() {
           )}
 
           {/* Add candidate - right aligned */}
-          {role === 'manager' && vacante.status === 'Activa' && (
+          {(role === 'manager' || role === 'selectora') && vacante.status === 'Activa' && (
             <>
               <div className="flex-1" />
               <Button variant="outline" size="sm" onClick={() => { setNewCandidateId(`manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`); setAddCandidateOpen(true); }}>
