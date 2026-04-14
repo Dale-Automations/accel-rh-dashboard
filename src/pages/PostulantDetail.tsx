@@ -64,6 +64,10 @@ export default function PostulantDetail() {
   const [scoringLoading, setScoringLoading] = useState(false);
   const [commentsCliente, setCommentsCliente] = useState('');
   const [savingCliente, setSavingCliente] = useState(false);
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
   const [hoveredRadarLabel, setHoveredRadarLabel] = useState<{
     text: string;
     x: number;
@@ -115,6 +119,9 @@ export default function PostulantDetail() {
       setCommentsManager(post.comments_manager || '');
       setSignoffReason(post.signoff_reason || '');
       setCommentsCliente(post.comments_cliente || '');
+      setEditName(post.full_name || '');
+      setEditEmail(post.email || '');
+      setEditPhone(post.phone || '');
       setSelectoraId(post.selectora_id || '');
       setInterviewDate(post.interview_date ? new Date(post.interview_date) : undefined);
     }
@@ -252,7 +259,11 @@ export default function PostulantDetail() {
           {!isCliente ? (
             <>
                <div className="flex items-center gap-2">
-                 <h1 className="text-2xl font-bold text-foreground">{postulante.full_name || '—'}</h1>
+                 {editingInfo ? (
+                   <Input className="text-xl font-bold h-9 w-64" value={editName} onChange={e => setEditName(e.target.value)} />
+                 ) : (
+                   <h1 className="text-2xl font-bold text-foreground">{postulante.full_name || '—'}</h1>
+                 )}
                  {cvUrl && (
                    <a href={cvUrl} target="_blank" rel="noopener noreferrer" title="Ver CV">
                      <Download className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
@@ -272,19 +283,42 @@ export default function PostulantDetail() {
         {/* Contact Info - Manager/Selector/a only */}
         {!isCliente && (
           <div className="bg-card rounded-lg border p-4 space-y-3">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Información de contacto</h3>
-            <div className="flex flex-col gap-2">
-              {postulante.email && (
-                <a href={`mailto:${postulante.email}`} className="flex items-center gap-2 text-sm text-accent hover:underline break-all">
-                  <Mail className="h-4 w-4 shrink-0" /> {postulante.email}
-                </a>
-              )}
-              {postulante.phone && (
-                <a href={`tel:${postulante.phone}`} className="flex items-center gap-2 text-sm text-accent hover:underline">
-                  <Phone className="h-4 w-4 shrink-0" /> {postulante.phone}
-                </a>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Información de contacto</h3>
+              {canEdit && (
+                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => {
+                  if (editingInfo) {
+                    // Save
+                    sb.from('postulantes').update({ full_name: editName, email: editEmail || null, phone: editPhone || null }).eq('id_postulant', id_postulant).then(({ error }: any) => {
+                      if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); }
+                      else { toast({ title: 'Datos actualizados' }); loadData(); }
+                    });
+                  }
+                  setEditingInfo(!editingInfo);
+                }}>
+                  {editingInfo ? 'Guardar' : 'Editar'}
+                </Button>
               )}
             </div>
+            {editingInfo ? (
+              <div className="space-y-2">
+                <div><Label className="text-xs">Email</Label><Input value={editEmail} onChange={e => setEditEmail(e.target.value)} type="email" /></div>
+                <div><Label className="text-xs">Teléfono</Label><Input value={editPhone} onChange={e => setEditPhone(e.target.value)} /></div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {postulante.email && (
+                  <a href={`mailto:${postulante.email}`} className="flex items-center gap-2 text-sm text-accent hover:underline break-all">
+                    <Mail className="h-4 w-4 shrink-0" /> {postulante.email}
+                  </a>
+                )}
+                {postulante.phone && (
+                  <a href={`tel:${postulante.phone}`} className="flex items-center gap-2 text-sm text-accent hover:underline">
+                    <Phone className="h-4 w-4 shrink-0" /> {postulante.phone}
+                  </a>
+                )}
+              </div>
+            )}
             <div className="flex gap-3 flex-wrap">
               <Badge variant="outline" className="text-xs">{postulante.source || '—'}</Badge>
               <span className="text-sm text-muted-foreground">Fecha aplicación: {formatDate(postulante.apply_date)}</span>
