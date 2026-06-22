@@ -5,6 +5,7 @@ import { Assistant } from '@/components/dashboard/Assistant';
 import { HelpModal } from '@/components/dashboard/HelpModal';
 import HuntingRequestsPanel from '@/components/dashboard/HuntingRequestsPanel';
 import { PendingInformeChangesPanel } from '@/components/dashboard/PendingInformeChangesPanel';
+import { VacanciesMissingClientPanel } from '@/components/dashboard/VacanciesMissingClientPanel';
 import { useState } from 'react';
 
 export default function Home() {
@@ -29,6 +30,9 @@ export default function Home() {
 
       {/* Informes con cambios pendientes (selectora-only, se oculta si no hay) */}
       {role === 'selectora' && <PendingInformeChangesPanel userId={profile?.id} />}
+
+      {/* Vacantes con candidatos esperando pero sin cliente asignado (manager-only) */}
+      <VacanciesMissingClientPanel role={role} />
 
       {/* Solicitudes de Headhunting pendientes (manager-only, se oculta si no hay) */}
       <HuntingRequestsPanel role={role} />
