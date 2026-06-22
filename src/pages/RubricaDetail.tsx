@@ -37,8 +37,9 @@ interface ChatMessage {
 export default function RubricaDetail() {
   const { vacancy_id } = useParams<{ vacancy_id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, role, profile } = useAuth();
   const { toast } = useToast();
+  const isCliente = role === 'cliente';
 
   const [vacancy, setVacancy] = useState<Vacante | null>(null);
   const [rubricas, setRubricas] = useState<Rubrica[]>([]);
@@ -48,6 +49,49 @@ export default function RubricaDetail() {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [previewData, setPreviewData] = useState<RubricaData | null>(null);
+
+  // Suggestions flow para rol cliente
+  const [suggestionText, setSuggestionText] = useState('');
+  const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
+
+  const submitSuggestion = async () => {
+    const text = suggestionText.trim();
+    if (!text || !vacancy_id || !user) return;
+    setSubmittingSuggestion(true);
+    try {
+      const activeRubric = rubricas.find(r => r.is_active);
+      const { error } = await sb.from('rubrica_suggestions').insert({
+        rubrica_id: activeRubric?.id || null,
+        vacancy_id,
+        vacancy_name: vacancy?.vacancy_name || null,
+        cliente_id: user.id,
+        cliente_name: profile?.full_name || user.email || null,
+        cliente_email: user.email || null,
+        suggestion: text,
+      });
+      if (error) throw error;
+
+      // Disparar email a managers (fire-and-forget, si falla no bloquea)
+      fetch('https://accelrh.daleautomations.com/webhook/notify-manager-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'rubric_suggestion',
+          vacancy_id,
+          vacancy_name: vacancy?.vacancy_name,
+          cliente_name: profile?.full_name || user.email,
+          comment: text,
+        }),
+      }).catch(() => { /* ignore */ });
+
+      toast({ title: 'Sugerencia enviada', description: 'El equipo de AccelRH la revisará pronto.' });
+      setSuggestionText('');
+    } catch (e: any) {
+      toast({ title: 'Error al enviar', description: e?.message || 'Intenta nuevamente.', variant: 'destructive' });
+    } finally {
+      setSubmittingSuggestion(false);
+    }
+  };
 
   const [viewRubric, setViewRubric] = useState<Rubrica | null>(null);
   const [editRubric, setEditRubric] = useState<Rubrica | null>(null);
@@ -60,6 +104,21 @@ export default function RubricaDetail() {
     if (!vacancy_id) return;
     setLoading(true);
     try {
+      // Verificar acceso del cliente: solo vacantes asignadas
+      if (role === 'cliente' && user?.id) {
+        const { data: assign } = await sb
+          .from('vacancy_assignments')
+          .select('vacancy_id')
+          .eq('user_id', user.id)
+          .eq('role', 'cliente')
+          .eq('vacancy_id', vacancy_id)
+          .maybeSingle();
+        if (!assign) {
+          navigate('/rubricas', { replace: true });
+          return;
+        }
+      }
+
       const [vacs, rubs] = await Promise.all([
         fetchAll<Vacante>('vacantes'),
         fetchAll<Rubrica>('rubricas', [['vacancy_id', vacancy_id]]),
@@ -72,7 +131,7 @@ export default function RubricaDetail() {
       console.error('Error loading rubrica detail:', err);
     }
     setLoading(false);
-  }, [vacancy_id]);
+  }, [vacancy_id, role, user?.id, navigate]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -317,9 +376,11 @@ export default function RubricaDetail() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-lg">Versiones</CardTitle>
-              <Button size="sm" onClick={() => setShowManualEditor(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Nueva versión
-              </Button>
+              {!isCliente && (
+                <Button size="sm" onClick={() => setShowManualEditor(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Nueva versión
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -359,42 +420,46 @@ export default function RubricaDetail() {
                             <Button variant="ghost" size="icon" title="Ver" onClick={() => setViewRubric(r)}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {r.is_active ? (
-                              <Button variant="ghost" size="icon" title="Desactivar" onClick={() => deactivateVersion(r)} disabled={saving}>
-                                <PowerOff className="h-4 w-4 text-amber-600" />
-                              </Button>
-                            ) : (
+                            {!isCliente && (
                               <>
-                                <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditRubric(r)}>
-                                  <Pencil className="h-4 w-4" />
+                                {r.is_active ? (
+                                  <Button variant="ghost" size="icon" title="Desactivar" onClick={() => deactivateVersion(r)} disabled={saving}>
+                                    <PowerOff className="h-4 w-4 text-amber-600" />
+                                  </Button>
+                                ) : (
+                                  <>
+                                    <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditRubric(r)}>
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" title="Activar" onClick={() => activateVersion(r)} disabled={saving}>
+                                      <Power className="h-4 w-4 text-green-600" />
+                                    </Button>
+                                  </>
+                                )}
+                                <Button variant="ghost" size="icon" title="Duplicar" onClick={() => duplicateVersion(r)} disabled={saving}>
+                                  <Copy className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" title="Activar" onClick={() => activateVersion(r)} disabled={saving}>
-                                  <Power className="h-4 w-4 text-green-600" />
+                                <Button variant="ghost" size="icon" title="Copiar a otra vacante" onClick={() => setCopyRubric(r)} disabled={saving}>
+                                  <Share2 className="h-4 w-4" />
                                 </Button>
+                                <Button variant="ghost" size="icon" title="Descargar JSON" onClick={() => {
+                                  const data = parseRubricJson(r.rubric_json);
+                                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `rubrica_v${r.version_number}_${vacancy?.vacancy_name || vacancy_id}.json`;
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }}>
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                                {!r.is_active && (
+                                  <Button variant="ghost" size="icon" title="Eliminar" onClick={() => deleteVersion(r)} disabled={saving}>
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                )}
                               </>
-                            )}
-                            <Button variant="ghost" size="icon" title="Duplicar" onClick={() => duplicateVersion(r)} disabled={saving}>
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" title="Copiar a otra vacante" onClick={() => setCopyRubric(r)} disabled={saving}>
-                              <Share2 className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" title="Descargar JSON" onClick={() => {
-                              const data = parseRubricJson(r.rubric_json);
-                              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `rubrica_v${r.version_number}_${vacancy?.vacancy_name || vacancy_id}.json`;
-                              a.click();
-                              URL.revokeObjectURL(url);
-                            }}>
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            {!r.is_active && (
-                              <Button variant="ghost" size="icon" title="Eliminar" onClick={() => deleteVersion(r)} disabled={saving}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
                             )}
                           </div>
                         </TableCell>
@@ -407,7 +472,7 @@ export default function RubricaDetail() {
           </Card>
 
           {/* Manual editor inline */}
-          {showManualEditor && (
+          {!isCliente && showManualEditor && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Nueva versión manual</CardTitle>
@@ -423,7 +488,7 @@ export default function RubricaDetail() {
           )}
 
           {/* Edit existing inline */}
-          {editRubric && (() => {
+          {!isCliente && editRubric && (() => {
             const parsed = parseRubricJson(editRubric.rubric_json);
             return (
               <Card>
@@ -444,7 +509,7 @@ export default function RubricaDetail() {
           })()}
 
           {/* Preview from chat */}
-          {previewData && (() => {
+          {!isCliente && previewData && (() => {
             const total = previewData.criterios.reduce((s, c) => s + c.puntaje_max, 0);
             const sumOk = total === 100;
             return (
@@ -497,66 +562,103 @@ export default function RubricaDetail() {
           })()}
         </div>
 
-        {/* Right: Chat */}
+        {/* Right: Chat (Selectora/Manager) o Sugerencias (Cliente) */}
         <div className="lg:col-span-2">
-          <Card className="h-full flex flex-col">
-            <CardHeader className="pb-3 border-b">
-              <div className="flex items-center gap-2">
-                <Bot className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Asistente de Rúbricas</CardTitle>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Describí el puesto o pedí ajustes a la rúbrica actual.
-              </p>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col p-0">
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[300px] max-h-[500px]">
-                {chatMessages.length === 0 && (
-                  <div className="text-center text-muted-foreground text-sm py-8">
-                    Enviá un mensaje para empezar. Por ejemplo:<br />
-                    <em>"Generame una rúbrica para un puesto de vendedor senior"</em>
-                  </div>
-                )}
-                {chatMessages.map((m, i) => (
-                  <div
-                    key={i}
-                    className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                        m.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-foreground'
-                      }`}
-                    >
-                      {m.content}
-                    </div>
-                  </div>
-                ))}
-                {chatLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-3 py-2 flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Pensando…
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t p-3 flex gap-2">
+          {isCliente ? (
+            <Card className="h-full flex flex-col">
+              <CardHeader className="pb-3 border-b">
+                <div className="flex items-center gap-2">
+                  <Send className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Sugerir cambios</CardTitle>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Compartí con el equipo de AccelRH qué cambios proponés para esta rúbrica. Un Manager la revisará y te responderá.
+                </p>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col gap-3 pt-4">
                 <Textarea
-                  placeholder="Describí el puesto o pedí cambios..."
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
-                  className="min-h-[44px] max-h-[120px] resize-none"
-                  rows={1}
+                  placeholder="Ej: agregar criterio de experiencia con Kubernetes, subir el peso de inglés, etc."
+                  value={suggestionText}
+                  onChange={e => setSuggestionText(e.target.value)}
+                  className="min-h-[200px]"
+                  disabled={submittingSuggestion}
                 />
-                <Button size="icon" onClick={sendChat} disabled={chatLoading || !chatInput.trim()}>
-                  <Send className="h-4 w-4" />
+                <Button
+                  onClick={submitSuggestion}
+                  disabled={submittingSuggestion || !suggestionText.trim()}
+                  className="w-full"
+                >
+                  {submittingSuggestion ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                  ) : (
+                    <><Send className="h-4 w-4 mr-2" /> Enviar sugerencia al equipo</>
+                  )}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Se notificará por email a los Managers de AccelRH.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="h-full flex flex-col">
+              <CardHeader className="pb-3 border-b">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Asistente de Rúbricas</CardTitle>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Describí el puesto o pedí ajustes a la rúbrica actual.
+                </p>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col p-0">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[300px] max-h-[500px]">
+                  {chatMessages.length === 0 && (
+                    <div className="text-center text-muted-foreground text-sm py-8">
+                      Enviá un mensaje para empezar. Por ejemplo:<br />
+                      <em>"Generame una rúbrica para un puesto de vendedor senior"</em>
+                    </div>
+                  )}
+                  {chatMessages.map((m, i) => (
+                    <div
+                      key={i}
+                      className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                          m.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-foreground'
+                        }`}
+                      >
+                        {m.content}
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-muted rounded-lg px-3 py-2 flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Pensando…
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t p-3 flex gap-2">
+                  <Textarea
+                    placeholder="Describí el puesto o pedí cambios..."
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
+                    className="min-h-[44px] max-h-[120px] resize-none"
+                    rows={1}
+                  />
+                  <Button size="icon" onClick={sendChat} disabled={chatLoading || !chatInput.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

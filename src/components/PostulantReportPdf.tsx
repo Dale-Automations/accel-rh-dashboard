@@ -5,6 +5,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/formatters';
 import logoSrc from '@/assets/logo.png';
 import html2canvas from 'html2canvas';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Postulante, CvScore, ScoreDetalle } from '@/types/database';
 
 interface Props {
@@ -12,6 +13,9 @@ interface Props {
   score: CvScore | null;
   vacancyName?: string;
   radarChartRef?: RefObject<HTMLDivElement | null>;
+  // Toggle del modo "imprimiendo" — cuando es true, el padre re-renderiza
+  // los inputs editables como texto plano para que html2canvas los capture.
+  onPrintingChange?: (printing: boolean) => void;
 }
 
 // A4 in points (72 dpi)
@@ -27,6 +31,25 @@ const BORDER_COLOR = rgb(0.176, 0.208, 0.38); // #2d3561
 const TEXT_COLOR = rgb(0.1, 0.1, 0.1);
 const GRAY = rgb(0.4, 0.4, 0.4);
 const LIGHT_GRAY = rgb(0.6, 0.6, 0.6);
+
+// Convierte HTML del informe (TipTap) a texto plano preservando saltos de línea
+// y bullets básicos. Usado en el PDF que no soporta HTML rendering.
+function stripHtmlToPlain(html: string | null | undefined): string {
+  if (!html) return '';
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|li|h[1-6]|div|blockquote)>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 const ACCENT = rgb(0.357, 0.31, 0.71); // #5b4fb5
 type Lang = 'es' | 'en';
 
@@ -44,14 +67,14 @@ const t = {
     underReview: 'En Revision',
     notRecommended: 'No Recomendado',
     profileSummary: 'Resumen del Perfil Profesional',
-    keyStrengths: 'Fortalezas Clave (Valor para el Cliente)',
+    keyStrengths: 'Fortalezas Clave',
     logistics: 'Logistica y Expectativas Salariales',
     salaryExpectation: 'Expectativa Salarial',
     availability: 'Disponibilidad',
     stage: 'Etapa',
     scoringBreakdown: 'Desglose de Evaluacion',
     interviewerNotes: 'Notas para el Entrevistador (Puntos sugeridos para validar en su entrevista interna)',
-    risks: 'Riesgos a Considerar',
+    risks: 'Consideraciones',
     sincerely: 'Atentamente,',
     confidential: 'CONFIDENCIAL - Solo para uso interno del cliente',
     contact: 'AccelRH | contacto@accelrh.com',
@@ -70,14 +93,14 @@ const t = {
     underReview: 'Under Review',
     notRecommended: 'Not Recommended',
     profileSummary: 'Professional Profile Summary',
-    keyStrengths: 'Key Strengths (Value for the Client)',
+    keyStrengths: 'Key Strengths',
     logistics: 'Logistics & Salary Expectations',
     salaryExpectation: 'Salary Expectation',
     availability: 'Availability',
     stage: 'Stage',
     scoringBreakdown: 'Scoring Breakdown',
     interviewerNotes: 'Interviewer Notes (Suggested points to validate in your internal interview)',
-    risks: 'Risks to Consider',
+    risks: 'Considerations',
     sincerely: 'Sincerely,',
     confidential: 'CONFIDENTIAL - For client internal use only',
     contact: 'AccelRH | contacto@accelrh.com',
@@ -85,21 +108,33 @@ const t = {
   },
 };
 
-export default function PostulantReportPdf({ postulante, score, vacancyName, radarChartRef }: Props) {
+export default function PostulantReportPdf({ postulante, score, vacancyName, radarChartRef, onPrintingChange }: Props) {
   const [generating, setGenerating] = useState(false);
+  const { role } = useAuth();
+  const isCliente = role === 'cliente';
+  // Para cliente: nunca exponer nombre real, solo ID (anonimizado)
+  const displayName = isCliente ? postulante.id_postulant : (postulante.full_name || '—');
 
   const detalles = (score?.detalles || []) as ScoreDetalle[];
 
   const captureEvaluationSection = useCallback(async (): Promise<Uint8Array | null> => {
     if (!radarChartRef?.current) return null;
     try {
+      // Avisar al padre que los inputs editables deben renderearse como texto
+      // (sino html2canvas los captura como cuadritos vacíos).
+      onPrintingChange?.(true);
+      // Esperar 2 frames para que React haya re-renderizado.
+      await new Promise<void>(resolve =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      );
+
       const canvas = await html2canvas(radarChartRef.current, {
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
         logging: false,
       });
-      return new Promise((resolve) => {
+      const png = await new Promise<Uint8Array | null>((resolve) => {
         canvas.toBlob((blob) => {
           if (blob) {
             blob.arrayBuffer().then(buf => resolve(new Uint8Array(buf)));
@@ -108,10 +143,14 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
           }
         }, 'image/png');
       });
+      return png;
     } catch {
       return null;
+    } finally {
+      // Restaurar inputs editables siempre, incluso si falló la captura.
+      onPrintingChange?.(false);
     }
-  }, [radarChartRef]);
+  }, [radarChartRef, onPrintingChange]);
 
   const generatePdf = useCallback(async (lang: Lang = 'es') => {
     const l = t[lang];
@@ -162,8 +201,8 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       const metaFields = [
         [l.customer, vacancyName || postulante.vacancy_name || '—'],
         [l.role, postulante.vacancy_name || '—'],
-        [l.date, formatDate(postulante.apply_date)],
-        [l.candidateName, postulante.full_name || '—'],
+        [l.date, formatDate(postulante.assigned_to_cliente_at || postulante.apply_date)],
+        [l.candidateName, displayName],
         [l.recruiter, 'ACCELRH'],
       ];
       for (const [label, value] of metaFields) {
@@ -194,35 +233,48 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
         }
       };
 
-      // Profile Summary
-      const summaryText = postulante.screening_responses || postulante.comments_selectora || postulante.comments_manager;
+      // Paginated text drawer — ensures each line fits, breaks page mid-text if needed
+      const drawWrappedPaginated = (text: string, size: number, font: PDFFont, color: ReturnType<typeof rgb>) => {
+        const lines = wrapText(font, text, size, CW);
+        for (const line of lines) {
+          ensureSpace(size + 4);
+          page.drawText(line, { x: ML, y, size, font, color });
+          y -= size + 4;
+        }
+      };
+
+      // Paginated section title — breaks page if title itself wraps past bottom
+      const drawSectionPaginated = (title: string) => {
+        ensureSpace(21);
+        y = drawSectionTitle(page, helveticaBold, title, y);
+      };
+
+      // Profile Summary: ÚNICAMENTE el informe escrito por la selectora
+      // (no caer a comments_selectora ni screening_responses — esos son datos internos).
+      const summaryText = stripHtmlToPlain(postulante.informe_selectora);
       if (summaryText) {
-        ensureSpace(80);
-        y = drawSectionTitle(page, helveticaBold, l.profileSummary, y);
-        y = drawWrappedText(page, helvetica, summaryText, y, 11, TEXT_COLOR);
+        drawSectionPaginated(l.profileSummary);
+        drawWrappedPaginated(summaryText, 11, helvetica, TEXT_COLOR);
         y -= 24;
       }
 
       // Key Strengths
       if (score?.razones_top3 && score.razones_top3.length > 0) {
-        ensureSpace(80);
-        y = drawSectionTitle(page, helveticaBold, l.keyStrengths, y);
+        drawSectionPaginated(l.keyStrengths);
         for (const r of score.razones_top3) {
-          ensureSpace(40);
-          y = drawWrappedText(page, helvetica, `- ${r}`, y, 11, TEXT_COLOR);
+          drawWrappedPaginated(`- ${r}`, 11, helvetica, TEXT_COLOR);
           y -= 14;
         }
       }
 
       // Logistics
-      ensureSpace(80);
       y -= 8;
-      y = drawSectionTitle(page, helveticaBold, l.logistics, y);
-      y = drawWrappedText(page, helvetica, `${l.salaryExpectation}: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, y, 11, TEXT_COLOR);
+      drawSectionPaginated(l.logistics);
+      drawWrappedPaginated(`${l.salaryExpectation}: ${postulante.salary_pretended ? formatCurrency(postulante.salary_pretended) : '—'}`, 11, helvetica, TEXT_COLOR);
       y -= 4;
-      y = drawWrappedText(page, helvetica, `${l.availability}: ${postulante.contact_status || '—'}`, y, 11, TEXT_COLOR);
+      drawWrappedPaginated(`${l.availability}: ${postulante.contact_status || '—'}`, 11, helvetica, TEXT_COLOR);
       y -= 4;
-      y = drawWrappedText(page, helvetica, `${l.stage}: ${postulante.etapa || '—'}`, y, 11, TEXT_COLOR);
+      drawWrappedPaginated(`${l.stage}: ${postulante.etapa || '—'}`, 11, helvetica, TEXT_COLOR);
 
       drawFooter(page, helvetica, helveticaBold, lang);
 
@@ -290,16 +342,9 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
         // Interviewer Notes
         if (score?.preguntas_sugeridas && score.preguntas_sugeridas.length > 0) {
-          y = drawSectionTitle(page, helveticaBold, l.interviewerNotes, y);
+          drawSectionPaginated(l.interviewerNotes);
           for (const q of score.preguntas_sugeridas) {
-            if (y < MB + 60) {
-              drawFooter(page, helvetica, helveticaBold, lang);
-              page = pdfDoc.addPage([PW, PH]);
-              drawBorder(page);
-              y = PH - MT;
-              y = drawHeader(page, ctx, y);
-            }
-            y = drawWrappedText(page, helvetica, `- ${q}`, y, 10.5, TEXT_COLOR);
+            drawWrappedPaginated(`- ${q}`, 10.5, helvetica, TEXT_COLOR);
             y -= 10;
           }
           y -= 6;
@@ -307,28 +352,15 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
 
         // Risks
         if (score?.riesgos_top3 && score.riesgos_top3.length > 0) {
-          if (y < MB + 60) {
-            drawFooter(page, helvetica, helveticaBold, lang);
-            page = pdfDoc.addPage([PW, PH]);
-            drawBorder(page);
-            y = PH - MT;
-            y = drawHeader(page, ctx, y);
-          }
-          y = drawSectionTitle(page, helveticaBold, l.risks, y);
+          drawSectionPaginated(l.risks);
           for (const r of score.riesgos_top3) {
-            if (y < MB + 60) {
-              drawFooter(page, helvetica, helveticaBold, lang);
-              page = pdfDoc.addPage([PW, PH]);
-              drawBorder(page);
-              y = PH - MT;
-              y = drawHeader(page, ctx, y);
-            }
-            y = drawWrappedText(page, helvetica, `[!] ${r}`, y, 10.5, TEXT_COLOR);
+            drawWrappedPaginated(`[!] ${r}`, 10.5, helvetica, TEXT_COLOR);
             y -= 8;
           }
         }
 
         // Signature
+        ensureSpace(60);
         y -= 24;
         page.drawText(l.sincerely, { x: ML, y, size: 10.5, font: helvetica, color: TEXT_COLOR });
         y -= 16;
@@ -343,7 +375,8 @@ export default function PostulantReportPdf({ postulante, score, vacancyName, rad
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      const safeName = (postulante.full_name || 'Candidato').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').trim().replace(/\s+/g, '_');
+      const baseName = isCliente ? postulante.id_postulant : (postulante.full_name || 'Candidato');
+      const safeName = baseName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').trim().replace(/\s+/g, '_');
       link.download = `${l.fileName}_${safeName}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
@@ -431,23 +464,32 @@ function drawWrappedText(
 
 function wrapText(font: PDFFont, text: string, size: number, maxWidth: number): string[] {
   const result: string[] = [];
-  const words = text.split(' ');
-  let current = '';
-  for (const word of words) {
-    const test = current ? `${current} ${word}` : word;
-    try {
-      if (font.widthOfTextAtSize(test, size) > maxWidth) {
-        if (current) result.push(current);
-        current = word;
-      } else {
+  // Split by newlines first — pdf-lib's drawText doesn't expand \n the way
+  // our y-counter assumes, so we must pre-split to keep line counts in sync.
+  const paragraphs = text.split(/\r?\n/);
+  for (const paragraph of paragraphs) {
+    if (paragraph.length === 0) {
+      result.push(''); // preserve blank lines between paragraphs
+      continue;
+    }
+    const words = paragraph.split(' ');
+    let current = '';
+    for (const word of words) {
+      const test = current ? `${current} ${word}` : word;
+      try {
+        if (font.widthOfTextAtSize(test, size) > maxWidth) {
+          if (current) result.push(current);
+          current = word;
+        } else {
+          current = test;
+        }
+      } catch {
+        // Character not in font, skip measurement
         current = test;
       }
-    } catch {
-      // Character not in font, skip measurement
-      current = test;
     }
+    if (current) result.push(current);
   }
-  if (current) result.push(current);
   return result.length > 0 ? result : [''];
 }
 

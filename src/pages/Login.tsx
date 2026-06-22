@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo-dark.png';
 
 export default function Login() {
   const { session, loading } = useAuth();

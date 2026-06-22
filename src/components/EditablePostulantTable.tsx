@@ -7,16 +7,29 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { trackAction } from '@/lib/userActivity';
 import { getScoreColor, getEtapaColor, formatCurrency, formatDate } from '@/lib/formatters';
 import { createNotifications } from '@/lib/notifications';
 import { useAuth } from '@/contexts/AuthContext';
-import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown, Loader2, FileX, Trash2 } from 'lucide-react';
+import { CheckCircle, ArrowUp, ArrowDown, ArrowUpDown, Loader2, FileX, Trash2, Check, X, ListOrdered, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { InformeDialog } from '@/components/InformeDialog';
+import { SafeHtml } from '@/components/SafeHtml';
+import { updateClienteEstado } from '@/lib/clienteEstado';
 import type { Postulante, CvScore, UserProfile, UserRole } from '@/types/database';
 import { useEtapas } from '@/hooks/useEtapas';
 
 const sb = supabase as any;
+
+// Normaliza el "source" crudo de HiringRoom/A16/manual a categorías claras para el cliente
+const displaySource = (s: string | null | undefined): string => {
+  if (!s) return 'Postulación';
+  const low = s.toLowerCase();
+  if (low.includes('phantom') || low === 'linkedin') return 'Headhunting LinkedIn';
+  if (low === 'manual') return 'Headhunting Manual';
+  return 'Postulación';
+};
 
 interface Props {
   postulantes: Postulante[];
@@ -35,6 +48,7 @@ interface Props {
   onToggleSort?: (col: string) => void;
   selectedIds?: Set<string>;
   onSelectionChange?: (ids: Set<string>) => void;
+  vacancyAssignedSelectoraIds?: string[];
 }
 
 // A cell that becomes an input on click
@@ -123,7 +137,7 @@ function EditableSelectCell({
 
 export default function EditablePostulantTable({
   postulantes, scores, profiles, role, userId, isAssignedToVacancy, vacancyId, vacancyName, page, pageSize, onDataChange,
-  sortBy, sortDir, onToggleSort, selectedIds, onSelectionChange,
+  sortBy, sortDir, onToggleSort, selectedIds, onSelectionChange, vacancyAssignedSelectoraIds,
 }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -144,6 +158,30 @@ export default function EditablePostulantTable({
 
   const canEdit = (p: Postulante) =>
     role === 'manager' || role === 'selectora';
+
+  const [generatingCv, setGeneratingCv] = useState<Set<string>>(new Set());
+  const [informeDialogPostulantId, setInformeDialogPostulantId] = useState<string | null>(null);
+
+  const handleMostrarCliente = useCallback(async (postulantId: string, checked: boolean) => {
+    const p = postulantes.find(x => x.id_postulant === postulantId);
+    if (!p) return;
+
+    if (checked) {
+      // Nuevo flujo: NO setea mostrar_cliente directo. Abre dialog del informe.
+      // El informe + status pending_review hacen que el manager apruebe → recién ahí se hace visible al cliente.
+      setInformeDialogPostulantId(postulantId);
+      return;
+    }
+
+    // Si checked === false, ocultar del cliente (sin tocar informe ni regenerar nada)
+    const { error } = await sb.from('postulantes').update({ mostrar_cliente: false }).eq('id_postulant', postulantId);
+    if (error) {
+      toast({ title: 'Error al guardar', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Oculto del cliente', description: 'El CV anonimizado y el informe se mantienen guardados.' });
+    onDataChange();
+  }, [onDataChange, toast, postulantes]);
 
   const saveField = useCallback(async (postulantId: string, field: string, value: any) => {
     const { error } = await sb.from('postulantes').update({ [field]: value }).eq('id_postulant', postulantId);
@@ -199,7 +237,13 @@ export default function EditablePostulantTable({
   }, [onDataChange, toast, vacancyId, user, authProfile, vacancyName, postulantes]);
 
   const isCliente = role === 'cliente';
-  const selectoras = profiles.filter(p => p.role === 'selectora');
+  const allSelectoras = profiles.filter(p => p.role === 'selectora');
+  // Manager ve a todas las selectoras del sistema; selectoras ven solo a las asignadas a esta vacante
+  const selectoras = role === 'manager'
+    ? allSelectoras
+    : (vacancyAssignedSelectoraIds && vacancyAssignedSelectoraIds.length > 0
+        ? allSelectoras.filter(s => vacancyAssignedSelectoraIds.includes(s.id))
+        : allSelectoras);
   const selectoraOptions = selectoras.map(s => ({ value: s.id, label: s.full_name || s.email || s.id }));
 
   const etapaOptions = ETAPAS.map(e => ({ value: e, label: e }));
@@ -225,8 +269,8 @@ export default function EditablePostulantTable({
     <TooltipProvider>
     <div className="bg-card rounded-lg border shadow-sm overflow-x-auto scrollbar-visible">
       <Table className="min-w-[1100px] [&_td]:py-1 [&_th]:py-1.5 text-sm">
-        <TableHeader>
-          <TableRow className="bg-muted/50">
+        <TableHeader className="sticky top-0 z-20">
+          <TableRow className="bg-muted/50 [&_th]:bg-muted/95 [&_th]:backdrop-blur-sm">
             {selectedIds && onSelectionChange && (
               <TableHead className="w-10 text-center">
                 <Checkbox
@@ -241,25 +285,36 @@ export default function EditablePostulantTable({
               </TableHead>
             )}
             <TableHead className="w-10 text-center">#</TableHead>
-            {!isCliente ? (
-              <SortableHead col="name" className="min-w-[160px]">Nombre</SortableHead>
+            {isCliente ? (
+              <>
+                <TableHead className="min-w-[140px]">ID</TableHead>
+                <SortableHead col="score" className="text-center w-16">Score</SortableHead>
+                <TableHead className="min-w-[200px]">Informe</TableHead>
+                <TableHead className="w-28">Fecha asignación</TableHead>
+                <TableHead className="w-32">Estado</TableHead>
+                <TableHead className="min-w-[200px]">Fortalezas</TableHead>
+              </>
             ) : (
-              <TableHead>ID</TableHead>
+              <>
+                <SortableHead col="name" className="min-w-[160px]">Nombre</SortableHead>
+                <SortableHead col="score" className="text-center w-16">Score</SortableHead>
+                <TableHead className="text-center w-20" title="Pre-evaluación con IA local">Pre-eval</TableHead>
+                <SortableHead col="apply_date" className="w-24">Fecha</SortableHead>
+                <TableHead className="w-24" title="Fecha de evaluación con rúbrica">Evaluado</TableHead>
+                <SortableHead col="etapa" className="min-w-[140px]">Etapa</SortableHead>
+                <SortableHead col="selectora" className="min-w-[130px]">Selector/a</SortableHead>
+                <SortableHead col="source" className="w-20">Fuente</SortableHead>
+                <SortableHead col="status" className="min-w-[120px]">Estado</SortableHead>
+                <SortableHead col="salary" className="min-w-[110px]">Rem. Pret.</SortableHead>
+                <TableHead className="w-10 text-center" title="Marcar como contactado">✓</TableHead>
+                <TableHead className="w-16 text-center" title="Mostrar al cliente (genera CV anonimizado)">Cliente</TableHead>
+                <SortableHead col="contact_status" className="min-w-[160px]">Estado Contacto</SortableHead>
+                <TableHead className="min-w-[180px]">Coment. Selector/a</TableHead>
+                {role === 'manager' && <TableHead className="min-w-[180px]">Coment. Manager</TableHead>}
+                <TableHead className="min-w-[160px]">Screening</TableHead>
+                {role === 'manager' && <TableHead className="w-10"></TableHead>}
+              </>
             )}
-            <SortableHead col="score" className="text-center w-16">Score</SortableHead>
-            <SortableHead col="apply_date" className="w-24">Fecha</SortableHead>
-            <SortableHead col="etapa" className="min-w-[140px]">Etapa</SortableHead>
-            {!isCliente && <SortableHead col="selectora" className="min-w-[130px]">Selector/a</SortableHead>}
-            <SortableHead col="source" className="w-20">Fuente</SortableHead>
-            {!isCliente && <SortableHead col="status" className="min-w-[120px]">Estado</SortableHead>}
-            {!isCliente && <SortableHead col="salary" className="min-w-[110px]">Rem. Pret.</SortableHead>}
-            {!isCliente && <TableHead className="w-10 text-center">✓</TableHead>}
-            {!isCliente && <SortableHead col="contact_status" className="min-w-[160px]">Estado Contacto</SortableHead>}
-            {!isCliente && <TableHead className="min-w-[180px]">Coment. Selector/a</TableHead>}
-            {role === 'manager' && <TableHead className="min-w-[180px]">Coment. Manager</TableHead>}
-            {!isCliente && <TableHead className="min-w-[160px]">Screening</TableHead>}
-            {isCliente && <TableHead>Fortalezas</TableHead>}
-            {role === 'manager' && <TableHead className="w-10"></TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -289,196 +344,353 @@ export default function EditablePostulantTable({
                   )}
                   <TableCell className="text-center text-muted-foreground text-xs">{page * pageSize + idx + 1}</TableCell>
 
-                  {/* Name - clickable link */}
-                  {!isCliente ? (
-                    <TableCell>
-                      <button
-                        className="font-medium text-sm text-accent hover:underline text-left truncate max-w-[200px] block"
-                        onClick={() => navigate(`/postulantes/${p.id_postulant}?vacancy_id=${vacancyId}`)}
-                      >
-                        {p.full_name || (p.id_postulant?.slice(0, 8) + '…')}
-                      </button>
-                    </TableCell>
+                  {/* Score cell shared between cliente and non-cliente (rendered in different positions) */}
+                  {/* Render order depends on role: cliente gets ID → Score → Source → Coment → Fecha → Etapa → Fortalezas */}
+
+                  {isCliente ? (
+                    <>
+                      {/* ID */}
+                      <TableCell>
+                        <button
+                          className="font-mono text-xs text-accent hover:underline"
+                          onClick={() => navigate(`/postulantes/${p.id_postulant}?vacancy_id=${vacancyId}`)}
+                        >
+                          {p.id_postulant}
+                        </button>
+                      </TableCell>
+
+                      {/* Score */}
+                      <TableCell className="text-center">
+                        {p.scoring_status === 'queued_gpt' || p.scoring_status === 'queued_gemini' ? (
+                          <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 text-xs">
+                            <ListOrdered className="h-3 w-3 mr-1" />En fila
+                          </Badge>
+                        ) : p.scoring_status === 'scoring' || p.scoring_status === 'scoring_gpt' || p.scoring_status === 'scoring_gemini' ? (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />Procesando
+                          </Badge>
+                        ) : (!p.has_attachments || p.has_attachments === 'pending') ? (
+                          <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-xs">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />Descargando
+                          </Badge>
+                        ) : p.scoring_status === 'no_file' && score == null ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                            <FileX className="h-3 w-3 mr-1" />Sin archivo
+                          </Badge>
+                        ) : score != null ? (
+                          <span className={`inline-flex items-center justify-center w-10 h-7 rounded text-sm font-semibold border ${getScoreColor(score)}`}>
+                            {score}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+
+                      {/* Informe del candidato (read-only para cliente, preview cortado) */}
+                      <TableCell className="text-sm text-muted-foreground max-w-[250px]">
+                        {p.informe_selectora ? (
+                          <div className="line-clamp-2 [&_*]:!text-sm [&_*]:!leading-tight">
+                            <SafeHtml html={p.informe_selectora} />
+                          </div>
+                        ) : (
+                          <span>—</span>
+                        )}
+                      </TableCell>
+
+                      {/* Fecha asignación al cliente */}
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDate((p as any).assigned_to_cliente_at) || '—'}
+                      </TableCell>
+
+                      {/* Estado Cliente (editable) */}
+                      <TableCell>
+                        <Select
+                          value={(p as any).cliente_estado || 'pendiente'}
+                          onValueChange={async (v) => {
+                            const prev = (p as any).cliente_estado || 'pendiente';
+                            const res = await updateClienteEstado({
+                              postulantId: p.id_postulant,
+                              newEstado: v as any,
+                              prevEstado: prev as any,
+                              vacancyId: p.vacancy_id || vacancyId,
+                              vacancyName: p.vacancy_name || vacancyName,
+                              user,
+                              actorName: authProfile?.full_name || user?.email || 'Cliente',
+                            });
+                            if (!res.ok) {
+                              toast({ title: 'Error al guardar', description: res.error, variant: 'destructive' });
+                              return;
+                            }
+                            toast({ title: 'Estado actualizado' });
+                            onDataChange();
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-xs w-[120px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pendiente">Pendiente</SelectItem>
+                            <SelectItem value="aceptado">Aceptado</SelectItem>
+                            <SelectItem value="rechazado">Rechazado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+
+                      {/* Fortalezas */}
+                      <TableCell className="text-sm text-muted-foreground max-w-[250px]">
+                        <span className="line-clamp-2" title={cvScore?.razones_top3?.[0] || ''}>
+                          {cvScore?.razones_top3?.[0] || '—'}
+                        </span>
+                      </TableCell>
+                    </>
                   ) : (
-                    <TableCell>
-                      <button
-                        className="font-mono text-xs text-accent hover:underline"
-                        onClick={() => navigate(`/postulantes/${p.id_postulant}?vacancy_id=${vacancyId}`)}
-                      >
-                        {p.id_postulant}
-                      </button>
-                    </TableCell>
-                  )}
+                    <>
+                      {/* Name - clickable link */}
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5 max-w-[220px]">
+                          <button
+                            className="font-medium text-sm text-accent hover:underline text-left truncate block"
+                            onClick={() => navigate(`/postulantes/${p.id_postulant}?vacancy_id=${vacancyId}`)}
+                          >
+                            {p.full_name || (p.id_postulant?.slice(0, 8) + '…')}
+                          </button>
+                          <span
+                            className="font-mono text-[10px] text-muted-foreground truncate cursor-pointer hover:text-foreground"
+                            title={`Click para copiar ${p.id_postulant}`}
+                            onClick={() => { navigator.clipboard.writeText(p.id_postulant); toast({ title: 'ID copiado', description: p.id_postulant }); }}
+                          >
+                            {p.id_postulant}
+                          </span>
+                        </div>
+                      </TableCell>
 
-                  {/* Score - editable */}
-                  <TableCell className="text-center">
-                    {p.scoring_status === 'scoring' ? (
-                      <Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" />
-                    ) : p.scoring_status === 'no_file' && score == null ? (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                        <FileX className="h-3 w-3 mr-1" />Sin archivo
-                      </Badge>
-                    ) : cvScore && score === 0 && (!cvScore.detalles || (Array.isArray(cvScore.detalles) && cvScore.detalles.length === 0)) ? (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                        <FileX className="h-3 w-3 mr-1" />Sin datos
-                      </Badge>
-                    ) : editable ? (
-                      <EditableTextCell
-                        value={score != null ? score.toString() : ''}
-                        onSave={v => saveScore(p.id_postulant, v ? parseFloat(v) : null)}
-                        type="number"
-                        className={`text-center font-semibold ${score != null ? getScoreColor(score) : ''}`}
-                      />
-                    ) : score != null ? (
-                      <span className={`inline-flex items-center justify-center w-10 h-7 rounded text-sm font-semibold border ${getScoreColor(score)}`}>
-                        {score}{cvScore?.score_modified ? '*' : ''}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
-                    )}
-                  {editable && cvScore?.score_modified && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-xs text-amber-500 font-bold cursor-default">*</span>
-                        </TooltipTrigger>
-                        <TooltipContent>Modificado</TooltipContent>
-                      </Tooltip>
-                    )}
-                    {cvScore?.ai_model && score != null && (
-                      <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {cvScore.ai_model.includes('gpt') ? 'GPT' : cvScore.ai_model.includes('gemini') ? 'Gemini' : cvScore.ai_model}
-                      </div>
-                    )}
-                  </TableCell>
+                      {/* Score - editable */}
+                      <TableCell className="text-center">
+                        {p.scoring_status === 'queued_gpt' || p.scoring_status === 'queued_gemini' ? (
+                          <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 text-xs">
+                            <ListOrdered className="h-3 w-3 mr-1" />En fila
+                          </Badge>
+                        ) : p.scoring_status === 'scoring' || p.scoring_status === 'scoring_gpt' || p.scoring_status === 'scoring_gemini' ? (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />Procesando
+                          </Badge>
+                        ) : (!p.has_attachments || p.has_attachments === 'pending') ? (
+                          <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-xs">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />Descargando
+                          </Badge>
+                        ) : p.scoring_status === 'no_file' && score == null ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                            <FileX className="h-3 w-3 mr-1" />Sin archivo
+                          </Badge>
+                        ) : cvScore && score === 0 && (!cvScore.detalles || (Array.isArray(cvScore.detalles) && cvScore.detalles.length === 0)) ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                            <FileX className="h-3 w-3 mr-1" />Sin datos
+                          </Badge>
+                        ) : editable ? (
+                          <EditableTextCell
+                            value={score != null ? score.toString() : ''}
+                            onSave={v => saveScore(p.id_postulant, v ? parseFloat(v) : null)}
+                            type="number"
+                            className={`text-center font-semibold ${score != null ? getScoreColor(score) : ''}`}
+                          />
+                        ) : score != null ? (
+                          <span className={`inline-flex items-center justify-center w-10 h-7 rounded text-sm font-semibold border ${getScoreColor(score)}`}>
+                            {score}{cvScore?.score_modified ? '*' : ''}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                        {editable && cvScore?.score_modified && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs text-amber-500 font-bold cursor-default">*</span>
+                            </TooltipTrigger>
+                            <TooltipContent>Modificado</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {cvScore?.ai_model && score != null && (
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                            {cvScore.ai_model.includes('gpt') ? 'GPT' : cvScore.ai_model.includes('gemini') ? 'Gemini' : cvScore.ai_model}
+                          </div>
+                        )}
+                      </TableCell>
 
-                  {/* Apply date */}
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                    {formatDate(p.apply_date)}
-                  </TableCell>
+                      {/* Pre-eval (IA local Gemma) */}
+                      <TableCell className="text-center">
+                        {p.prescore_status === 'queued' ? (
+                          <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-300 text-[10px] gap-1">
+                            <ListOrdered className="h-3 w-3" />En fila
+                          </Badge>
+                        ) : p.prescore_status === 'processing' || p.prescore_status === 'pending' ? (
+                          <Loader2 className="h-4 w-4 animate-spin mx-auto text-violet-600" />
+                        ) : p.prescore_status === 'match' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-[10px] cursor-help gap-1">
+                                <Check className="h-3 w-3" />Match
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm"><p className="text-xs">{p.prescore_reason || 'Match'}</p></TooltipContent>
+                          </Tooltip>
+                        ) : p.prescore_status === 'no_match' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 text-[10px] cursor-help gap-1">
+                                <X className="h-3 w-3" />No match
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm"><p className="text-xs">{p.prescore_reason || 'No match'}</p></TooltipContent>
+                          </Tooltip>
+                        ) : p.prescore_status === 'unreadable' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 text-[10px] cursor-help gap-1">
+                                <AlertTriangle className="h-3 w-3" />No se pudo leer
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm"><p className="text-xs">{p.prescore_reason || 'No se pudo leer el CV'}</p></TooltipContent>
+                          </Tooltip>
+                        ) : p.prescore_status === 'error' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-[10px] cursor-help gap-1">
+                                <AlertTriangle className="h-3 w-3" />Error
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm"><p className="text-xs">{p.prescore_reason || 'Error'}</p></TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
 
-                  {/* Etapa - editable select */}
-                  <TableCell>
-                    <EditableSelectCell
-                      value={p.etapa || ''}
-                      options={etapaOptions}
-                      onSave={v => saveField(p.id_postulant, 'etapa', v)}
-                      disabled={!editable}
-                      renderValue={v => (
-                        <Badge variant="outline" className={`text-[10px] max-w-[100px] truncate ${getEtapaColor(v)}`} title={v}>
-                          {v || '—'}
-                        </Badge>
-                      )}
-                    />
-                  </TableCell>
+                      {/* Apply date */}
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDate(p.apply_date)}
+                      </TableCell>
 
-                  {/* Selector/a - editable select (manager only) */}
-                  {!isCliente && (
-                    <TableCell>
-                      {role === 'manager' ? (
+                      {/* Evaluado (fecha de scoring) */}
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {cvScore?.scored_at || cvScore?.created_at ? formatDate(cvScore.scored_at || cvScore.created_at) : '—'}
+                      </TableCell>
+
+                      {/* Etapa - editable select */}
+                      <TableCell>
                         <EditableSelectCell
-                          value={p.selectora_id || ''}
-                          options={[{ value: '__none__', label: 'Sin asignar' }, ...selectoraOptions]}
-                          onSave={v => saveField(p.id_postulant, 'selectora_id', v || null)}
-                          renderValue={() => (
-                            <span className="text-sm text-muted-foreground">{getSelectoraName(p.selectora_id)}</span>
+                          value={p.etapa || ''}
+                          options={etapaOptions}
+                          onSave={v => saveField(p.id_postulant, 'etapa', v)}
+                          disabled={!editable}
+                          renderValue={v => (
+                            <Badge variant="outline" className={`text-[10px] max-w-[100px] truncate ${getEtapaColor(v)}`} title={v}>
+                              {v || '—'}
+                            </Badge>
                           )}
                         />
-                      ) : (
-                        <span className="text-sm text-muted-foreground">{getSelectoraName(p.selectora_id)}</span>
-                      )}
-                    </TableCell>
-                  )}
+                      </TableCell>
 
-                  {/* Fuente - read only */}
-                  <TableCell className="text-sm">{p.source || '—'}</TableCell>
+                      {/* Selector/a - editable select (manager y selectora) */}
+                      <TableCell>
+                        {(role === 'manager' || role === 'selectora') ? (
+                          <EditableSelectCell
+                            value={p.selectora_id || ''}
+                            options={[{ value: '__none__', label: 'Sin asignar' }, ...selectoraOptions]}
+                            onSave={v => saveField(p.id_postulant, 'selectora_id', v || null)}
+                            renderValue={() => (
+                              <span className="text-sm text-muted-foreground">{getSelectoraName(p.selectora_id)}</span>
+                            )}
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">{getSelectoraName(p.selectora_id)}</span>
+                        )}
+                      </TableCell>
 
-                  {/* Estado - editable */}
-                  {!isCliente && (
-                    <TableCell>
-                      <EditableTextCell
-                        value={p.status || ''}
-                        onSave={v => saveField(p.id_postulant, 'status', v)}
-                        disabled={!editable}
-                      />
-                    </TableCell>
-                  )}
+                      {/* Fuente - read only */}
+                      <TableCell className="text-sm">{p.source || '—'}</TableCell>
 
-                  {/* Salary - editable */}
-                  {!isCliente && (
-                    <TableCell>
-                      <EditableTextCell
-                        value={p.salary_pretended?.toString() || ''}
-                        onSave={v => saveField(p.id_postulant, 'salary_pretended', v ? parseFloat(v) : null)}
-                        disabled={!editable}
-                        type="number"
-                        format="currency"
-                      />
-                    </TableCell>
-                  )}
-
-                  {/* Contacted - checkbox */}
-                  {!isCliente && (
-                    <TableCell className="text-center">
-                      {editable ? (
-                        <Checkbox
-                          checked={!!p.contacted}
-                          onCheckedChange={c => saveField(p.id_postulant, 'contacted', !!c)}
-                          className="mx-auto"
+                      {/* Estado - editable */}
+                      <TableCell>
+                        <EditableTextCell
+                          value={p.status || ''}
+                          onSave={v => saveField(p.id_postulant, 'status', v)}
+                          disabled={!editable}
                         />
-                      ) : (
-                        p.contacted ? <CheckCircle className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">—</span>
+                      </TableCell>
+
+                      {/* Salary - editable */}
+                      <TableCell>
+                        <EditableTextCell
+                          value={p.salary_pretended?.toString() || ''}
+                          onSave={v => saveField(p.id_postulant, 'salary_pretended', v ? parseFloat(v) : null)}
+                          disabled={!editable}
+                          type="number"
+                          format="currency"
+                        />
+                      </TableCell>
+
+                      {/* Contacted - checkbox */}
+                      <TableCell className="text-center">
+                        {editable ? (
+                          <Checkbox
+                            checked={!!p.contacted}
+                            onCheckedChange={c => saveField(p.id_postulant, 'contacted', !!c)}
+                            className="mx-auto"
+                          />
+                        ) : (
+                          p.contacted ? <CheckCircle className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+
+                      {/* Mostrar al cliente - checkbox + dispara generación CV */}
+                      <TableCell className="text-center">
+                        {generatingCv.has(p.id_postulant) ? (
+                          <Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" />
+                        ) : editable ? (
+                          <Checkbox
+                            checked={!!p.mostrar_cliente}
+                            onCheckedChange={c => handleMostrarCliente(p.id_postulant, !!c)}
+                            className="mx-auto"
+                          />
+                        ) : (
+                          p.mostrar_cliente ? <CheckCircle className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+
+                      {/* Contact Status - editable text */}
+                      <TableCell>
+                        <EditableTextCell
+                          value={p.contact_status || ''}
+                          onSave={v => saveField(p.id_postulant, 'contact_status', v)}
+                          disabled={!editable}
+                        />
+                      </TableCell>
+
+                      {/* Comments Selector/a - editable text */}
+                      <TableCell>
+                        <EditableTextCell
+                          value={p.comments_selectora || ''}
+                          onSave={v => saveField(p.id_postulant, 'comments_selectora', v)}
+                          disabled={!editable}
+                        />
+                      </TableCell>
+
+                      {/* Comments Manager - editable text (manager only) */}
+                      {role === 'manager' && (
+                        <TableCell>
+                          <EditableTextCell
+                            value={p.comments_manager || ''}
+                            onSave={v => saveField(p.id_postulant, 'comments_manager', v)}
+                          />
+                        </TableCell>
                       )}
-                    </TableCell>
-                  )}
 
-                  {/* Contact Status - editable text */}
-                  {!isCliente && (
-                    <TableCell>
-                      <EditableTextCell
-                        value={p.contact_status || ''}
-                        onSave={v => saveField(p.id_postulant, 'contact_status', v)}
-                        disabled={!editable}
-                      />
-                    </TableCell>
-                  )}
-
-                  {/* Comments Selector/a - editable text */}
-                  {!isCliente && (
-                    <TableCell>
-                      <EditableTextCell
-                        value={p.comments_selectora || ''}
-                        onSave={v => saveField(p.id_postulant, 'comments_selectora', v)}
-                        disabled={!editable}
-                      />
-                    </TableCell>
-                  )}
-
-                  {/* Comments Manager - editable text (manager only) */}
-                  {role === 'manager' && (
-                    <TableCell>
-                      <EditableTextCell
-                        value={p.comments_manager || ''}
-                        onSave={v => saveField(p.id_postulant, 'comments_manager', v)}
-                      />
-                    </TableCell>
-                  )}
-
-                  {/* Screening - editable text */}
-                  {!isCliente && (
-                    <TableCell>
-                      <EditableTextCell
-                        value={p.screening_responses || ''}
-                        onSave={v => saveField(p.id_postulant, 'screening_responses', v)}
-                        disabled={!editable}
-                      />
-                    </TableCell>
-                  )}
-
-                  {/* Cliente: fortalezas */}
-                  {isCliente && (
-                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                      {cvScore?.razones_top3?.[0] || '—'}
-                    </TableCell>
+                      {/* Screening - editable text */}
+                      <TableCell>
+                        <EditableTextCell
+                          value={p.screening_responses || ''}
+                          onSave={v => saveField(p.id_postulant, 'screening_responses', v)}
+                          disabled={!editable}
+                        />
+                      </TableCell>
+                    </>
                   )}
                   {/* Delete button - manager only */}
                   {role === 'manager' && (
@@ -486,10 +698,20 @@ export default function EditablePostulantTable({
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-red-500" onClick={async (e) => {
                         e.stopPropagation();
                         if (!confirm(`¿Eliminar a ${p.full_name || p.id_postulant}?`)) return;
-                        await sb.from('cv_scores').delete().eq('postulant_id', p.id_postulant);
-                        await sb.from('postulantes').delete().eq('id_postulant', p.id_postulant);
-                        toast({ title: 'Postulante eliminado' });
-                        onDataChange();
+                        try {
+                          const res = await fetch('https://accelrh.daleautomations.com/webhook/delete-candidate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ postulant_id: p.id_postulant }),
+                          });
+                          const json = await res.json().catch(() => ({ status: 'error' }));
+                          if (json?.status !== 'ok') throw new Error(json?.message || 'No se pudo eliminar');
+                          trackAction('delete_candidate');
+                          toast({ title: 'Postulante eliminado' });
+                          onDataChange();
+                        } catch (err: any) {
+                          toast({ title: 'Error al eliminar', description: err?.message || 'Intentá de nuevo', variant: 'destructive' });
+                        }
                       }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -502,6 +724,15 @@ export default function EditablePostulantTable({
         </TableBody>
       </Table>
     </div>
+
+    {/* Informe Dialog: cuando selectora marca el toggle "Cliente" */}
+    <InformeDialog
+      postulant={informeDialogPostulantId ? (postulantes.find(p => p.id_postulant === informeDialogPostulantId) || null) : null}
+      profiles={profiles}
+      open={!!informeDialogPostulantId}
+      onClose={() => setInformeDialogPostulantId(null)}
+      onSubmitted={onDataChange}
+    />
     </TooltipProvider>
   );
 }

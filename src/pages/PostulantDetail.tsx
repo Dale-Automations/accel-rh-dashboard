@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SafeHtml } from '@/components/SafeHtml';
+import { InformeDialog } from '@/components/InformeDialog';
+import { CopyToVacancyDialog } from '@/components/CopyToVacancyDialog';
+import { MessageThread } from '@/components/postulant/MessageThread';
+import { updateClienteEstado } from '@/lib/clienteEstado';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -15,7 +20,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Progress } from '@/components/ui/progress';
 import { formatDate, formatDateTime, formatCurrency, getScoreColor, getEtapaColor, extractLinks } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, ChevronDown, FileText, Tag, Download, ArrowLeft, Sparkles, Brain, Loader2 } from 'lucide-react';
+import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, XCircle, AlertCircle, ChevronDown, FileText, Tag, Download, ArrowLeft, Sparkles, Brain, Loader2, AlertTriangle, Copy, Send } from 'lucide-react';
 import PostulantReportPdf from '@/components/PostulantReportPdf';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend, PieChart, Pie, Cell, Tooltip as RechartsTooltip } from 'recharts';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
@@ -27,8 +32,40 @@ import { createNotifications } from '@/lib/notifications';
 import type { Postulante, CvScore, UserProfile, ScoreDetalle, Rubrica, RubricaData } from '@/types/database';
 import { parseRubricJson } from '@/types/database';
 import { useEtapas } from '@/hooks/useEtapas';
+import { trackAction } from '@/lib/userActivity';
 
 const sb = supabase as any;
+
+// Muestra badges coloreados debajo del textarea cuando se detectan @menciones válidas.
+// Ayuda al usuario a confirmar que arrobó bien a alguien del equipo.
+function MentionsPreview({ text, findMentions }: { text: string; findMentions: (t: string) => Array<{ email: string; full_name: string }> }) {
+  const mentions = findMentions(text);
+  // Detectar @ en el texto (aunque no matchee nadie) para avisar si hay @ suelto
+  const hasUnmatchedAt = /@\S+/.test(text) && mentions.length === 0;
+  if (mentions.length === 0 && !hasUnmatchedAt) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+      {mentions.map(m => (
+        <Badge
+          key={m.email}
+          variant="outline"
+          className="bg-primary/10 text-primary border-primary/30 text-[11px] font-medium"
+        >
+          @{m.full_name}
+        </Badge>
+      ))}
+      {mentions.length > 0 && (
+        <span className="text-[10px] text-muted-foreground">→ se notificará por email al guardar</span>
+      )}
+      {hasUnmatchedAt && (
+        <span className="text-[11px] text-amber-600 inline-flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3" />
+          No matcheé ningún usuario con ese @. Usá el nombre completo (ej: @Maria Victoria) o el primer nombre.
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function PostulantDetail() {
   const { id_postulant } = useParams<{ id_postulant: string }>();
@@ -41,10 +78,12 @@ export default function PostulantDetail() {
   const [postulante, setPostulante] = useState<Postulante | null>(null);
   const [score, setScore] = useState<CvScore | null>(null);
   const [selectoras, setSelectoras] = useState<UserProfile[]>([]);
+  const [vacancyAssignedSelectoraIds, setVacancyAssignedSelectoraIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rubricModalOpen, setRubricModalOpen] = useState(false);
   const [rubricData, setRubricData] = useState<RubricaData | null>(null);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
 
   // Editable fields
   const [etapa, setEtapa] = useState('');
@@ -59,8 +98,14 @@ export default function PostulantDetail() {
   const [editPreguntas, setEditPreguntas] = useState<string[]>([]);
   const [editRespuestas, setEditRespuestas] = useState<string[]>([]);
   const [savingPreguntas, setSavingPreguntas] = useState(false);
+  const [sendingScreening, setSendingScreening] = useState(false);
   const [editScore, setEditScore] = useState('');
+  const [editDetalles, setEditDetalles] = useState<ScoreDetalle[]>([]);
+  const [detallesTouched, setDetallesTouched] = useState(false);
   const [savingScore, setSavingScore] = useState(false);
+  // Cuando el PDF se está generando, los inputs editables se rendereán como texto
+  // plano para que html2canvas pueda capturar los valores correctamente.
+  const [isPrintingPdf, setIsPrintingPdf] = useState(false);
   const [scoringLoading, setScoringLoading] = useState(false);
   const [commentsCliente, setCommentsCliente] = useState('');
   const [savingCliente, setSavingCliente] = useState(false);
@@ -68,6 +113,9 @@ export default function PostulantDetail() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editingLinkedin, setEditingLinkedin] = useState(false);
+  const [linkedinInput, setLinkedinInput] = useState('');
+  const [savingLinkedin, setSavingLinkedin] = useState(false);
   const [hoveredRadarLabel, setHoveredRadarLabel] = useState<{
     text: string;
     x: number;
@@ -79,6 +127,15 @@ export default function PostulantDetail() {
   useEffect(() => {
     loadData();
   }, [id_postulant, vacancyId]);
+
+  // Acknowledge: si la selectora abrió el detalle y hay feedback de informe sin leer (decisión != null),
+  // marcamos como leído así el manager ve "selectora ya leyó cambios previos".
+  useEffect(() => {
+    if (!id_postulant || !user || role !== 'selectora') return;
+    import('@/lib/informeFeedback').then(({ acknowledgeFeedback }) => {
+      acknowledgeFeedback(id_postulant, user.id).catch(() => {});
+    });
+  }, [id_postulant, user?.id, role]);
 
   // Realtime: auto-refresh when score or postulant changes
   useEffect(() => {
@@ -110,6 +167,8 @@ export default function PostulantDetail() {
     setEditPreguntas(scoreData?.preguntas_sugeridas || []);
     setEditRespuestas(scoreData?.respuestas_esperadas || []);
     setEditScore(scoreData?.score_final?.toString() || '');
+    setEditDetalles(Array.isArray(scoreData?.detalles) ? (scoreData.detalles as ScoreDetalle[]).map(d => ({ ...d })) : []);
+    setDetallesTouched(false);
     if (post) {
       setEtapa(post.etapa || '');
       setContactStatus(post.contact_status || '');
@@ -142,8 +201,85 @@ export default function PostulantDetail() {
     }
   }, [role, user, vacancyId]);
 
+  // Load assignments for this vacancy (to filter selectoras dropdown)
+  useEffect(() => {
+    if (!vacancyId) return;
+    sb.from('vacancy_assignments').select('user_id,role').eq('vacancy_id', vacancyId).eq('role', 'selectora').then(({ data }: any) => {
+      setVacancyAssignedSelectoraIds((data || []).map((a: any) => a.user_id));
+    }).catch(() => {});
+  }, [vacancyId]);
+
   const canEdit = role === 'manager' || role === 'selectora';
   const isCliente = role === 'cliente';
+
+  // Auto-buscar CV en Drive para cualquier candidato cuyo `notes` no apunte a un archivo /file/d/.
+  // Funciona para manuales, HiringRoom y cualquier candidato cuyo archivo esté en la carpeta de Drive
+  // de la vacante con el id_postulant en el nombre. El webhook busca el archivo y popula notes.
+  // NO se aplica a phantom — sus `notes` deben preservar la URL de LinkedIn.
+  useEffect(() => {
+    if (!postulante) return;
+    const sourceIsPhantom = !!postulante.source && /phantom|linkedin/i.test(postulante.source);
+    if (sourceIsPhantom) return;
+    const hasFileLink = postulante.notes && /\/file\/d\//.test(postulante.notes);
+    if (hasFileLink) return;
+    fetch('https://accelrh.daleautomations.com/webhook/find-manual-cv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postulant_id: postulante.id_postulant }),
+    })
+      .then(r => r.json())
+      .then(res => { if (res?.found && res?.cv_url) loadData(); })
+      .catch(() => {});
+  }, [postulante?.id_postulant, postulante?.notes, postulante?.source]);
+
+  // Buscar @menciones en un texto contra la lista de user_profiles.
+  // Matchea @FullName y @FirstName (case-insensitive, word boundary).
+  // Excluye al autor del comentario (no auto-mención).
+  const findMentions = (text: string): Array<{ email: string; full_name: string }> => {
+    if (!text || !selectoras || !user) return [];
+    const results: Array<{ email: string; full_name: string }> = [];
+    const seen = new Set<string>();
+    for (const p of selectoras) {
+      if (p.id === user.id) continue;
+      if (!p.email || !p.full_name) continue;
+      const name = p.full_name.trim();
+      const firstName = name.split(/\s+/)[0];
+      const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const patterns = [
+        new RegExp(`@${esc(name)}(?=\\s|$|[.,;!?])`, 'i'),
+        new RegExp(`@${esc(firstName)}(?=\\s|$|[.,;!?])`, 'i'),
+      ];
+      if (patterns.some(re => re.test(text)) && !seen.has(p.email)) {
+        results.push({ email: p.email, full_name: p.full_name });
+        seen.add(p.email);
+      }
+    }
+    return results;
+  };
+
+  // Dispara emails de mención — fire-and-forget
+  const fireMentions = (text: string, commentType: 'comments_selectora' | 'comments_manager' | 'comments_cliente') => {
+    const mentions = findMentions(text);
+    if (mentions.length === 0 || !user) return;
+    for (const m of mentions) {
+      fetch('https://accelrh.daleautomations.com/webhook/notify-manager-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'mention',
+          to_email: m.email,
+          to_name: m.full_name,
+          actor_name: profile?.full_name || user.email || 'Usuario',
+          postulant_id: id_postulant,
+          postulant_name: postulante?.full_name || postulante?.id_postulant || '',
+          vacancy_id: vacancyId || postulante?.vacancy_id || '',
+          vacancy_name: postulante?.vacancy_name || '',
+          comment_type: commentType,
+          comment: text,
+        }),
+      }).catch(() => { /* ignore email errors */ });
+    }
+  };
 
   const handleSave = async () => {
     if (!postulante) return;
@@ -195,6 +331,9 @@ export default function PostulantDetail() {
           currentUserId: user.id,
         });
       }
+      // Disparar emails de @menciones si el comentario cambió
+      if (changed.includes('comments_selectora')) fireMentions(commentsSelectora, 'comments_selectora');
+      if (changed.includes('comments_manager')) fireMentions(commentsManager, 'comments_manager');
       loadData();
     }
   };
@@ -204,6 +343,41 @@ export default function PostulantDetail() {
     const newVal = !postulante.contacted;
     await sb.from('postulantes').update({ contacted: newVal, contact_status: newVal ? `Contactado el ${format(new Date(), 'dd/MM/yyyy')}` : '' }).eq('id_postulant', id_postulant);
     toast({ title: newVal ? 'Marcado como contactado' : 'Desmarcado' });
+    loadData();
+  };
+
+  const handleSaveLinkedin = async () => {
+    if (!postulante) return;
+    const raw = linkedinInput.trim();
+    if (!raw) { toast({ title: 'URL vacía', variant: 'destructive' }); return; }
+    // Normalize: accept slug-only ("agustina-castro") or full URL
+    let url = raw;
+    if (!/^https?:\/\//i.test(url)) {
+      url = url.startsWith('linkedin.com') || url.startsWith('www.linkedin.com')
+        ? `https://${url}`
+        : `https://www.linkedin.com/in/${url.replace(/^\/+/, '').replace(/^in\//, '')}`;
+    }
+    if (!/linkedin\.com\//i.test(url)) {
+      toast({ title: 'URL inválida', description: 'Debe ser una URL de linkedin.com', variant: 'destructive' });
+      return;
+    }
+    url = url.replace(/^https?:\/\/linkedin\.com/i, 'https://www.linkedin.com');
+    setSavingLinkedin(true);
+    // Preservar otras URLs en notes (ej: Drive PDF). Si ya hay una URL de LinkedIn dentro, la reemplazamos.
+    const existing = (postulante.notes || '').trim();
+    const hadLinkedin = /https?:\/\/(?:www\.)?linkedin\.com\/[^\s]+/i.test(existing);
+    const newNotes = hadLinkedin
+      ? existing.replace(/https?:\/\/(?:www\.)?linkedin\.com\/[^\s]+/i, url)
+      : (existing ? `${url}\n${existing}` : url);
+    const { error } = await sb.from('postulantes').update({ notes: newNotes }).eq('id_postulant', id_postulant);
+    setSavingLinkedin(false);
+    if (error) {
+      toast({ title: 'Error al guardar', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'URL de LinkedIn guardada' });
+    setEditingLinkedin(false);
+    setLinkedinInput('');
     loadData();
   };
 
@@ -219,6 +393,7 @@ export default function PostulantDetail() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postulant_ids: [id_postulant] }),
       });
+      trackAction('score_candidate');
       toast({ title: 'Evaluación iniciada', description: `Se envió a evaluar con ${model === 'gpt' ? 'GPT 4.1 mini' : 'Gemini Flash'}` });
     } catch {
       toast({ title: 'Error al iniciar evaluación', variant: 'destructive' });
@@ -235,16 +410,45 @@ export default function PostulantDetail() {
     return <div className="text-center py-20 text-muted-foreground">Postulante no encontrado</div>;
   }
 
-  const detalles = (score?.detalles || []) as ScoreDetalle[];
+  // Mostrar detalles editados en vivo si el manager está editando, sino los originales.
+  const detalles = (canEdit && editDetalles.length > 0 ? editDetalles : (score?.detalles || [])) as ScoreDetalle[];
   const radarData = detalles.map(d => ({
     criterio: d.criterio,
     porcentaje: d.puntaje_max > 0 ? Math.round((d.puntaje / d.puntaje_max) * 100) : 0,
     max: 100,
   }));
 
+  // Actualiza un parcial: clamp 0..puntaje_max, recalcula el global y marca touched.
+  const updateDetalle = (index: number, rawValue: string) => {
+    setEditDetalles(prev => {
+      const next = prev.map((d, i) => {
+        if (i !== index) return d;
+        const max = d.puntaje_max || 0;
+        const parsed = rawValue === '' ? 0 : Math.max(0, Math.min(max, parseFloat(rawValue) || 0));
+        return { ...d, puntaje: parsed };
+      });
+      const newTotal = next.reduce((s, d) => s + (d.puntaje || 0), 0);
+      setEditScore(String(Math.round(newTotal)));
+      setDetallesTouched(true);
+      return next;
+    });
+  };
+
+  const detallesDirty = detallesTouched;
+  const scoreChanged = editScore !== (score?.score_final?.toString() || '');
+  const hasUnsavedChanges = scoreChanged || detallesDirty;
+
   const showSignoff = etapa === 'Descartado' || etapa === 'Rechazado por cliente';
   const noteLinks = extractLinks(postulante.notes);
-  const cvUrl = score?.file_url || (noteLinks.length > 0 ? noteLinks[0].url : null);
+  const isPhantom = !!postulante.source && /phantom|linkedin/i.test(postulante.source);
+  const linkedinMatch = (postulante.notes || '').match(/https?:\/\/(?:www\.)?linkedin\.com\/[^\s]+/i);
+  const linkedinUrl = linkedinMatch ? linkedinMatch[0].replace(/^https?:\/\/linkedin\.com/i, 'https://www.linkedin.com') : null;
+  // For phantom candidates: ONLY the LinkedIn URL is a valid public link. The .txt is internal-only.
+  // For non-phantom: prefer score.file_url (anonymized/processed CV), fallback to notes link.
+  const isTxtUrl = (u: string | null | undefined) => !!u && /\.txt(\?|#|$)/i.test(u);
+  const cvUrl = isPhantom
+    ? linkedinUrl
+    : (score?.file_url && !isTxtUrl(score.file_url) ? score.file_url : (noteLinks.length > 0 && !isTxtUrl(noteLinks[0].url) ? noteLinks[0].url : null));
   const clienteCvUrl = postulante.anonymized_file_url;
 
   return (
@@ -258,19 +462,66 @@ export default function PostulantDetail() {
           </Button>
           {!isCliente ? (
             <>
-               <div className="flex items-center gap-2">
+               <div className="flex items-center gap-2 flex-wrap">
                  {editingInfo ? (
                    <Input className="text-xl font-bold h-9 w-64" value={editName} onChange={e => setEditName(e.target.value)} />
                  ) : (
                    <h1 className="text-2xl font-bold text-foreground">{postulante.full_name || '—'}</h1>
                  )}
                  {cvUrl && (
-                   <a href={cvUrl} target="_blank" rel="noopener noreferrer" title="Ver CV">
+                   <a href={cvUrl} target="_blank" rel="noopener noreferrer" title={isPhantom ? "Ver perfil de LinkedIn" : "Ver CV"}>
                      <Download className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
                    </a>
                  )}
+                 {!cvUrl && isPhantom && canEdit && !editingLinkedin && (
+                   <Button
+                     variant="ghost"
+                     size="sm"
+                     className="h-7 text-xs text-accent hover:bg-accent/10"
+                     onClick={() => { setEditingLinkedin(true); setLinkedinInput(''); }}
+                     title="Cargar URL del perfil de LinkedIn de este candidato"
+                   >
+                     <ExternalLink className="h-3.5 w-3.5 mr-1" /> Agregar LinkedIn
+                   </Button>
+                 )}
+                 {!cvUrl && isPhantom && canEdit && editingLinkedin && (
+                   <div className="flex items-center gap-1.5 w-full max-w-md">
+                     <Input
+                       autoFocus
+                       className="h-7 text-xs"
+                       placeholder="https://www.linkedin.com/in/..."
+                       value={linkedinInput}
+                       onChange={e => setLinkedinInput(e.target.value)}
+                       onKeyDown={e => { if (e.key === 'Enter') handleSaveLinkedin(); if (e.key === 'Escape') { setEditingLinkedin(false); setLinkedinInput(''); } }}
+                     />
+                     <Button size="sm" variant="default" className="h-7 px-2" onClick={handleSaveLinkedin} disabled={savingLinkedin}>
+                       {savingLinkedin ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                     </Button>
+                     <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setEditingLinkedin(false); setLinkedinInput(''); }}>×</Button>
+                   </div>
+                 )}
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   className="ml-2 h-8 text-xs"
+                   onClick={() => setCopyDialogOpen(true)}
+                   title="Copiar este candidato a otra vacante"
+                 >
+                   <Copy className="h-3.5 w-3.5 mr-1" /> Copiar a otra vacante
+                 </Button>
                </div>
                <p className="text-sm text-muted-foreground font-mono">{postulante.id_postulant}</p>
+               {postulante.original_postulant_id && (
+                 <p className="text-xs text-muted-foreground mt-1">
+                   Copia de candidato original{' '}
+                   <button
+                     onClick={() => navigate(`/postulantes/${postulante.original_postulant_id}`)}
+                     className="font-mono text-accent hover:underline"
+                   >
+                     {postulante.original_postulant_id}
+                   </button>
+                 </p>
+               )}
             </>
           ) : (
             <>
@@ -337,17 +588,77 @@ export default function PostulantDetail() {
           </div>
         )}
 
+        {/* Informe del candidato (vista cliente — solo si fue aprobado por manager) */}
+        {isCliente && postulante.mostrar_cliente && postulante.informe_status === 'approved' && postulante.informe_selectora && (
+          <div className="bg-card rounded-lg border p-4 space-y-2">
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Informe del candidato</h3>
+            <SafeHtml html={postulante.informe_selectora} />
+          </div>
+        )}
+
+        {/* Estado del candidato (vista cliente — dropdown editable) */}
+        {isCliente && postulante.mostrar_cliente && (
+          <div className="bg-card rounded-lg border p-4 space-y-2">
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Tu decisión sobre este candidato</h3>
+            <Select
+              value={postulante.cliente_estado || 'pendiente'}
+              onValueChange={async (v) => {
+                const prev = postulante.cliente_estado || 'pendiente';
+                const res = await updateClienteEstado({
+                  postulantId: postulante.id_postulant,
+                  newEstado: v as any,
+                  prevEstado: prev as any,
+                  vacancyId: postulante.vacancy_id,
+                  vacancyName: postulante.vacancy_name,
+                  user,
+                  actorName: profile?.full_name || user?.email || 'Cliente',
+                });
+                if (!res.ok) {
+                  toast({ title: 'Error al guardar', description: res.error, variant: 'destructive' });
+                  return;
+                }
+                toast({ title: 'Estado actualizado' });
+                loadData();
+              }}
+            >
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pendiente">Pendiente</SelectItem>
+                <SelectItem value="aceptado">Aceptar</SelectItem>
+                <SelectItem value="rechazado">Rechazar</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Al aceptar o rechazar, el equipo de AccelRH es notificado y la etapa del candidato se actualiza automáticamente.
+            </p>
+          </div>
+        )}
+
+        {/* Hilo de mensajes manager ↔ cliente (vista cliente, arriba de "Mis Comentarios") */}
+        {isCliente && user && (
+          <MessageThread
+            postulantId={id_postulant!}
+            vacancyId={vacancyId || postulante.vacancy_id}
+            vacancyName={postulante.vacancy_name}
+            postulantName={postulante.id_postulant}
+            role="cliente"
+            currentUserId={user.id}
+            currentUserName={profile?.full_name || user.email || 'Cliente'}
+          />
+        )}
+
         {/* Client comments section */}
         {isCliente && (
           <div className="bg-card rounded-lg border p-4 space-y-3">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Mis Comentarios</h3>
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Mis Comentarios <span className="text-[11px] text-muted-foreground font-normal normal-case tracking-normal">(mencioná con @ para notificar al equipo)</span></h3>
             <Textarea
-              placeholder="Agregá tus comentarios sobre este candidato..."
+              placeholder="Ej: @Maria Victoria me interesa este perfil, coordinemos entrevista"
               value={commentsCliente}
               onChange={e => setCommentsCliente(e.target.value)}
               rows={4}
               className="resize-y"
             />
+            <MentionsPreview text={commentsCliente} findMentions={findMentions} />
             <Button
               size="sm"
               disabled={savingCliente}
@@ -370,13 +681,64 @@ export default function PostulantDetail() {
                       fieldsChanged: ['comments_cliente'],
                       currentUserId: user.id,
                     });
+                    // Disparar email a managers (fire-and-forget)
+                    fetch('https://accelrh.daleautomations.com/webhook/notify-manager-email', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        type: 'postulant_comment',
+                        postulant_id: id_postulant,
+                        postulant_name: postulante.full_name || postulante.id_postulant,
+                        vacancy_id: vacancyId || postulante.vacancy_id,
+                        vacancy_name: postulante.vacancy_name,
+                        cliente_name: profile?.full_name || user.email,
+                        comment: commentsCliente,
+                      }),
+                    }).catch(() => { /* ignore email errors */ });
+                    // Menciones @ en el comentario del cliente (notificar al usuario mencionado)
+                    fireMentions(commentsCliente, 'comments_cliente');
                   }
                 }
               }}
             >
               <Save className="h-4 w-4 mr-2" /> Guardar Comentario
             </Button>
+
+            {/* CV Anonimizado / Perfil LinkedIn — directamente debajo de los comentarios */}
+            <div className="pt-2 border-t space-y-2">
+              {clienteCvUrl && (
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <a href={clienteCvUrl} target="_blank" rel="noopener noreferrer"><FileText className="h-4 w-4 mr-2" /> Ver CV Anonimizado</a>
+                </Button>
+              )}
+              {isPhantom && linkedinUrl && (
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"><FileText className="h-4 w-4 mr-2" /> Ver perfil de LinkedIn</a>
+                </Button>
+              )}
+              {!clienteCvUrl && !(isPhantom && linkedinUrl) && (
+                <span className="text-xs text-muted-foreground italic">CV anonimizado no disponible</span>
+              )}
+            </div>
           </div>
+        )}
+
+        {/* Hilo de mensajes manager ↔ cliente (vista team, arriba del Pipeline) */}
+        {!isCliente && user && (
+          <MessageThread
+            postulantId={id_postulant!}
+            vacancyId={vacancyId || postulante.vacancy_id}
+            vacancyName={postulante.vacancy_name}
+            postulantName={postulante.full_name || postulante.id_postulant}
+            role={role as 'manager' | 'selectora'}
+            currentUserId={user.id}
+            currentUserName={profile?.full_name || user.email || 'Equipo AccelRH'}
+          />
+        )}
+
+        {/* Informe del candidato (vista selectora/manager) */}
+        {!isCliente && (
+          <InformeSection postulante={postulante} profiles={selectoras} onChange={loadData} />
         )}
 
         {/* Pipeline Section - Editable (Manager/Selector/a) */}
@@ -411,16 +773,26 @@ export default function PostulantDetail() {
               </div>
 
               <div>
-                <Label className="text-xs">Comentarios Selector/a</Label>
-                <Textarea value={commentsSelectora} onChange={e => setCommentsSelectora(e.target.value)} rows={4} disabled={!canEdit} />
+                <Label className="text-xs">Comentarios Selector/a <span className="text-muted-foreground font-normal">(mencioná con @ para notificar por email)</span></Label>
+                <Textarea value={commentsSelectora} onChange={e => setCommentsSelectora(e.target.value)} rows={4} disabled={!canEdit} placeholder="Ej: @Maria Victoria revisemos perfil por experiencia dudosa" />
+                <MentionsPreview text={commentsSelectora} findMentions={findMentions} />
               </div>
 
               {role === 'manager' && (
                 <div>
-                  <Label className="text-xs">Comentarios Manager</Label>
-                  <Textarea value={commentsManager} onChange={e => setCommentsManager(e.target.value)} rows={4} />
+                  <Label className="text-xs">Comentarios Manager <span className="text-muted-foreground font-normal">(mencioná con @ para notificar por email)</span></Label>
+                  <Textarea value={commentsManager} onChange={e => setCommentsManager(e.target.value)} rows={4} placeholder="Ej: @Vicky cerrá entrevista con este perfil" />
+                  <MentionsPreview text={commentsManager} findMentions={findMentions} />
                 </div>
               )}
+
+              {/* Comentarios del Cliente - visible read-only para selectora/manager */}
+              <div>
+                <Label className="text-xs">Comentarios del Cliente <span className="text-muted-foreground font-normal">(solo lectura)</span></Label>
+                <div className="mt-1 bg-muted/40 border rounded-md px-3 py-2 text-sm min-h-[60px] whitespace-pre-wrap">
+                  {postulante.comments_cliente || <span className="text-muted-foreground italic">Sin comentarios del cliente todavía</span>}
+                </div>
+              </div>
 
               {showSignoff && (
                 <div>
@@ -431,12 +803,17 @@ export default function PostulantDetail() {
 
               <div>
                 <Label className="text-xs">Selector/a Asignado/a</Label>
-                {role === 'manager' ? (
-                  <Select value={selectoraId} onValueChange={setSelectoraId}>
+                {(role === 'manager' || role === 'selectora') ? (
+                  <Select value={selectoraId || 'none'} onValueChange={setSelectoraId}>
                     <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sin asignar</SelectItem>
-                      {selectoras.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name || s.email}</SelectItem>)}
+                      {(role === 'manager'
+                        ? selectoras.filter(s => s.role === 'selectora')
+                        : (vacancyAssignedSelectoraIds.length > 0
+                            ? selectoras.filter(s => s.role === 'selectora' && vacancyAssignedSelectoraIds.includes(s.id))
+                            : selectoras.filter(s => s.role === 'selectora'))
+                      ).map(s => <SelectItem key={s.id} value={s.id}>{s.full_name || s.email}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 ) : (
@@ -475,24 +852,18 @@ export default function PostulantDetail() {
                 </Popover>
                 <Button onClick={() => handleScoring('gpt')} disabled={scoringLoading}>
                   {scoringLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
-                  Evaluar con GPT 4.1 mini
+                  Evaluar con OpenAI
                 </Button>
                 <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => handleScoring('gemini')} disabled={scoringLoading}>
                   {scoringLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                  Evaluar con Gemini Flash
+                  Evaluar con Gemini
                 </Button>
               </div>
             )}
           </div>
         )}
 
-        {/* Client comments - visible to managers/selectoras as read-only */}
-        {!isCliente && postulante.comments_cliente && (
-          <div className="bg-card rounded-lg border p-4 space-y-2">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Comentarios del Cliente</h3>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{postulante.comments_cliente}</p>
-          </div>
-        )}
+        {/* (Comentarios del Cliente ahora integrados en sección Pipeline arriba) */}
 
         {/* Notes */}
         {!isCliente && postulante.notes && (
@@ -541,7 +912,7 @@ export default function PostulantDetail() {
                 <p className="text-sm font-medium text-foreground">
                   Score Final{score.score_modified ? ' *' : ''}
                 </p>
-                {canEdit && editScore !== (score.score_final?.toString() || '') && (
+                {canEdit && hasUnsavedChanges && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -549,12 +920,28 @@ export default function PostulantDetail() {
                     onClick={async () => {
                       setSavingScore(true);
                       const newScore = editScore ? parseFloat(editScore) : null;
-                      const { error } = await sb.from('cv_scores').update({ score_final: newScore, score_modified: true }).eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId);
+                      const updatePayload: Record<string, unknown> = {
+                        score_final: newScore,
+                        score_modified: true,
+                      };
+                      // Si tocó los parciales, persistir el array completo
+                      if (detallesDirty) {
+                        updatePayload.detalles = editDetalles;
+                      }
+                      const { error } = await sb
+                        .from('cv_scores')
+                        .update(updatePayload)
+                        .eq('postulant_id', id_postulant)
+                        .eq('vacancy_id', vacancyId);
                       setSavingScore(false);
                       if (error) {
                         toast({ title: 'Error al guardar score', description: error.message, variant: 'destructive' });
                       } else {
-                        toast({ title: 'Score actualizado' });
+                        toast({
+                          title: 'Score actualizado',
+                          description: detallesDirty ? 'Global + parciales sincronizados.' : undefined,
+                        });
+                        setDetallesTouched(false);
                         loadData();
                       }
                     }}
@@ -566,7 +953,7 @@ export default function PostulantDetail() {
 
               {/* Download card */}
               <div className="bg-card rounded-lg border p-5 flex flex-col items-center justify-center gap-2">
-                <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} radarChartRef={radarChartRef} />
+                <PostulantReportPdf postulante={postulante} score={score} vacancyName={postulante.vacancy_name || ''} radarChartRef={radarChartRef} onPrintingChange={setIsPrintingPdf} />
                 <p className="text-xs text-muted-foreground text-center">Generar Candidate Report</p>
               </div>
             </div>
@@ -641,7 +1028,22 @@ export default function PostulantDetail() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-foreground leading-tight">{d.criterio}</p>
-                          <p className="text-[10px] text-muted-foreground">{d.puntaje}/{d.puntaje_max}</p>
+                          {canEdit && !isPrintingPdf ? (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <input
+                                type="number"
+                                value={d.puntaje}
+                                onChange={e => updateDetalle(i, e.target.value)}
+                                min={0}
+                                max={d.puntaje_max}
+                                step={1}
+                                className="w-12 h-5 px-1 text-[10px] text-foreground bg-background border border-border rounded text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-primary outline-none"
+                              />
+                              <span className="text-[10px] text-muted-foreground">/{d.puntaje_max}</span>
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground">{d.puntaje}/{d.puntaje_max}</p>
+                          )}
                         </div>
                       </div>
                     );
@@ -703,14 +1105,16 @@ export default function PostulantDetail() {
               </div>
             )}
 
-            {/* Riesgos */}
+            {/* Riesgos / Consideraciones (texto y tono según rol) */}
             {score.riesgos_top3 && score.riesgos_top3.length > 0 && (
               <div className="bg-card rounded-lg border p-4 space-y-2">
-                <h3 className="font-semibold text-sm text-red-700 uppercase tracking-wider">Riesgos</h3>
+                <h3 className={`font-semibold text-sm uppercase tracking-wider ${isCliente ? 'text-muted-foreground' : 'text-red-700'}`}>
+                  {isCliente ? 'Consideraciones' : 'Riesgos'}
+                </h3>
                 <ul className="space-y-1">
                   {score.riesgos_top3.map((r, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
-                      <span className="h-4 w-4 flex items-center justify-center text-red-600 shrink-0 mt-0.5">⚠</span>
+                      <AlertTriangle className={`h-4 w-4 shrink-0 mt-0.5 ${isCliente ? 'text-muted-foreground' : 'text-red-600'}`} />
                       <span className="text-foreground">{r}</span>
                     </li>
                   ))}
@@ -765,27 +1169,105 @@ export default function PostulantDetail() {
                       </div>
                     ))}
                     {canEdit && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={savingPreguntas}
-                        onClick={async () => {
-                          setSavingPreguntas(true);
-                          const { error } = await sb.from('cv_scores').update({
-                            preguntas_sugeridas: editPreguntas,
-                            respuestas_esperadas: editRespuestas,
-                          }).eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId);
-                          setSavingPreguntas(false);
-                          if (error) {
-                            toast({ title: 'Error al guardar', description: error.message, variant: 'destructive' });
-                          } else {
-                            toast({ title: 'Preguntas actualizadas' });
-                            loadData();
-                          }
-                        }}
-                      >
-                        <Save className="h-3 w-3 mr-1" /> Guardar Preguntas
-                      </Button>
+                      <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={savingPreguntas}
+                          onClick={async () => {
+                            setSavingPreguntas(true);
+                            const { error } = await sb.from('cv_scores').update({
+                              preguntas_sugeridas: editPreguntas,
+                              respuestas_esperadas: editRespuestas,
+                            }).eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId);
+                            setSavingPreguntas(false);
+                            if (error) {
+                              toast({ title: 'Error al guardar', description: error.message, variant: 'destructive' });
+                            } else {
+                              toast({ title: 'Preguntas actualizadas' });
+                              loadData();
+                            }
+                          }}
+                        >
+                          <Save className="h-3 w-3 mr-1" /> Guardar Preguntas
+                        </Button>
+
+                        {/* Botón Enviar email — manager o selectora */}
+                        {postulante?.email && editPreguntas.length > 0 && (
+                          <Button
+                            size="sm"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            disabled={sendingScreening}
+                            onClick={async () => {
+                              if (!postulante.email) {
+                                toast({ title: 'Sin email', description: 'El candidato no tiene email cargado.', variant: 'destructive' });
+                                return;
+                              }
+                              const validPreguntas = editPreguntas.filter(p => p && p.trim());
+                              if (validPreguntas.length === 0) {
+                                toast({ title: 'Sin preguntas', description: 'Cargá al menos una pregunta antes de enviar.', variant: 'destructive' });
+                                return;
+                              }
+                              // Anti-doble-click: si se envió hace <24h, pedir confirm
+                              if (postulante.screening_sent_at) {
+                                const hoursSince = (Date.now() - new Date(postulante.screening_sent_at).getTime()) / 3600000;
+                                if (hoursSince < 24) {
+                                  if (!confirm(`Ya se envió un email hace ${Math.round(hoursSince)}h. ¿Forzar reenvío?`)) return;
+                                }
+                              }
+                              // Guardar preguntas editadas antes de mandar (por si la selectora no apretó Guardar)
+                              setSavingPreguntas(true);
+                              await sb.from('cv_scores').update({
+                                preguntas_sugeridas: editPreguntas,
+                                respuestas_esperadas: editRespuestas,
+                              }).eq('postulant_id', id_postulant).eq('vacancy_id', vacancyId);
+                              setSavingPreguntas(false);
+
+                              setSendingScreening(true);
+                              try {
+                                const res = await fetch('https://accelrh.daleautomations.com/webhook/send-screening-email', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    postulant_id: postulante.id_postulant,
+                                    full_name: postulante.full_name,
+                                    email: postulante.email,
+                                    vacancy_name: postulante.vacancy_name,
+                                    preguntas: validPreguntas,
+                                    sent_by_user_id: user?.id,
+                                  }),
+                                });
+                                const json = await res.json();
+                                if (json?.status === 'ok') {
+                                  trackAction('send_screening_email');
+                                  toast({ title: 'Email enviado', description: `Se mandó a ${postulante.email}` });
+                                  loadData();
+                                } else {
+                                  toast({ title: 'No se pudo enviar', description: json?.message || 'Error desconocido', variant: 'destructive' });
+                                }
+                              } catch (e: any) {
+                                toast({ title: 'Error', description: e?.message || 'Falló el envío', variant: 'destructive' });
+                              } finally {
+                                setSendingScreening(false);
+                              }
+                            }}
+                          >
+                            {sendingScreening
+                              ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Enviando...</>
+                              : <><Send className="h-3 w-3 mr-1" /> Enviar por email</>}
+                          </Button>
+                        )}
+
+                        {/* Estado: último envío + respuesta */}
+                        {postulante?.screening_sent_at && (
+                          <span className="text-xs text-muted-foreground">
+                            📧 Enviado {formatDate(postulante.screening_sent_at)}
+                            {postulante.screening_received_at && (
+                              <span className="ml-2 text-green-700 font-medium">· ✓ Respondió {formatDate(postulante.screening_received_at)}</span>
+                            )}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </CollapsibleContent>
                 </div>
@@ -804,26 +1286,47 @@ export default function PostulantDetail() {
               </div>
             )}
 
-            {/* CV Links */}
-            <div className="flex flex-wrap gap-2">
-              {!isCliente && cvUrl && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={cvUrl} target="_blank" rel="noopener noreferrer"><FileText className="h-4 w-4 mr-2" /> Ver CV</a>
-                </Button>
-              )}
-              {isCliente && (
-                clienteCvUrl ? (
+            {/* CV Links - solo selectora/manager (cliente lo ve en la columna izquierda bajo sus comentarios) */}
+            {!isCliente && (
+              <div className="flex flex-wrap gap-2">
+                {cvUrl && (
                   <Button variant="outline" size="sm" asChild>
-                    <a href={clienteCvUrl} target="_blank" rel="noopener noreferrer"><FileText className="h-4 w-4 mr-2" /> Ver CV Anonimizado</a>
+                    <a href={cvUrl} target="_blank" rel="noopener noreferrer">
+                      <FileText className="h-4 w-4 mr-2" />
+                      {isPhantom ? 'Ver perfil de LinkedIn' : 'Ver CV'}
+                    </a>
                   </Button>
-                ) : (
-                  <span className="text-sm text-muted-foreground">CV no disponible</span>
-                )
-              )}
-              {postulante.report_file_name && (
-                <Button variant="outline" size="sm"><FileText className="h-4 w-4 mr-2" /> Reporte: {postulante.report_file_name}</Button>
-              )}
-            </div>
+                )}
+                {isPhantom && !linkedinUrl && canEdit && (
+                  editingLinkedin ? (
+                    <div className="flex items-center gap-2 w-full">
+                      <Input
+                        autoFocus
+                        className="h-8 text-sm flex-1"
+                        placeholder="https://www.linkedin.com/in/..."
+                        value={linkedinInput}
+                        onChange={e => setLinkedinInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSaveLinkedin(); if (e.key === 'Escape') { setEditingLinkedin(false); setLinkedinInput(''); } }}
+                      />
+                      <Button size="sm" variant="default" onClick={handleSaveLinkedin} disabled={savingLinkedin}>
+                        {savingLinkedin ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setEditingLinkedin(false); setLinkedinInput(''); }}>Cancelar</Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => { setEditingLinkedin(true); setLinkedinInput(''); }}>
+                      <ExternalLink className="h-4 w-4 mr-2" /> Agregar URL de LinkedIn
+                    </Button>
+                  )
+                )}
+                {isPhantom && !linkedinUrl && !canEdit && (
+                  <span className="text-xs text-muted-foreground italic">Perfil de LinkedIn no disponible</span>
+                )}
+                {postulante.report_file_name && (
+                  <Button variant="outline" size="sm"><FileText className="h-4 w-4 mr-2" /> Reporte: {postulante.report_file_name}</Button>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <div className="bg-card rounded-lg border p-10 text-center">
@@ -874,6 +1377,149 @@ export default function PostulantDetail() {
           )}
         </DialogContent>
       </Dialog>
+
+      <CopyToVacancyDialog
+        postulant={copyDialogOpen ? postulante : null}
+        open={copyDialogOpen}
+        onClose={() => setCopyDialogOpen(false)}
+      />
     </div>
+  );
+}
+
+// =====================================================================
+// InformeSection: muestra el informe del candidato en vista selectora/manager
+// =====================================================================
+function InformeSection({ postulante, profiles, onChange }: { postulante: Postulante; profiles: UserProfile[]; onChange: () => void }) {
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [requestingChanges, setRequestingChanges] = useState(false);
+  const { role, user, profile: authProfile } = useAuth();
+  const { toast } = useToast();
+  const status = postulante.informe_status;
+  const reviewer = postulante.informe_reviewed_by ? profiles.find(p => p.id === postulante.informe_reviewed_by) : null;
+  const canEdit = role === 'selectora' || role === 'manager';
+  const isFinal = status === 'approved' || status === 'rejected';
+
+  const statusBadge = () => {
+    if (status === 'approved') return <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]"><CheckCircle className="h-3 w-3 mr-1" />Aprobado por Manager</Badge>;
+    if (status === 'rejected') return <Badge className="bg-red-100 text-red-800 border-red-300 text-[10px]"><XCircle className="h-3 w-3 mr-1" />Rechazado por Manager</Badge>;
+    if (status === 'pending_review') return <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px]"><AlertCircle className="h-3 w-3 mr-1" />En revisión</Badge>;
+    return <Badge variant="outline" className="text-[10px]">Sin informe</Badge>;
+  };
+
+  const handleRequestChanges = async () => {
+    const wasApproved = status === 'approved';
+    const lines = [
+      'Esto va a:',
+      wasApproved ? '• Ocultar el candidato del cliente' : '• Reabrir el proceso del candidato',
+      '• Volver el informe a "En revisión por Manager"',
+      '• Enviar notificación al manager',
+      '',
+      'Después vas a poder editar el informe y re-enviarlo.',
+      '',
+      '¿Continuar?',
+    ].join('\n');
+    if (!confirm(lines)) return;
+    setRequestingChanges(true);
+    try {
+      const { error } = await (sb as any).from('postulantes').update({
+        informe_status: 'pending_review',
+        mostrar_cliente: false,
+        etapa: 'En revisión por Manager',
+      }).eq('id_postulant', postulante.id_postulant);
+      if (error) throw error;
+
+      if (user) {
+        const actorName = authProfile?.full_name || user.email || 'Selectora';
+        await createNotifications({
+          actorName,
+          postulantId: postulante.id_postulant,
+          postulantName: postulante.full_name || postulante.id_postulant,
+          vacancyId: postulante.vacancy_id,
+          vacancyName: postulante.vacancy_name,
+          action: 'informe_re_review',
+          fieldsChanged: ['informe_status'],
+          currentUserId: user.id,
+        });
+        // Email a managers
+        fetch('https://accelrh.daleautomations.com/webhook/notify-manager-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'informe_re_review',
+            postulant_id: postulante.id_postulant,
+            postulant_name: postulante.full_name || postulante.id_postulant,
+            vacancy_id: postulante.vacancy_id,
+            vacancy_name: postulante.vacancy_name,
+            actor_name: actorName,
+          }),
+        }).catch(() => {});
+      }
+      toast({ title: 'Cambios solicitados', description: 'El candidato volvió a revisión. Editá el informe y re-enviá al manager.' });
+      onChange();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message, variant: 'destructive' });
+    } finally {
+      setRequestingChanges(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="bg-card rounded-lg border p-4 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Informe</h3>
+          {statusBadge()}
+        </div>
+
+        {postulante.informe_selectora ? (
+          <div className="border rounded-md p-3 bg-muted/20">
+            <SafeHtml html={postulante.informe_selectora} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">No hay informe creado todavía. La selectora puede crearlo activando el toggle "Cliente" en la tabla.</p>
+        )}
+
+        {(status === 'approved' || status === 'rejected') && reviewer && (
+          <div className="text-xs text-muted-foreground">
+            Revisado por <span className="font-medium">{reviewer.full_name}</span> — {formatDate(postulante.informe_reviewed_at)}
+            {status === 'rejected' && postulante.informe_rejection_reason && (
+              <div className="mt-1 pt-1 border-t border-border/50">
+                <span className="uppercase tracking-wide text-[10px]">Motivo: </span>
+                <span>{postulante.informe_rejection_reason}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {canEdit && (
+          <div className="flex justify-end gap-2 flex-wrap">
+            {/* Pedir cambios: en cualquier informe ya revisado (aprobado o rechazado) */}
+            {(status === 'approved' || status === 'rejected') && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-amber-300 text-amber-700 hover:bg-amber-50"
+                onClick={handleRequestChanges}
+                disabled={requestingChanges}
+              >
+                {requestingChanges ? 'Enviando...' : 'Pedir cambios'}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditorOpen(true)} disabled={isFinal && role === 'selectora'}>
+              {isFinal ? 'Ver informe' : (postulante.informe_selectora ? 'Editar informe' : 'Crear informe')}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <InformeDialog
+        postulant={editorOpen ? postulante : null}
+        profiles={profiles}
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        onSubmitted={onChange}
+      />
+    </>
   );
 }

@@ -17,6 +17,14 @@ export interface Vacante {
     contactados: number;
     fuentes: Record<string, number>;
   } | null;
+  job_description: string | null;
+  publicar_portal?: boolean | null;
+  area?: string | null;
+  modalidad?: string | null;
+  ubicacion?: string | null;
+  tipo_contrato?: string | null;
+  reopened_at?: string | null;
+  screening_questions?: string[] | null;
 }
 
 export interface Postulante {
@@ -47,8 +55,47 @@ export interface Postulante {
   report_file_name: string | null;
   anonymized_file_name: string | null;
   anonymized_file_url: string | null;
+  mostrar_cliente: boolean | null;
+  assigned_to_cliente_at: string | null;
+  cliente_estado: 'pendiente' | 'aceptado' | 'rechazado' | null;
+  cliente_estado_at: string | null;
+  prescore_status: 'match' | 'no_match' | 'queued' | 'processing' | 'pending' | 'error' | null;
+  prescore_reason: string | null;
+  prescore_at: string | null;
+  prescore_model: string | null;
+  // Flujo de aprobación de informes (selectora → manager → cliente)
+  informe_selectora: string | null;             // HTML rich-text
+  informe_status: 'pending_review' | 'approved' | 'rejected' | null;
+  informe_submitted_at: string | null;
+  informe_reviewed_by: string | null;           // user_profiles.id (uuid)
+  informe_reviewed_at: string | null;
+  informe_rejection_reason: string | null;
+  // Quién envió la versión actual del informe (no necesariamente selectora_id, que
+  // es la dueña permanente del candidato). Se setea al hacer "Enviar al manager".
+  informe_submitted_by: string | null;
+  // Si este postulante es copia de otro, apunta al original.
+  original_postulant_id: string | null;
+  // Screening por email (Preguntas Sugeridas enviadas + respuesta recibida)
+  screening_sent_at: string | null;
+  screening_received_at: string | null;
+  screening_sent_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface RubricaSuggestion {
+  id: string;
+  rubrica_id: number | null;
+  vacancy_id: string;
+  vacancy_name: string | null;
+  cliente_id: string | null;
+  cliente_name: string | null;
+  cliente_email: string | null;
+  suggestion: string;
+  status: 'open' | 'applied' | 'dismissed';
+  manager_response: string | null;
+  created_at: string;
+  resolved_at: string | null;
 }
 
 export interface CvScore {
@@ -85,6 +132,10 @@ export interface UserProfile {
   role: 'manager' | 'selectora' | 'cliente';
   created_at: string;
   updated_at: string;
+  preferences?: {
+    action_counts?: Record<string, number>;
+    last_action_at?: string;
+  } | null;
 }
 
 export interface VacancyAssignment {
@@ -137,6 +188,91 @@ export function parseRubricJson(json: RubricaCriterio[] | RubricaData): RubricaD
 
 export type UserRole = 'manager' | 'selectora' | 'cliente';
 
+/**
+ * Histórico de iteraciones del informe de un candidato.
+ * Cada vez que la selectora "Envía al manager" se crea una fila con version_number creciente.
+ * Cuando el manager actúa (aprueba/pide cambios/rechaza) updatea esa fila con decision + feedback.
+ * Al volver a enviar (post-cambios) se crea una nueva fila con version_number + 1.
+ */
+export interface InformeFeedback {
+  id: string;
+  postulant_id: string;
+  vacancy_id: string;
+  version_number: number;
+  submitted_by: string;
+  submitted_by_name: string | null;
+  submitted_at: string;
+  informe_html_snapshot: string | null;
+  reviewed_by: string | null;
+  reviewed_by_name: string | null;
+  reviewed_at: string | null;
+  decision: 'approved' | 'changes_requested' | 'rejected' | null;
+  feedback: string | null;
+  acknowledged_by_submitter_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Hilo de mensajes manager ↔ cliente sobre un postulante específico.
+ * El manager elige por mensaje si publica al cliente o queda interno.
+ * Read receipts: cuando alguien abre el detalle, su `read_by_*_at` se actualiza.
+ */
+export interface PostulantMessage {
+  id: string;
+  postulant_id: string;
+  vacancy_id: string;
+  author_id: string;
+  author_role: UserRole;
+  author_name: string | null;
+  visible_to_client: boolean;
+  content: string;
+  read_by_client_at: string | null;
+  read_by_team_at: string | null;
+  read_by_team_user_id: string | null;
+  read_by_team_user_name: string | null;
+  created_at: string;
+  deleted_at: string | null;
+}
+
+// Sesión del Wizard "Accel GPT" — cliente arma una búsqueda en 4 fases
+// con gemma4:26b. Se confirma → email a managers; se aprueba → vacante real.
+export type ClientJdSessionStatus =
+  | 'active'
+  | 'confirmed'
+  | 'abandoned'
+  | 'approved'
+  | 'requires_commercial';
+
+export interface ClientJdHistoryEntry {
+  role: 'user' | 'assistant';
+  content: string;
+  ts: string;
+}
+
+export interface ClientJdSession {
+  id: string;
+  user_id: string;
+  status: ClientJdSessionStatus;
+  phase: 1 | 2 | 3 | 4;
+  exchange_count: number;
+  history: ClientJdHistoryEntry[];
+  proposed_role_title: string | null;
+  proposed_summary: string | null;
+  jd_draft: string | null;
+  jd_final: string | null;
+  rubrica_draft: RubricaData | null;
+  rubrica_final: RubricaData | null;
+  guion_draft: string[] | null;
+  guion_final: string[] | null;
+  confirmed_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  approval_note: string | null;
+  created_vacancy_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export const ETAPAS = [
   'Nuevo',
   'Evaluado',
@@ -144,10 +280,13 @@ export const ETAPAS = [
   'Preguntas screening',
   'Coordinando entrevista selectora',
   'Entrevista agendada',
+  'En revisión por Manager',
   'Enviado a cliente',
+  'Aceptado por Cliente',
   'Descartado',
   'Rechazado por cliente',
   'Rechazado por Selector/a',
+  'Rechazado por Manager',
 ] as const;
 
 export type Etapa = typeof ETAPAS[number];

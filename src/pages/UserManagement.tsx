@@ -93,25 +93,34 @@ export default function UserManagement() {
         loadData();
       }
     } else {
-      // Create user via Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: formEmail,
-        password: formPassword,
-        options: { data: { full_name: formName } },
-      });
-      if (error) {
-        toast({ title: 'Error al crear usuario', description: error.message, variant: 'destructive' });
-      } else {
-        // Update the profile role (trigger should create it)
-        if (data.user) {
-          // Wait a bit for the trigger
-          setTimeout(async () => {
-            await sb.from('user_profiles').update({ role: formRole, full_name: formName }).eq('id', data.user!.id);
-            loadData();
-          }, 1000);
+      // Create user via Edge Function (admin-create-user).
+      // El frontend ya NO usa signUp directo: la función serverside
+      // crea con email_confirm=true (puede loguear al toque) y hace
+      // upsert atómico del profile. Si falla, rollback automático.
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-create-user', {
+          body: {
+            email: formEmail.trim(),
+            password: formPassword,
+            full_name: formName.trim(),
+            role: formRole,
+          },
+        });
+        if (error) {
+          // Supabase functions.invoke devuelve error con context para non-2xx
+          const ctxResp = (error as any).context?.response;
+          let serverMsg = '';
+          if (ctxResp && typeof ctxResp.json === 'function') {
+            try { const j = await ctxResp.json(); serverMsg = j?.error || ''; } catch { /* ignore */ }
+          }
+          throw new Error(serverMsg || error.message || 'Error invocando function');
         }
-        toast({ title: 'Usuario creado' });
+        if (!data?.ok) throw new Error(data?.error || 'Respuesta inválida');
+        toast({ title: 'Usuario creado', description: `${formName} ya puede loguearse con el email/contraseña.` });
         setModalOpen(false);
+        loadData();
+      } catch (e: any) {
+        toast({ title: 'Error al crear usuario', description: e?.message || 'Error desconocido', variant: 'destructive' });
       }
     }
     setSubmitting(false);

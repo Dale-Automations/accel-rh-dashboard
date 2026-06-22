@@ -12,7 +12,7 @@ services:
       - n8n_default
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.accelrh-app.rule=Host(`accelrhapp.daleautomations.com`)"
+      - "traefik.http.routers.accelrh-app.rule=Host(`accelrhapp.daleautomations.com`) || Host(`accelerate.accel-rh.com`)"
       - "traefik.http.routers.accelrh-app.entrypoints=websecure"
       - "traefik.http.routers.accelrh-app.tls.certresolver=letsencrypt"
       - "traefik.http.services.accelrh-app.loadbalancer.server.port=80"

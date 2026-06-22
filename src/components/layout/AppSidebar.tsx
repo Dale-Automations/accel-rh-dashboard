@@ -1,4 +1,4 @@
-import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck, Archive, ClipboardList, Receipt, Wand2, Target, MessageSquare } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.png';
@@ -23,19 +23,32 @@ export function AppSidebar() {
     { title: 'Vacantes', url: '/vacantes', icon: Briefcase },
   ];
 
+  if (role === 'cliente') {
+    menuItems.push({ title: 'Armar Vacante con IA', url: '/armar-vacante', icon: Wand2 });
+  }
+
+  if (role === 'selectora') {
+    menuItems.push({ title: 'Mis Informes', url: '/mis-informes', icon: ClipboardList });
+  }
+
   if (role !== 'cliente') {
     menuItems.push({ title: 'Rúbricas', url: '/rubricas', icon: ClipboardCheck });
+    menuItems.push({ title: 'Solicitudes de Clientes', url: '/jd-sessions', icon: ClipboardList });
+    menuItems.push({ title: 'Contacto LinkedIn', url: '/hunting/inbox', icon: MessageSquare });
+    menuItems.push({ title: 'Archivados', url: '/archivados', icon: Archive });
   }
 
   if (role === 'manager') {
+    menuItems.push({ title: 'Solicitudes de Headhunting', url: '/headhunting', icon: Target });
+    menuItems.push({ title: 'Informes', url: '/informes', icon: ClipboardList });
     menuItems.push({ title: 'Usuarios', url: '/usuarios', icon: Users });
+    menuItems.push({ title: 'Facturación', url: '/facturacion', icon: Receipt });
   }
 
   return (
     <Sidebar className="border-r-0">
-      <div className="flex h-14 items-center gap-3 px-4 border-b border-sidebar-border">
-        <img src={logo} alt="AccelRH" className="h-8 w-8" />
-        <span className="font-bold text-lg text-sidebar-foreground tracking-tight">AccelRH</span>
+      <div className="flex h-16 items-center justify-center px-4 border-b border-sidebar-border">
+        <img src={logo} alt="AccelRH" className="h-12 w-auto object-contain" />
       </div>
       <SidebarContent className="pt-2">
         <SidebarGroup>

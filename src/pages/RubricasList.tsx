@@ -26,7 +26,8 @@ export default function RubricasList() {
 
   useEffect(() => {
     loadData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, user?.id]);
 
   const loadData = async () => {
     setLoading(true);
@@ -36,8 +37,27 @@ export default function RubricasList() {
         fetchAll<Rubrica>('rubricas'),
       ]);
 
-      // Only active vacancies
-      const activeVacs = vacs.filter(v => v.status === 'Activa');
+      // Para rol cliente, solo mostrar vacantes asignadas vía vacancy_assignments
+      let allowedVacancyIds: Set<string> | null = null;
+      if (role === 'cliente' && user?.id) {
+        try {
+          const { data: assigns } = await sb
+            .from('vacancy_assignments')
+            .select('vacancy_id')
+            .eq('user_id', user.id)
+            .eq('role', 'cliente');
+          allowedVacancyIds = new Set((assigns || []).map((a: any) => a.vacancy_id));
+        } catch (e) {
+          console.error('Error cargando vacancy_assignments:', e);
+          allowedVacancyIds = new Set();
+        }
+      }
+
+      // Only active vacancies + (cliente only) asignadas
+      const activeVacs = vacs.filter(v =>
+        v.status === 'Activa' &&
+        (allowedVacancyIds === null || allowedVacancyIds.has(v.vacancy_id))
+      );
       activeVacs.sort((a, b) => a.vacancy_name.localeCompare(b.vacancy_name));
 
       setVacantes(activeVacs);

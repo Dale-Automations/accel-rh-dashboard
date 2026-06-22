@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabaseExternal as supabase } from '@/lib/supabaseExternal';
 import { fetchAll } from '@/lib/supabaseFetchAll';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,15 +10,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Briefcase, Users, CheckCircle, Clock, Phone, BarChart3, Search } from 'lucide-react';
+import { Briefcase, Users, CheckCircle, Clock, Phone, BarChart3, Search, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { NewVacancyDialog } from '@/components/NewVacancyDialog';
 import type { Vacante, Postulante, UserProfile, VacancyAssignment } from '@/types/database';
+import { formatDate } from '@/lib/formatters';
 
 const sb = supabase as any;
 
-export default function Dashboard() {
+export default function VacanciesIndex() {
   const { role, user } = useAuth();
   const navigate = useNavigate();
   const [vacantes, setVacantes] = useState<Vacante[]>([]);
@@ -26,8 +29,19 @@ export default function Dashboard() {
   const [assignments, setAssignments] = useState<VacancyAssignment[]>([]);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('Activa');
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'Activa');
+  const [newVacancyOpen, setNewVacancyOpen] = useState(searchParams.get('action') === 'create');
+
+  // Sincronizar con cambios de URL (cuando el asistente navega con ?q=)
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q !== null && q !== searchQuery) setSearchQuery(q);
+    const s = searchParams.get('status');
+    if (s && s !== statusFilter) setStatusFilter(s);
+    if (searchParams.get('action') === 'create') setNewVacancyOpen(true);
+  }, [searchParams]);
 
   useEffect(() => {
     loadData();
@@ -37,10 +51,13 @@ export default function Dashboard() {
     setLoading(true);
     try {
       // Fetch assignments for the current user if not manager
-      // Fetch core data
+      // Fetch core data — solo columnas usadas por Dashboard (egress saver).
+      // Evitar SELECT * para no traer notes/informe_selectora/comments_*/screening_responses,
+      // que pueden sumar varios MB por candidato y con 17k+ filas explota egress.
+      const POST_COLS = 'id_postulant,vacancy_id,vacancy_name,full_name,source,salary_pretended,scoring_status,prescore_status,etapa,contacted,mostrar_cliente,cliente_estado,created_at';
       const [vacs, posts, profs] = await Promise.all([
         fetchAll<Vacante>('vacantes'),
-        fetchAll<Postulante>('postulantes'),
+        fetchAll<Postulante>('postulantes', undefined, POST_COLS),
         fetchAll<UserProfile>('user_profiles'),
       ]);
 
@@ -63,6 +80,19 @@ export default function Dashboard() {
         filteredVacs = vacs.filter(v => assignedVacancyIds!.includes(v.vacancy_id));
         filteredPosts = posts.filter(p => assignedVacancyIds!.includes(p.vacancy_id));
       }
+      // Cliente: solo ve postulantes con mostrar_cliente=true y que no estén descartados internamente.
+      // 'Rechazado por cliente' SÍ se muestra (el cliente debe poder ver lo que rechazó).
+      // Debe alinearse con DISCARDED_FOR_CLIENTE en VacancyDetail.tsx para que los contadores cuadren con la lista.
+      if (role === 'cliente') {
+        const DISCARDED_FOR_CLIENTE = new Set(['Descartado', 'Rechazado por Selector/a', 'Rechazado por Manager']);
+        filteredPosts = filteredPosts.filter((p: any) =>
+          p.mostrar_cliente === true && !DISCARDED_FOR_CLIENTE.has(p.etapa || '')
+        );
+      }
+      // Stats del dashboard solo cuentan postulantes en vacantes Activas
+      // (los de cerradas viven en /archivados, no en el resumen general)
+      const activeVacIds = new Set(filteredVacs.filter(v => v.status === 'Activa').map(v => v.vacancy_id));
+      filteredPosts = filteredPosts.filter(p => activeVacIds.has(p.vacancy_id));
 
       // Sort: active first, then by created_at desc
       filteredVacs.sort((a, b) => {
@@ -123,12 +153,13 @@ export default function Dashboard() {
       .join(', ');
   };
 
-  // Chart data for cliente
+  // Chart data for cliente: agrupar por estado del cliente (Pendiente/Aceptado/Rechazado)
   const etapaChartData = role === 'cliente'
     ? Object.entries(
         postulantes.reduce<Record<string, number>>((acc, p) => {
-          const e = p.etapa || 'Sin etapa';
-          acc[e] = (acc[e] || 0) + 1;
+          const raw = ((p as any).cliente_estado || 'pendiente') as string;
+          const label = raw.charAt(0).toUpperCase() + raw.slice(1);
+          acc[label] = (acc[label] || 0) + 1;
           return acc;
         }, {})
       ).map(([name, value]) => ({ name, value }))
@@ -145,11 +176,30 @@ export default function Dashboard() {
     );
   }
 
+  const nextAction = searchParams.get('next');
+  const nextLabel = nextAction === 'add' ? 'agregar un candidato'
+    : nextAction === 'bulk' ? 'hacer carga masiva de CVs'
+    : nextAction === 'score' ? 'evaluar candidatos con IA'
+    : null;
+
   return (
     <div className="space-y-6">
+      {nextLabel && (
+        <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-sm text-foreground">
+            <span className="font-medium">Elegí una vacante</span> para {nextLabel}.
+          </p>
+          <Button size="sm" variant="ghost" onClick={() => navigate('/vacantes')}>Cancelar</Button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
+          {role === 'manager' && (
+            <Button onClick={() => setNewVacancyOpen(true)} className="shrink-0">
+              <Plus className="h-4 w-4 mr-2" /> Nueva vacante
+            </Button>
+          )}
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -169,6 +219,11 @@ export default function Dashboard() {
           </Select>
         </div>
       </div>
+
+      <NewVacancyDialog
+        open={newVacancyOpen}
+        onOpenChange={setNewVacancyOpen}
+      />
 
       {/* KPI Cards */}
       {role === 'cliente' ? (
@@ -250,6 +305,7 @@ export default function Dashboard() {
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Vacante</TableHead>
               <TableHead className="font-semibold">Estado</TableHead>
+              {statusFilter !== 'Activa' && <TableHead className="font-semibold">Fecha cierre</TableHead>}
               <TableHead className="font-semibold text-center">Postulantes</TableHead>
               <TableHead className="font-semibold text-center">Evaluados</TableHead>
               {role !== 'cliente' && <TableHead className="font-semibold">Selector/a(s)</TableHead>}
@@ -266,7 +322,7 @@ export default function Dashboard() {
               }
               if (filteredVacs.length === 0) return (
                 <TableRow>
-                  <TableCell colSpan={role !== 'cliente' ? 5 : 4} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={(role !== 'cliente' ? 5 : 4) + (statusFilter !== 'Activa' ? 1 : 0)} className="text-center text-muted-foreground py-10">
                     {q.length >= 2 ? 'Sin resultados' : 'No hay vacantes disponibles'}
                   </TableCell>
                 </TableRow>
@@ -277,7 +333,11 @@ export default function Dashboard() {
                   <TableRow
                     key={v.vacancy_id}
                     className="cursor-pointer hover:bg-muted/30 transition-colors"
-                    onClick={() => navigate(`/vacantes/${v.vacancy_id}`)}
+                    onClick={() => {
+                      const next = searchParams.get('next');
+                      const suffix = next ? `?action=${next}` : '';
+                      navigate(`/vacantes/${v.vacancy_id}${suffix}`);
+                    }}
                   >
                     <TableCell className="font-medium text-foreground">{v.vacancy_name}</TableCell>
                     <TableCell>
@@ -290,6 +350,7 @@ export default function Dashboard() {
                         {v.status}
                       </Badge>
                     </TableCell>
+                    {statusFilter !== 'Activa' && <TableCell className="text-sm text-muted-foreground">{(v as any).closed_at ? formatDate((v as any).closed_at) : '—'}</TableCell>}
                     <TableCell className="text-center">{stats.total}</TableCell>
                     <TableCell className="text-center">{stats.evaluados} / {stats.total}</TableCell>
                     {role !== 'cliente' && <TableCell className="text-sm text-muted-foreground">{getSelectoras(v.vacancy_id) || '—'}</TableCell>}

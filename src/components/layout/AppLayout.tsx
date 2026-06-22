@@ -33,9 +33,12 @@ const roleBadgeClass: Record<string, string> = {
   cliente: 'bg-warning/10 text-warning border-warning/20',
 };
 
+import { useRouteTracking } from '@/hooks/useRouteTracking';
+
 export default function AppLayout() {
   const { session, profile, role, loading, user } = useAuth();
   const navigate = useNavigate();
+  useRouteTracking();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -140,9 +143,18 @@ export default function AppLayout() {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm">
                                 <span className="font-medium">{n.actor_name}</span>
-                                {' modificó '}
-                                <span className="font-medium">{n.fields_changed.join(', ')}</span>
-                                {' de '}
+                                {n.action === 'cliente_aceptado' && <> aceptó al candidato </>}
+                                {n.action === 'cliente_rechazado' && <> rechazó al candidato </>}
+                                {n.action === 'assigned_to_client' && <> te asignó al candidato </>}
+                                {n.action === 'informe_submitted' && <> envió un informe para revisión sobre </>}
+                                {n.action === 'informe_approved' && <> aprobó el informe de </>}
+                                {n.action === 'informe_rejected' && <> rechazó el informe de </>}
+                                {n.action === 'informe_re_review' && <> solicitó cambios sobre el informe ya aprobado de </>}
+                                {n.action === 'informe_changes_requested' && <> pidió cambios en tu informe de </>}
+                                {n.action === 'screening_reply' && <> respondió las consultas de screening — </>}
+                                {!['cliente_aceptado','cliente_rechazado','assigned_to_client','informe_submitted','informe_approved','informe_rejected','informe_re_review','informe_changes_requested','screening_reply'].includes(n.action) && (
+                                  <>{' modificó '}<span className="font-medium">{n.fields_changed.join(', ')}</span>{' de '}</>
+                                )}
                                 <span className="font-medium">{n.postulant_name}</span>
                               </p>
                               <p className="text-xs text-muted-foreground mt-0.5 truncate">{n.vacancy_name}</p>
