@@ -62,8 +62,8 @@ const personalize = (tpl: string, c: { nombre: string; vacancy_name: string; raz
 export default function HuntingInbox() {
   const { role, profile } = useAuth();
   const { toast } = useToast();
-  const isManager = role === 'manager';
-  const isTeam = role === 'manager' || role === 'selectora';
+  const isManager = role === 'manager' || role === 'enterprise' || role === 'super_admin';
+  const isTeam = role === 'manager' || role === 'selectora' || role === 'enterprise' || role === 'super_admin';
 
   const [tab, setTab] = useState<Tab>('compose');
   const [loading, setLoading] = useState(true);

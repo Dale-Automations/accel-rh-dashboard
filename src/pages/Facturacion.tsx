@@ -105,7 +105,7 @@ export default function Facturacion() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
 
-  if (role !== 'manager') return <Navigate to="/" replace />;
+  if ((role !== 'manager' && role !== 'enterprise' && role !== 'super_admin')) return <Navigate to="/" replace />;
 
   const loadInvoices = async () => {
     setLoading(true);

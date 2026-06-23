@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabaseExternal as supabase } from '@/lib/supabaseExternal';
-import type { UserProfile, UserRole } from '@/types/database';
+import type { UserProfile, UserRole, Organization } from '@/types/database';
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
   role: UserRole | null;
+  organization: Organization | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -24,11 +25,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = async (userId: string) => {
     const { data, error } = await (supabase as any)
       .from('user_profiles')
-      .select('*')
+      .select('*, organizations(*)')
       .eq('id', userId)
       .single();
     if (!error && data) {
       setProfile(data as UserProfile);
+    } else if (error) {
+      // Fallback para deployes pre-multi-tenant: si organizations no existe todavia,
+      // intentamos sin el join.
+      const { data: legacy } = await (supabase as any)
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (legacy) setProfile(legacy as UserProfile);
     }
   };
 
@@ -86,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         profile,
         role: profile?.role ?? null,
+        organization: profile?.organizations ?? null,
         loading,
         signIn,
         signOut,

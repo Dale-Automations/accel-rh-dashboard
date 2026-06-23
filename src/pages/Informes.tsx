@@ -32,11 +32,11 @@ export default function Informes() {
 
   // Solo manager
   useEffect(() => {
-    if (role && role !== 'manager') navigate('/');
+    if (role && (role !== 'manager' && role !== 'enterprise' && role !== 'super_admin')) navigate('/');
   }, [role, navigate]);
 
   const load = async () => {
-    if (role !== 'manager') return;
+    if ((role !== 'manager' && role !== 'enterprise' && role !== 'super_admin')) return;
     setLoading(true);
     try {
       const [postsRes, profsRes] = await Promise.all([

@@ -55,11 +55,11 @@ export default function HuntingRequestsIndex() {
 
   // Gate: manager-only (el hunting se dispara/aprueba solo desde manager)
   useEffect(() => {
-    if (role && role !== 'manager') navigate('/');
+    if (role && role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') navigate('/');
   }, [role, navigate]);
 
   useEffect(() => {
-    if (role !== 'manager') return;
+    if (role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') return;
     sb.from('hunting_accounts')
       .select('account_id, display_name, status, sent_today, daily_cap')
       .eq('status', 'active')
@@ -106,7 +106,7 @@ export default function HuntingRequestsIndex() {
   };
 
   useEffect(() => {
-    if (role !== 'manager') return;
+    if (role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') return;
     loadData();
   }, [role, loadData]);
 

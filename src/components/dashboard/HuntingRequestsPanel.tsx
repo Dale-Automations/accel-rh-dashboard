@@ -37,7 +37,7 @@ export default function HuntingRequestsPanel({ role, asPage = false }: Props) {
   }, []);
 
   useEffect(() => {
-    if (role !== 'manager') return;
+    if (role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') return;
     load();
     // Realtime: salta en el dashboard apenas una selectora solicita.
     const ch = sb
@@ -47,7 +47,7 @@ export default function HuntingRequestsPanel({ role, asPage = false }: Props) {
     return () => { sb.removeChannel(ch); };
   }, [role, load]);
 
-  if (role !== 'manager') return null;
+  if (role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') return null;
   // En el dashboard, no metemos un card vacío: solo aparece cuando hay pendientes.
   if (!asPage && (loading || rows.length === 0)) return null;
 

@@ -125,17 +125,40 @@ export interface ScoreDetalle {
   puntaje_max: number;
 }
 
+export type UserRoleStrict = 'super_admin' | 'enterprise' | 'manager' | 'selectora' | 'cliente';
+
+export interface Organization {
+  id: string;
+  slug: string;
+  display_name: string;
+  status: 'active' | 'suspended' | 'demo' | 'expired' | 'archived';
+  is_demo: boolean;
+  demo_expires_at: string | null;
+  drive_root_folder_id: string | null;
+  default_gemini_threshold: number;
+  daily_openai_cap: number;
+  created_by: string | null;
+  created_at: string;
+  // demo extras
+  demo_source?: string | null;
+  demo_created_by?: string | null;
+  demo_credit_used?: number;
+  demo_credit_cap?: number;
+}
+
 export interface UserProfile {
   id: string;
   email: string | null;
   full_name: string | null;
-  role: 'manager' | 'selectora' | 'cliente';
+  role: UserRoleStrict;
+  organization_id: string;
   created_at: string;
   updated_at: string;
   preferences?: {
     action_counts?: Record<string, number>;
     last_action_at?: string;
   } | null;
+  organizations?: Organization | null;
 }
 
 export interface VacancyAssignment {
@@ -186,7 +209,7 @@ export function parseRubricJson(json: RubricaCriterio[] | RubricaData): RubricaD
   return json;
 }
 
-export type UserRole = 'manager' | 'selectora' | 'cliente';
+export type UserRole = UserRoleStrict;
 
 /**
  * Histórico de iteraciones del informe de un candidato.

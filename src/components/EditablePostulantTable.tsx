@@ -156,8 +156,8 @@ export default function EditablePostulantTable({
     return profiles.find(p => p.id === id)?.full_name || '—';
   };
 
-  const canEdit = (p: Postulante) =>
-    role === 'manager' || role === 'selectora';
+  const canEdit = (_p: Postulante) =>
+    role === 'manager' || role === 'selectora' || role === 'enterprise' || role === 'super_admin';
 
   const [generatingCv, setGeneratingCv] = useState<Set<string>>(new Set());
   const [informeDialogPostulantId, setInformeDialogPostulantId] = useState<string | null>(null);
@@ -239,7 +239,7 @@ export default function EditablePostulantTable({
   const isCliente = role === 'cliente';
   const allSelectoras = profiles.filter(p => p.role === 'selectora');
   // Manager ve a todas las selectoras del sistema; selectoras ven solo a las asignadas a esta vacante
-  const selectoras = role === 'manager'
+  const selectoras = (role === 'manager' || role === 'enterprise' || role === 'super_admin')
     ? allSelectoras
     : (vacancyAssignedSelectoraIds && vacancyAssignedSelectoraIds.length > 0
         ? allSelectoras.filter(s => vacancyAssignedSelectoraIds.includes(s.id))
@@ -310,9 +310,9 @@ export default function EditablePostulantTable({
                 <TableHead className="w-16 text-center" title="Mostrar al cliente (genera CV anonimizado)">Cliente</TableHead>
                 <SortableHead col="contact_status" className="min-w-[160px]">Estado Contacto</SortableHead>
                 <TableHead className="min-w-[180px]">Coment. Selector/a</TableHead>
-                {role === 'manager' && <TableHead className="min-w-[180px]">Coment. Manager</TableHead>}
+                {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && <TableHead className="min-w-[180px]">Coment. Manager</TableHead>}
                 <TableHead className="min-w-[160px]">Screening</TableHead>
-                {role === 'manager' && <TableHead className="w-10"></TableHead>}
+                {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && <TableHead className="w-10"></TableHead>}
               </>
             )}
           </TableRow>
@@ -673,7 +673,7 @@ export default function EditablePostulantTable({
                       </TableCell>
 
                       {/* Comments Manager - editable text (manager only) */}
-                      {role === 'manager' && (
+                      {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && (
                         <TableCell>
                           <EditableTextCell
                             value={p.comments_manager || ''}
@@ -693,7 +693,7 @@ export default function EditablePostulantTable({
                     </>
                   )}
                   {/* Delete button - manager only */}
-                  {role === 'manager' && (
+                  {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && (
                     <TableCell className="text-center">
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-red-500" onClick={async (e) => {
                         e.stopPropagation();

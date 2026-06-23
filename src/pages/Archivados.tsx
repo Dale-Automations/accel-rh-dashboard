@@ -19,7 +19,7 @@ export default function Archivados() {
 
   // Solo selectoras y managers acceden
   useEffect(() => {
-    if (role && role !== 'manager' && role !== 'selectora') {
+    if (role && (role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') && role !== 'selectora') {
       navigate('/');
     }
   }, [role, navigate]);

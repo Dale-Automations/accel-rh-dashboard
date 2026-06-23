@@ -67,7 +67,7 @@ export default function VacanciesIndex() {
       try {
         const assignRes = await sb.from('vacancy_assignments').select('*');
         if (assignRes.data) assigns = assignRes.data as VacancyAssignment[];
-        if (role !== 'manager' && user) {
+        if ((role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') && user) {
           assignedVacancyIds = assigns.filter((a: VacancyAssignment) => a.user_id === user.id).map((a: VacancyAssignment) => a.vacancy_id);
         }
       } catch {
@@ -195,7 +195,7 @@ export default function VacanciesIndex() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <div className="flex gap-3 flex-wrap">
-          {role === 'manager' && (
+          {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && (
             <Button onClick={() => setNewVacancyOpen(true)} className="shrink-0">
               <Plus className="h-4 w-4 mr-2" /> Nueva vacante
             </Button>

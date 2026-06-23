@@ -164,7 +164,7 @@ export default function PostulantDetail() {
     const post = postRes.data as Postulante;
     setPostulante(post);
     const allProfiles = (profRes.data || []) as UserProfile[];
-    setSelectoras(allProfiles.filter(p => p.role === 'selectora' || p.role === 'manager'));
+    setSelectoras(allProfiles.filter(p => p.role === 'selectora' || p.role === 'manager' || p.role === 'enterprise' || p.role === 'super_admin'));
     const scoreData = (scoreRes.data as CvScore) || null;
     setScore(scoreData);
     setEditPreguntas(scoreData?.preguntas_sugeridas || []);
@@ -212,7 +212,7 @@ export default function PostulantDetail() {
     }).catch(() => {});
   }, [vacancyId]);
 
-  const canEdit = role === 'manager' || role === 'selectora';
+  const canEdit = role === 'manager' || role === 'selectora' || role === 'enterprise' || role === 'super_admin';
   const isCliente = role === 'cliente';
 
   // Auto-buscar CV en Drive para cualquier candidato cuyo `notes` no apunte a un archivo /file/d/.
@@ -288,7 +288,7 @@ export default function PostulantDetail() {
     if (!postulante) return;
     setSaving(true);
     const updates: Record<string, any> = {};
-    if (role === 'manager') {
+    if ((role === 'manager' || role === 'enterprise' || role === 'super_admin')) {
       updates.etapa = etapa;
       updates.contact_status = contactStatus;
       updates.salary_pretended = salaryPretended ? parseFloat(salaryPretended) : null;
@@ -837,7 +837,7 @@ export default function PostulantDetail() {
                 <MentionsPreview text={commentsSelectora} findMentions={findMentions} />
               </div>
 
-              {role === 'manager' && (
+              {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && (
                 <div>
                   <Label className="text-xs">Comentarios Manager <span className="text-muted-foreground font-normal">(mencioná con @ para notificar por email)</span></Label>
                   <Textarea value={commentsManager} onChange={e => setCommentsManager(e.target.value)} rows={4} placeholder="Ej: @Vicky cerrá entrevista con este perfil" />

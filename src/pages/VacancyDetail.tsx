@@ -727,17 +727,17 @@ export default function VacancyDetail() {
             {(role === 'manager' || role === 'selectora') && vacante.status === 'Activa' && (
               <HuntingCard vacancyId={vacancy_id!} vacancyName={vacante.vacancy_name} role={role} userId={user?.id} />
             )}
-            {role === 'manager' && vacante.status === 'Activa' && (
+            {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && vacante.status === 'Activa' && (
               <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCloseModalOpen(true)}>
                 <XCircle className="h-4 w-4 mr-2" /> Cerrar Vacante
               </Button>
             )}
-            {role === 'manager' && vacante.status === 'Cerrada' && (
+            {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && vacante.status === 'Cerrada' && (
               <Button variant="outline" size="sm" className="text-green-700 border-green-200 hover:bg-green-50" onClick={() => setReopenModalOpen(true)}>
                 <CheckCircle className="h-4 w-4 mr-2" /> Reabrir Vacante
               </Button>
             )}
-            {role === 'manager' && (
+            {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && (
               <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm"><UserPlus className="h-4 w-4 mr-2" /> Asignar Usuarios</Button>
@@ -1484,7 +1484,7 @@ export default function VacancyDetail() {
                               <span className="text-xs">{e}</span>
                             </label>
                           ))}
-                          {role === 'manager' && (
+                          {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && (
                             <div className="border-t mt-1 pt-1">
                               <div className="flex gap-1">
                                 <Input className="h-7 text-xs" placeholder="Nueva etapa..." value={newEtapaInput} onChange={e => setNewEtapaInput(e.target.value)} />

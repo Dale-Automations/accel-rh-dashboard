@@ -26,7 +26,7 @@ export function VacanciesMissingClientPanel({ role }: { role: string | null }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (role !== 'manager') { setLoading(false); return; }
+    if (role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {

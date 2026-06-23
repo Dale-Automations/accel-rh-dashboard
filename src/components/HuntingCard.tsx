@@ -66,8 +66,8 @@ export default function HuntingCard({ vacancyId, vacancyName, role, userId }: Pr
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const isManager = role === 'manager';
-  const isTeam = role === 'manager' || role === 'selectora';
+  const isManager = role === 'manager' || role === 'enterprise' || role === 'super_admin';
+  const isTeam = role === 'manager' || role === 'selectora' || role === 'enterprise' || role === 'super_admin';
 
   const loadRequests = useCallback(async () => {
     const { data, error } = await sb
@@ -257,7 +257,7 @@ export default function HuntingCard({ vacancyId, vacancyName, role, userId }: Pr
         </div>
         <div className="px-4 pt-3 space-y-2">
           {requestDialog}
-          {role === 'manager' && <HuntingUsageBadge className="w-full justify-center" />}
+          {isManager && <HuntingUsageBadge className="w-full justify-center" />}
         </div>
         <div className="px-4 py-3 space-y-3 max-h-[60vh] overflow-y-auto">
           {!loading && requests.length === 0 && (

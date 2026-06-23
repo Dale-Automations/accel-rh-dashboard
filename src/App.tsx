@@ -29,6 +29,10 @@ const JdSessionDetail = lazy(() => import("./pages/JdSessionDetail"));
 const HuntingRequestsIndex = lazy(() => import("./pages/HuntingRequestsIndex"));
 const HuntingInbox = lazy(() => import("./pages/HuntingInbox"));
 const MisInformes = lazy(() => import("./pages/MisInformes"));
+const AdminOrganizations = lazy(() => import("./pages/AdminOrganizations"));
+const AdminOrgNew = lazy(() => import("./pages/AdminOrgNew"));
+const AdminOrgDetail = lazy(() => import("./pages/AdminOrgDetail"));
+const MiOrganizacion = lazy(() => import("./pages/MiOrganizacion"));
 
 const queryClient = new QueryClient();
 
@@ -124,6 +128,38 @@ const App = () => {
                 element={
                   <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
                     <MisInformes />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin/orgs"
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+                    <AdminOrganizations />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin/orgs/new"
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+                    <AdminOrgNew />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin/orgs/:id"
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+                    <AdminOrgDetail />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/mi-organizacion"
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+                    <MiOrganizacion />
                   </Suspense>
                 }
               />

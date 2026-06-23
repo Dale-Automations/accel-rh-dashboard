@@ -43,12 +43,12 @@ export default function MisInformes() {
 
   // Gate: solo team
   useEffect(() => {
-    if (role && role !== 'manager' && role !== 'selectora') navigate('/');
+    if (role && (role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') && role !== 'selectora') navigate('/');
   }, [role, navigate]);
 
   // Manager: redirigir a la página clásica /informes (esta vista es para selectora)
   useEffect(() => {
-    if (role === 'manager') navigate('/informes');
+    if ((role === 'manager' || role === 'enterprise' || role === 'super_admin')) navigate('/informes');
   }, [role, navigate]);
 
   const load = async () => {

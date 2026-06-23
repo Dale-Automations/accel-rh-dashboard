@@ -1,6 +1,7 @@
-import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck, Archive, ClipboardList, Receipt, Wand2, Target, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck, Archive, ClipboardList, Receipt, Wand2, Target, MessageSquare, Building2, Globe2 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
+import { isSuperAdmin, isEnterprise, isManager, isCliente, isSelectora, roleLabel } from '@/lib/roles';
 import logo from '@/assets/logo.png';
 import {
   Sidebar,
@@ -23,26 +24,34 @@ export function AppSidebar() {
     { title: 'Vacantes', url: '/vacantes', icon: Briefcase },
   ];
 
-  if (role === 'cliente') {
+  if (isCliente(role)) {
     menuItems.push({ title: 'Armar Vacante con IA', url: '/armar-vacante', icon: Wand2 });
   }
 
-  if (role === 'selectora') {
+  if (isSelectora(role)) {
     menuItems.push({ title: 'Mis Informes', url: '/mis-informes', icon: ClipboardList });
   }
 
-  if (role !== 'cliente') {
+  if (!isCliente(role)) {
     menuItems.push({ title: 'Rúbricas', url: '/rubricas', icon: ClipboardCheck });
     menuItems.push({ title: 'Solicitudes de Clientes', url: '/jd-sessions', icon: ClipboardList });
     menuItems.push({ title: 'Contacto LinkedIn', url: '/hunting/inbox', icon: MessageSquare });
     menuItems.push({ title: 'Archivados', url: '/archivados', icon: Archive });
   }
 
-  if (role === 'manager') {
+  if (isManager(role) || isEnterprise(role) || isSuperAdmin(role)) {
     menuItems.push({ title: 'Solicitudes de Headhunting', url: '/headhunting', icon: Target });
     menuItems.push({ title: 'Informes', url: '/informes', icon: ClipboardList });
     menuItems.push({ title: 'Usuarios', url: '/usuarios', icon: Users });
     menuItems.push({ title: 'Facturación', url: '/facturacion', icon: Receipt });
+  }
+
+  if (isEnterprise(role)) {
+    menuItems.push({ title: 'Mi Organización', url: '/mi-organizacion', icon: Building2 });
+  }
+
+  if (isSuperAdmin(role)) {
+    menuItems.push({ title: 'Organizaciones', url: '/admin/orgs', icon: Globe2 });
   }
 
   return (
@@ -79,7 +88,7 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex flex-col gap-2">
           <div className="text-sm text-sidebar-foreground truncate">{profile?.full_name}</div>
-          <div className="text-xs text-sidebar-muted capitalize">{role}</div>
+          <div className="text-xs text-sidebar-muted">{roleLabel(role)}</div>
           <Button
             variant="ghost"
             size="sm"

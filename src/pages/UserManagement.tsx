@@ -15,10 +15,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Briefcase, Loader2 } from 'lucide-react';
 import { formatDate } from '@/lib/formatters';
 import type { UserProfile, Vacante, VacancyAssignment } from '@/types/database';
+import { canManageUsers, rolesAssignableBy } from '@/lib/roles';
 
 const sb = supabase as any;
 
 const roleBadge: Record<string, string> = {
+  super_admin: 'bg-rose-50 text-rose-700 border-rose-200',
+  enterprise: 'bg-amber-50 text-amber-700 border-amber-200',
   manager: 'bg-blue-50 text-blue-700 border-blue-200',
   selectora: 'bg-purple-50 text-purple-700 border-purple-200',
   cliente: 'bg-orange-50 text-orange-700 border-orange-200',
@@ -43,7 +46,8 @@ export default function UserManagement() {
   const [formRole, setFormRole] = useState<string>('selectora');
   const [submitting, setSubmitting] = useState(false);
 
-  if (role !== 'manager') return <Navigate to="/" replace />;
+  if (!canManageUsers(role)) return <Navigate to="/" replace />;
+  const assignableRoles = rolesAssignableBy(role);
 
   useEffect(() => {
     loadData();
@@ -230,9 +234,11 @@ export default function UserManagement() {
               <Select value={formRole} onValueChange={setFormRole}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="selectora">Selector/a</SelectItem>
-                  <SelectItem value="cliente">Cliente</SelectItem>
+                  {assignableRoles.map(r => (
+                    <SelectItem key={r} value={r}>
+                      {r === 'enterprise' ? 'Enterprise' : r === 'manager' ? 'Manager' : r === 'selectora' ? 'Selector/a' : 'Cliente'}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
