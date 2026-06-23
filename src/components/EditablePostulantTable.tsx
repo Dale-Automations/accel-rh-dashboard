@@ -513,9 +513,40 @@ export default function EditablePostulantTable({
                         )}
                       </TableCell>
 
-                      {/* Pre-eval (IA local Gemma) */}
+                      {/* Pre-eval (IA local Gemma) + cascada en curso */}
                       <TableCell className="text-center">
-                        {p.prescore_status === 'queued' ? (
+                        {p.eval_pipeline_status === 'scoring_openai' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-[10px] cursor-help gap-1">
+                                <Loader2 className="h-3 w-3 animate-spin" />OpenAI
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent><p className="text-xs">Evaluando con OpenAI...</p></TooltipContent>
+                          </Tooltip>
+                        ) : p.eval_pipeline_status === 'waiting_gemini' ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-[10px] gap-1">
+                            <ListOrdered className="h-3 w-3" />Cola Gemini
+                          </Badge>
+                        ) : p.eval_pipeline_status === 'scoring_gemini' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-300 text-[10px] cursor-help gap-1">
+                                <Loader2 className="h-3 w-3 animate-spin" />Gemini
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent><p className="text-xs">Refinando con Gemini...</p></TooltipContent>
+                          </Tooltip>
+                        ) : p.eval_pipeline_status === 'error_openai' || p.eval_pipeline_status === 'error_gemini' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 text-[10px] cursor-help gap-1">
+                                <AlertTriangle className="h-3 w-3" />Error
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm"><p className="text-xs">{p.eval_pipeline_last_error || (p.eval_pipeline_status === 'error_openai' ? 'Fallo OpenAI' : 'Fallo Gemini')}</p></TooltipContent>
+                          </Tooltip>
+                        ) : p.prescore_status === 'queued' ? (
                           <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-300 text-[10px] gap-1">
                             <ListOrdered className="h-3 w-3" />En fila
                           </Badge>

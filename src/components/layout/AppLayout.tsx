@@ -34,6 +34,7 @@ const roleBadgeClass: Record<string, string> = {
 };
 
 import { useRouteTracking } from '@/hooks/useRouteTracking';
+import { DemoExpiryBanner } from '@/components/DemoExpiryBanner';
 
 export default function AppLayout() {
   const { session, profile, role, loading, user } = useAuth();
@@ -98,6 +99,7 @@ export default function AppLayout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
+          <DemoExpiryBanner />
           <header className="h-14 border-b bg-card flex items-center justify-between px-4 shrink-0">
             <div className="flex items-center gap-2">
               <SidebarTrigger />

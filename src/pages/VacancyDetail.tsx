@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { KpiCard } from '@/components/KpiCard';
+import { CascadePanel } from '@/components/CascadePanel';
 import { formatDate } from '@/lib/formatters';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -895,6 +896,9 @@ export default function VacancyDetail() {
                 </p>
               </div>
             </div>
+
+            {/* F2: Cascada automatica (solo demos) */}
+            <CascadePanel vacante={vacante} onChange={loadData} canEdit={role === 'super_admin' || role === 'enterprise' || role === 'manager'} />
             </div>
             )}
           </div>

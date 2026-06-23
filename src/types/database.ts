@@ -25,6 +25,11 @@ export interface Vacante {
   tipo_contrato?: string | null;
   reopened_at?: string | null;
   screening_questions?: string[] | null;
+  // F2: cascada de evaluacion (solo activa para vacantes de orgs demo)
+  gemini_threshold?: number | null;
+  auto_cascade_enabled?: boolean | null;
+  daily_openai_cap?: number | null;
+  organization_id?: string;
 }
 
 export interface Postulante {
@@ -79,6 +84,11 @@ export interface Postulante {
   screening_sent_at: string | null;
   screening_received_at: string | null;
   screening_sent_by: string | null;
+  // F2: cascada
+  eval_pipeline_status?: EvalPipelineStatus | null;
+  eval_pipeline_last_error?: string | null;
+  eval_pipeline_updated_at?: string | null;
+  organization_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -126,6 +136,15 @@ export interface ScoreDetalle {
 }
 
 export type UserRoleStrict = 'super_admin' | 'enterprise' | 'manager' | 'selectora' | 'cliente';
+
+export type EvalPipelineStatus =
+  | 'idle'
+  | 'scoring_openai'
+  | 'waiting_gemini'
+  | 'scoring_gemini'
+  | 'done'
+  | 'error_openai'
+  | 'error_gemini';
 
 export interface Organization {
   id: string;
