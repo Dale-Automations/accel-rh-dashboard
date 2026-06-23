@@ -3,7 +3,7 @@ import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/formatters';
-import logoSrc from '@/assets/logo.png';
+import logoSrc from '@/assets/logo-dark.png';
 import html2canvas from 'html2canvas';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Postulante, CvScore, ScoreDetalle } from '@/types/database';
