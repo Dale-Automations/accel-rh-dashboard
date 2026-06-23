@@ -20,7 +20,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Progress } from '@/components/ui/progress';
 import { formatDate, formatDateTime, formatCurrency, getScoreColor, getEtapaColor, extractLinks } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, XCircle, AlertCircle, ChevronDown, FileText, Tag, Download, ArrowLeft, Sparkles, Brain, Loader2, AlertTriangle, Copy, Send } from 'lucide-react';
+import { Mail, Phone, ExternalLink, CalendarIcon, Save, CheckCircle, XCircle, AlertCircle, ChevronDown, FileText, Tag, Download, ArrowLeft, Sparkles, Brain, Loader2, AlertTriangle, Copy, Send, Upload } from 'lucide-react';
 import PostulantReportPdf from '@/components/PostulantReportPdf';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend, PieChart, Pie, Cell, Tooltip as RechartsTooltip } from 'recharts';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
@@ -116,6 +116,9 @@ export default function PostulantDetail() {
   const [editingLinkedin, setEditingLinkedin] = useState(false);
   const [linkedinInput, setLinkedinInput] = useState('');
   const [savingLinkedin, setSavingLinkedin] = useState(false);
+  const [replaceCvOpen, setReplaceCvOpen] = useState(false);
+  const [replaceCvFile, setReplaceCvFile] = useState<File | null>(null);
+  const [replacingCv, setReplacingCv] = useState(false);
   const [hoveredRadarLabel, setHoveredRadarLabel] = useState<{
     text: string;
     x: number;
@@ -344,6 +347,62 @@ export default function PostulantDetail() {
     await sb.from('postulantes').update({ contacted: newVal, contact_status: newVal ? `Contactado el ${format(new Date(), 'dd/MM/yyyy')}` : '' }).eq('id_postulant', id_postulant);
     toast({ title: newVal ? 'Marcado como contactado' : 'Desmarcado' });
     loadData();
+  };
+
+  const handleReplaceCv = async () => {
+    if (!postulante || !replaceCvFile || !vacancyId) return;
+    if (replaceCvFile.size > 15 * 1024 * 1024) {
+      toast({ title: 'Archivo muy grande', description: 'Máximo 15 MB', variant: 'destructive' });
+      return;
+    }
+    setReplacingCv(true);
+    try {
+      const fileBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(((reader.result as string).split(',')[1]) || '');
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(replaceCvFile);
+      });
+      const fullFileName = replaceCvFile.name.endsWith('.pdf') || replaceCvFile.name.endsWith('.doc') || replaceCvFile.name.endsWith('.docx')
+        ? replaceCvFile.name
+        : `${replaceCvFile.name}.pdf`;
+      const res = await fetch('https://accelrh.daleautomations.com/webhook/upload-manual-cv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postulant_id: postulante.id_postulant,
+          vacancy_id: vacancyId,
+          file_name: fullFileName,
+          mime_type: replaceCvFile.type || 'application/pdf',
+          file_base64: fileBase64,
+        }),
+      });
+      const json = await res.json().catch(() => ({ status: 'error' }));
+      if (json?.status !== 'ok') {
+        toast({ title: 'No se pudo subir', description: json?.message || 'Error subiendo el CV', variant: 'destructive' });
+        setReplacingCv(false);
+        return;
+      }
+      const { error: updErr } = await sb.from('postulantes').update({
+        anonymized_file_url: null,
+        anonymized_file_name: null,
+        scoring_status: 'pending',
+        has_attachments: 'Yes',
+        updated_at: new Date().toISOString(),
+      }).eq('id_postulant', postulante.id_postulant);
+      if (updErr) {
+        toast({ title: 'CV subido pero falló el reset', description: updErr.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'CV reemplazado', description: 'El nuevo CV se subió. La IA va a re-evaluarlo en unos minutos.' });
+      }
+      setReplaceCvOpen(false);
+      setReplaceCvFile(null);
+      loadData();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Falló el upload', variant: 'destructive' });
+    } finally {
+      setReplacingCv(false);
+    }
   };
 
   const handleSaveLinkedin = async () => {
@@ -1325,6 +1384,11 @@ export default function PostulantDetail() {
                 {postulante.report_file_name && (
                   <Button variant="outline" size="sm"><FileText className="h-4 w-4 mr-2" /> Reporte: {postulante.report_file_name}</Button>
                 )}
+                {!isPhantom && canEdit && (
+                  <Button variant="outline" size="sm" onClick={() => { setReplaceCvFile(null); setReplaceCvOpen(true); }}>
+                    <Upload className="h-4 w-4 mr-2" /> {cvUrl ? 'Reemplazar CV' : 'Subir CV'}
+                  </Button>
+                )}
               </div>
             )}
           </>
@@ -1383,6 +1447,37 @@ export default function PostulantDetail() {
         open={copyDialogOpen}
         onClose={() => setCopyDialogOpen(false)}
       />
+
+      <Dialog open={replaceCvOpen} onOpenChange={(o) => { if (!replacingCv) { setReplaceCvOpen(o); if (!o) setReplaceCvFile(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{cvUrl ? 'Reemplazar CV' : 'Subir CV'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              El nuevo archivo reemplaza al actual en Drive y dispara una nueva evaluación de la IA. El informe escrito por la selectora se conserva.
+            </p>
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(e) => setReplaceCvFile(e.target.files?.[0] ?? null)}
+            />
+            {replaceCvFile && (
+              <p className="text-xs text-muted-foreground">
+                Listo: {replaceCvFile.name} ({(replaceCvFile.size / 1024).toFixed(0)} KB)
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" size="sm" onClick={() => { setReplaceCvOpen(false); setReplaceCvFile(null); }} disabled={replacingCv}>
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleReplaceCv} disabled={!replaceCvFile || replacingCv}>
+                {replacingCv ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo...</> : <><Upload className="h-4 w-4 mr-2" /> Subir</>}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
