@@ -35,10 +35,9 @@ export function AppSidebar() {
     { title: 'Vacantes', url: '/vacantes', icon: Briefcase },
   ];
 
-  // Wizard JD: ahora disponible para cualquier rol que arme una vacante.
-  if (isCliente(role) || isEnterprise(role) || isManager(role) || isSelectora(role)) {
-    menuItems.push({ title: 'Armar Vacante con IA', url: '/armar-vacante', icon: Wand2 });
-  }
+  // Nota: "Armar Vacante con IA" se accede ahora desde el Dashboard (card destacada
+  // + onboarding checklist), no como item del sidebar. La ruta /armar-vacante sigue
+  // funcionando para acceso directo.
 
   if (isSelectora(role)) {
     menuItems.push({ title: 'Mis Informes', url: '/mis-informes', icon: ClipboardList });

@@ -7,6 +7,7 @@ import HuntingRequestsPanel from '@/components/dashboard/HuntingRequestsPanel';
 import { PendingInformeChangesPanel } from '@/components/dashboard/PendingInformeChangesPanel';
 import { VacanciesMissingClientPanel } from '@/components/dashboard/VacanciesMissingClientPanel';
 import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
+import { WizardCallout } from '@/components/dashboard/WizardCallout';
 import { useState } from 'react';
 
 export default function Home() {
@@ -25,6 +26,9 @@ export default function Home() {
           ¿Qué querés hacer hoy?
         </p>
       </div>
+
+      {/* CTA destacado: armar vacante con IA (reemplaza el item del sidebar) */}
+      <WizardCallout />
 
       {/* Onboarding (solo enterprise/manager en orgs self-serve sin clientes externos) */}
       <OnboardingChecklist />
