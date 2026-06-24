@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck, Archive, ClipboardList, Receipt, Wand2, Target, MessageSquare, Building2, Globe2, Lock } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck, Archive, ClipboardList, Receipt, Wand2, Target, MessageSquare, Building2, Globe2, Lock, BookOpen } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSuperAdmin, isEnterprise, isManager, isCliente, isSelectora, roleLabel } from '@/lib/roles';
@@ -23,6 +23,7 @@ type MenuItem = {
   url: string;
   icon: typeof LayoutDashboard;
   premium?: boolean;
+  external?: boolean;
 };
 
 export function AppSidebar() {
@@ -75,6 +76,13 @@ export function AppSidebar() {
     menuItems.push({ title: 'Mi Organización', url: '/mi-organizacion', icon: Building2 });
   }
 
+  // Guía rápida (PDF estático). Visible para todos los roles operativos para que
+  // cualquiera del equipo pueda abrirla en una pestaña nueva. No la mostramos a
+  // super_admin (su rol no es "user final" del producto).
+  if (!isSuperAdmin(role)) {
+    menuItems.push({ title: 'Guía rápida', url: '/guia-rapida.pdf', icon: BookOpen, external: true });
+  }
+
   if (isSuperAdmin(role)) {
     menuItems.push({ title: 'Organizaciones', url: '/admin/orgs', icon: Globe2 });
   }
@@ -106,22 +114,34 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === '/'}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      onClick={(e: React.MouseEvent) => handlePremiumClick(e, item)}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                      {item.premium && (
-                        <span className="ml-auto inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-400">
-                          <Lock className="h-3 w-3" />
-                          Premium
-                        </span>
-                      )}
-                    </NavLink>
+                    {item.external ? (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </a>
+                    ) : (
+                      <NavLink
+                        to={item.url}
+                        end={item.url === '/'}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        onClick={(e: React.MouseEvent) => handlePremiumClick(e, item)}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                        {item.premium && (
+                          <span className="ml-auto inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-400">
+                            <Lock className="h-3 w-3" />
+                            Premium
+                          </span>
+                        )}
+                      </NavLink>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

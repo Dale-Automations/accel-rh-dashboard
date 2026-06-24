@@ -27,9 +27,6 @@ export default function Home() {
         </p>
       </div>
 
-      {/* CTA destacado: armar vacante con IA (reemplaza el item del sidebar) */}
-      <WizardCallout />
-
       {/* Onboarding (solo enterprise/manager en orgs self-serve sin clientes externos) */}
       <OnboardingChecklist />
 
@@ -45,13 +42,16 @@ export default function Home() {
       {/* Solicitudes de Headhunting pendientes (manager-only, se oculta si no hay) */}
       <HuntingRequestsPanel role={role} />
 
-      {/* Asistente IA */}
+      {/* Asistente general (conversacional para navegar / preguntar / buscar) */}
       <Assistant
         role={role}
         userId={profile?.id}
         userName={profile?.full_name || ''}
         onOpenHelp={() => setHelpOpen(true)}
       />
+
+      {/* CTA destacado del wizard "Armar Vacante con IA" (queda debajo del asistente general) */}
+      <WizardCallout />
 
       {/* Accesos rápidos */}
       <QuickActions role={role} onOpenHelp={() => setHelpOpen(true)} />
