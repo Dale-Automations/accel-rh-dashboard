@@ -28,7 +28,7 @@ const roleBadge: Record<string, string> = {
 };
 
 export default function UserManagement() {
-  const { role } = useAuth();
+  const { role, profile } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [vacantes, setVacantes] = useState<Vacante[]>([]);
@@ -108,6 +108,7 @@ export default function UserManagement() {
             password: formPassword,
             full_name: formName.trim(),
             role: formRole,
+            organization_id: profile?.organization_id,
           },
         });
         if (error) {
