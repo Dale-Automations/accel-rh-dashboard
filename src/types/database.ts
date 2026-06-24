@@ -140,6 +140,13 @@ export type UserRoleStrict = 'super_admin' | 'enterprise' | 'manager' | 'selecto
 export type SupportTicketCategory = 'no_entiendo' | 'error' | 'sugerencia' | 'otro';
 export type SupportTicketStatus = 'open' | 'in_progress' | 'waiting_user' | 'closed';
 
+export interface SupportTicketAttachment {
+  path: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
 export interface SupportTicket {
   id: string;
   organization_id: string;
@@ -152,6 +159,7 @@ export interface SupportTicket {
   created_at: string;
   updated_at: string;
   closed_at: string | null;
+  attachments: SupportTicketAttachment[];
   // joins opcionales
   organizations?: Pick<Organization, 'id' | 'slug' | 'display_name'> | null;
   creator?: Pick<UserProfile, 'id' | 'full_name' | 'email' | 'role'> | null;
@@ -165,6 +173,7 @@ export interface SupportTicketMessage {
   author_role: string;
   body: string;
   created_at: string;
+  attachments: SupportTicketAttachment[];
   author?: Pick<UserProfile, 'id' | 'full_name' | 'email' | 'role'> | null;
 }
 

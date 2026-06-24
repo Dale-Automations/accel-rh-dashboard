@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, BookOpen, ArrowRight, AlertTriangle, Lightbulb, HelpCircle } from 'lucide-react';
 import type { SupportTicketCategory } from '@/types/database';
+import { AttachmentPicker } from '@/components/support/AttachmentList';
+import { isAllowedFile, uploadSupportFile, type SupportAttachment } from '@/lib/supportAttachments';
 
 const sb = supabase as any;
 
@@ -44,6 +46,7 @@ export function NewTicketDialog({ open, onOpenChange, onGoToFaq }: Props) {
   const [category, setCategory] = useState<SupportTicketCategory | ''>('');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const reset = () => {
@@ -51,7 +54,22 @@ export function NewTicketDialog({ open, onOpenChange, onGoToFaq }: Props) {
     setCategory('');
     setSubject('');
     setDescription('');
+    setFiles([]);
     setSubmitting(false);
+  };
+
+  const addFiles = (newFiles: File[]) => {
+    const valid: File[] = [];
+    const invalid: string[] = [];
+    for (const f of newFiles) {
+      const check = isAllowedFile(f);
+      if (check.ok) valid.push(f);
+      else invalid.push(check.reason);
+    }
+    if (invalid.length) {
+      toast({ title: 'Algunos archivos no se sumaron', description: invalid.join(' · '), variant: 'destructive' });
+    }
+    setFiles((prev) => [...prev, ...valid]);
   };
 
   const handleClose = (o: boolean) => {
@@ -97,7 +115,16 @@ export function NewTicketDialog({ open, onOpenChange, onGoToFaq }: Props) {
 
       if (terr || !ticket) throw new Error(terr?.message || 'No se pudo crear el ticket');
 
-      // 2. Insert primer mensaje del thread (espejo de la descripción)
+      // 2. Subir attachments al storage si hay
+      let uploaded: SupportAttachment[] = [];
+      if (files.length) {
+        uploaded = await Promise.all(files.map((f) => uploadSupportFile(f, 'ticket', user.id)));
+        if (uploaded.length) {
+          await sb.from('support_tickets').update({ attachments: uploaded }).eq('id', ticket.id);
+        }
+      }
+
+      // 3. Insert primer mensaje del thread (espejo de la descripción + mismos attachments)
       const { error: merr } = await sb
         .from('support_ticket_messages')
         .insert({
@@ -105,10 +132,27 @@ export function NewTicketDialog({ open, onOpenChange, onGoToFaq }: Props) {
           author_id: user.id,
           author_role: profile.role,
           body: description.trim(),
+          attachments: uploaded,
         });
       if (merr) throw new Error(merr.message);
 
-      // 3. Notificar al equipo de soporte via n8n
+      // 3. Resolver display_name/slug de la org. Si el join en profile no esta
+      //    populado (caches viejos), fetchear directo desde organizations.
+      let orgName = profile.organizations?.display_name || '';
+      let orgSlug = profile.organizations?.slug || '';
+      if (!orgName) {
+        const { data: org } = await sb
+          .from('organizations')
+          .select('display_name, slug')
+          .eq('id', profile.organization_id)
+          .maybeSingle();
+        if (org) {
+          orgName = org.display_name || '';
+          orgSlug = org.slug || '';
+        }
+      }
+
+      // 4. Notificar al equipo de soporte via n8n
       fetch('https://accelrh.daleautomations.com/webhook/support-ticket-notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,13 +164,14 @@ export function NewTicketDialog({ open, onOpenChange, onGoToFaq }: Props) {
           ticket_category: category,
           ticket_status: 'open',
           organization_id: profile.organization_id,
-          organization_name: profile.organizations?.display_name || '',
-          organization_slug: profile.organizations?.slug || '',
+          organization_name: orgName,
+          organization_slug: orgSlug,
           actor_user_id: user.id,
           actor_full_name: profile.full_name || user.email || '',
           actor_email: user.email || '',
           actor_role: profile.role,
           message_body: description.trim(),
+          attachments: uploaded,
         }),
       }).catch(() => { /* best-effort */ });
 
@@ -254,6 +299,13 @@ export function NewTicketDialog({ open, onOpenChange, onGoToFaq }: Props) {
               />
               <p className="text-[10px] text-muted-foreground mt-1">{description.length}/4000</p>
             </div>
+
+            <AttachmentPicker
+              pendingFiles={files}
+              onAdd={addFiles}
+              onRemove={(i) => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+              disabled={submitting}
+            />
 
             <div className="flex items-center justify-between gap-2">
               <Button variant="ghost" onClick={() => setStep(1)} disabled={submitting}>

@@ -17,6 +17,8 @@ import { formatDate } from '@/lib/formatters';
 import type {
   SupportTicket, SupportTicketMessage, SupportTicketStatus, SupportTicketCategory,
 } from '@/types/database';
+import { AttachmentList, AttachmentPicker } from '@/components/support/AttachmentList';
+import { isAllowedFile, uploadSupportFile, type SupportAttachment } from '@/lib/supportAttachments';
 
 const sb = supabase as any;
 
@@ -63,8 +65,23 @@ export default function SupportTicketDetail() {
   const [messages, setMessages] = useState<SupportTicketMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState('');
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const addReplyFiles = (newFiles: File[]) => {
+    const valid: File[] = [];
+    const invalid: string[] = [];
+    for (const f of newFiles) {
+      const check = isAllowedFile(f);
+      if (check.ok) valid.push(f);
+      else invalid.push(check.reason);
+    }
+    if (invalid.length) {
+      toast({ title: 'Algunos archivos no se sumaron', description: invalid.join(' · '), variant: 'destructive' });
+    }
+    setReplyFiles((prev) => [...prev, ...valid]);
+  };
 
   const isSupportTeam = isSupport(role) || isSuperAdmin(role);
   const canChangeStatus = isSupportTeam;
@@ -78,7 +95,7 @@ export default function SupportTicketDetail() {
         sb.from('support_tickets')
           .select(`
             id, organization_id, created_by, category, subject, description, status,
-            assigned_to, created_at, updated_at, closed_at,
+            assigned_to, created_at, updated_at, closed_at, attachments,
             organizations:organization_id(id, slug, display_name),
             creator:created_by(id, full_name, email, role),
             assignee:assigned_to(id, full_name, email)
@@ -87,7 +104,7 @@ export default function SupportTicketDetail() {
           .maybeSingle(),
         sb.from('support_ticket_messages')
           .select(`
-            id, ticket_id, author_id, author_role, body, created_at,
+            id, ticket_id, author_id, author_role, body, created_at, attachments,
             author:author_id(id, full_name, email, role)
           `)
           .eq('ticket_id', id)
@@ -112,14 +129,21 @@ export default function SupportTicketDetail() {
   const sendReply = async () => {
     if (!user || !profile || !ticket) return;
     const body = reply.trim();
-    if (!body) return;
+    if (!body && replyFiles.length === 0) return;
     setSending(true);
     try {
+      // Subir attachments primero
+      let uploaded: SupportAttachment[] = [];
+      if (replyFiles.length) {
+        uploaded = await Promise.all(replyFiles.map((f) => uploadSupportFile(f, 'message', user.id)));
+      }
+
       const { error: ierr } = await sb.from('support_ticket_messages').insert({
         ticket_id: ticket.id,
         author_id: user.id,
         author_role: profile.role,
-        body,
+        body: body || '(adjuntos)',
+        attachments: uploaded,
       });
       if (ierr) throw ierr;
 
@@ -150,10 +174,12 @@ export default function SupportTicketDetail() {
           ticket_created_by: ticket.created_by,
           ticket_created_by_email: (ticket as any).creator?.email || '',
           ticket_created_by_name: (ticket as any).creator?.full_name || '',
+          attachments: uploaded,
         }),
       }).catch(() => { /* best-effort */ });
 
       setReply('');
+      setReplyFiles([]);
       await load();
     } catch (err: any) {
       toast({ title: 'No se pudo enviar', description: err.message, variant: 'destructive' });
@@ -330,6 +356,11 @@ export default function SupportTicketDetail() {
                 }`}>
                   {m.body}
                 </div>
+                {Array.isArray((m as any).attachments) && (m as any).attachments.length > 0 && (
+                  <div className="mt-1.5">
+                    <AttachmentList attachments={(m as any).attachments} size="md" />
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -361,8 +392,14 @@ export default function SupportTicketDetail() {
                 placeholder={isSupportTeam ? 'Respondé al usuario…' : 'Escribí tu respuesta…'}
                 rows={4}
               />
+              <AttachmentPicker
+                pendingFiles={replyFiles}
+                onAdd={addReplyFiles}
+                onRemove={(i) => setReplyFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                disabled={sending}
+              />
               <div className="flex items-center justify-end">
-                <Button onClick={sendReply} disabled={!reply.trim() || sending}>
+                <Button onClick={sendReply} disabled={(!reply.trim() && replyFiles.length === 0) || sending}>
                   {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                   Enviar respuesta
                 </Button>
