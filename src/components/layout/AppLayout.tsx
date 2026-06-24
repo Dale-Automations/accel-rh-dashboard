@@ -137,7 +137,12 @@ export default function AppLayout() {
                           onClick={() => {
                             if (!n.read) markAsRead(n.id);
                             setNotifOpen(false);
-                            navigate(`/postulantes/${n.postulant_id}?vacancy_id=${n.vacancy_id}`);
+                            // Tickets de soporte reusan vacancy_id como ticket_id en la tabla notifications.
+                            if (n.action === 'ticket_created' || n.action === 'ticket_replied' || n.action === 'ticket_closed') {
+                              navigate(`/soporte/${n.vacancy_id}`);
+                            } else {
+                              navigate(`/postulantes/${n.postulant_id}?vacancy_id=${n.vacancy_id}`);
+                            }
                           }}
                         >
                           <div className="flex items-start gap-2">
@@ -153,11 +158,14 @@ export default function AppLayout() {
                                 {n.action === 'informe_rejected' && <> rechazó el informe de </>}
                                 {n.action === 'informe_re_review' && <> solicitó cambios sobre el informe ya aprobado de </>}
                                 {n.action === 'informe_changes_requested' && <> pidió cambios en tu informe de </>}
-                                {n.action === 'screening_reply' && <> respondió las consultas de screening — </>}
-                                {!['cliente_aceptado','cliente_rechazado','assigned_to_client','informe_submitted','informe_approved','informe_rejected','informe_re_review','informe_changes_requested','screening_reply'].includes(n.action) && (
+                                {n.action === 'screening_reply' && <> respondió las consultas de screening: </>}
+                                {n.action === 'ticket_created' && <> abrió un ticket de soporte: </>}
+                                {n.action === 'ticket_replied' && <> respondió en el ticket: </>}
+                                {n.action === 'ticket_closed' && <> cerró el ticket: </>}
+                                {!['cliente_aceptado','cliente_rechazado','assigned_to_client','informe_submitted','informe_approved','informe_rejected','informe_re_review','informe_changes_requested','screening_reply','ticket_created','ticket_replied','ticket_closed'].includes(n.action) && (
                                   <>{' modificó '}<span className="font-medium">{n.fields_changed.join(', ')}</span>{' de '}</>
                                 )}
-                                <span className="font-medium">{n.postulant_name}</span>
+                                <span className="font-medium">{n.postulant_name || n.vacancy_name}</span>
                               </p>
                               <p className="text-xs text-muted-foreground mt-0.5 truncate">{n.vacancy_name}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">

@@ -8,12 +8,18 @@ import { PendingInformeChangesPanel } from '@/components/dashboard/PendingInform
 import { VacanciesMissingClientPanel } from '@/components/dashboard/VacanciesMissingClientPanel';
 import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
 import { WizardCallout } from '@/components/dashboard/WizardCallout';
+import { isSupport } from '@/lib/roles';
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 
 export default function Home() {
   const { profile, role } = useAuth();
   const [helpOpen, setHelpOpen] = useState(false);
   const firstName = (profile?.full_name || '').split(/\s+/)[0] || '';
+
+  // El usuario 'support' (sistemas) no usa el dashboard del producto:
+  // su unica navegacion es /soporte. Redirigir.
+  if (isSupport(role)) return <Navigate to="/soporte" replace />;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">

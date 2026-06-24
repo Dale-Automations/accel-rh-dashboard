@@ -19,7 +19,7 @@ const corsHeaders = {
 };
 
 const ROLES_ENTERPRISE_CAN_CREATE = ['manager', 'selectora', 'cliente'] as const;
-const ROLES_SUPER_ADMIN_CAN_CREATE = ['enterprise', 'manager', 'selectora', 'cliente'] as const;
+const ROLES_SUPER_ADMIN_CAN_CREATE = ['enterprise', 'manager', 'selectora', 'cliente', 'support'] as const;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck, Archive, ClipboardList, Receipt, Wand2, Target, MessageSquare, Building2, Globe2, Lock, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, LogOut, ClipboardCheck, Archive, ClipboardList, Receipt, Wand2, Target, MessageSquare, Building2, Globe2, Lock, BookOpen, LifeBuoy } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
-import { isSuperAdmin, isEnterprise, isManager, isCliente, isSelectora, roleLabel } from '@/lib/roles';
+import { isSuperAdmin, isEnterprise, isManager, isCliente, isSelectora, isSupport, roleLabel } from '@/lib/roles';
 import { PremiumFeatureModal } from '@/components/PremiumFeatureModal';
 import logo from '@/assets/logo.png';
 import {
@@ -31,10 +31,15 @@ export function AppSidebar() {
   const [premiumOpen, setPremiumOpen] = useState(false);
   const [premiumFeature, setPremiumFeature] = useState<{ feature: string; title: string; description: string } | null>(null);
 
-  const menuItems: MenuItem[] = [
-    { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-    { title: 'Vacantes', url: '/vacantes', icon: Briefcase },
-  ];
+  // Para el rol 'support' el sidebar se reduce a "Soporte" + "Guia rapida".
+  // No accede a vacantes, candidatos, informes, facturacion, etc. (defensivo;
+  // las policies RLS tambien lo bloquean del lado servidor).
+  const menuItems: MenuItem[] = isSupport(role)
+    ? []
+    : [
+        { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+        { title: 'Vacantes', url: '/vacantes', icon: Briefcase },
+      ];
 
   // Nota: "Armar Vacante con IA" se accede ahora desde el Dashboard (card destacada
   // + onboarding checklist), no como item del sidebar. La ruta /armar-vacante sigue
@@ -44,7 +49,7 @@ export function AppSidebar() {
     menuItems.push({ title: 'Mis Informes', url: '/mis-informes', icon: ClipboardList });
   }
 
-  if (!isCliente(role)) {
+  if (!isCliente(role) && !isSupport(role)) {
     menuItems.push({ title: 'Rúbricas', url: '/rubricas', icon: ClipboardCheck });
 
     // "Solicitudes de Clientes" solo tiene sentido cuando la org atiende a clientes externos
@@ -75,6 +80,11 @@ export function AppSidebar() {
   if (isEnterprise(role)) {
     menuItems.push({ title: 'Mi Organización', url: '/mi-organizacion', icon: Building2 });
   }
+
+  // Soporte: tickets + FAQ + tutoriales. Visible para TODOS los roles operativos
+  // (cliente, selectora, manager, enterprise) y tambien para support (es su unica
+  // navegacion). Super_admin tambien lo ve para poder monitorear los tickets.
+  menuItems.push({ title: 'Soporte', url: '/soporte', icon: LifeBuoy });
 
   // Guía rápida (PDF estático). Visible para todos los roles operativos para que
   // cualquiera del equipo pueda abrirla en una pestaña nueva. No la mostramos a

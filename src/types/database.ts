@@ -135,7 +135,38 @@ export interface ScoreDetalle {
   puntaje_max: number;
 }
 
-export type UserRoleStrict = 'super_admin' | 'enterprise' | 'manager' | 'selectora' | 'cliente';
+export type UserRoleStrict = 'super_admin' | 'enterprise' | 'manager' | 'selectora' | 'cliente' | 'support';
+
+export type SupportTicketCategory = 'no_entiendo' | 'error' | 'sugerencia' | 'otro';
+export type SupportTicketStatus = 'open' | 'in_progress' | 'waiting_user' | 'closed';
+
+export interface SupportTicket {
+  id: string;
+  organization_id: string;
+  created_by: string;
+  category: SupportTicketCategory;
+  subject: string;
+  description: string;
+  status: SupportTicketStatus;
+  assigned_to: string | null;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  // joins opcionales
+  organizations?: Pick<Organization, 'id' | 'slug' | 'display_name'> | null;
+  creator?: Pick<UserProfile, 'id' | 'full_name' | 'email' | 'role'> | null;
+  assignee?: Pick<UserProfile, 'id' | 'full_name' | 'email'> | null;
+}
+
+export interface SupportTicketMessage {
+  id: string;
+  ticket_id: string;
+  author_id: string;
+  author_role: string;
+  body: string;
+  created_at: string;
+  author?: Pick<UserProfile, 'id' | 'full_name' | 'email' | 'role'> | null;
+}
 
 export type EvalPipelineStatus =
   | 'idle'

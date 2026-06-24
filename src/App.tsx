@@ -33,6 +33,8 @@ const AdminOrganizations = lazy(() => import("./pages/AdminOrganizations"));
 const AdminOrgNew = lazy(() => import("./pages/AdminOrgNew"));
 const AdminOrgDetail = lazy(() => import("./pages/AdminOrgDetail"));
 const MiOrganizacion = lazy(() => import("./pages/MiOrganizacion"));
+const Support = lazy(() => import("./pages/Support"));
+const SupportTicketDetail = lazy(() => import("./pages/SupportTicketDetail"));
 
 const queryClient = new QueryClient();
 
@@ -160,6 +162,22 @@ const App = () => {
                 element={
                   <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
                     <MiOrganizacion />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/soporte"
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+                    <Support />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/soporte/:id"
+                element={
+                  <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+                    <SupportTicketDetail />
                   </Suspense>
                 }
               />

@@ -20,6 +20,10 @@ export function isCliente(role: string | null | undefined): boolean {
   return role === 'cliente';
 }
 
+export function isSupport(role: string | null | undefined): boolean {
+  return role === 'support';
+}
+
 // Roles que ven la data del equipo (postulantes, vacancies, etc.) sin filtro de cliente.
 export function isTeamRole(role: string | null | undefined): boolean {
   return role === 'super_admin' || role === 'enterprise' || role === 'manager' || role === 'selectora';
@@ -36,7 +40,8 @@ export function canManageOrg(role: string | null | undefined): boolean {
 }
 
 // Roles que solo el super_admin puede asignar.
-export const ROLES_FOR_SUPER_ADMIN: UserRoleStrict[] = ['enterprise', 'manager', 'selectora', 'cliente'];
+// 'support' lo creamos rara vez (1 user accel@daleautomations.com); queda disponible.
+export const ROLES_FOR_SUPER_ADMIN: UserRoleStrict[] = ['enterprise', 'manager', 'selectora', 'cliente', 'support'];
 export const ROLES_FOR_ENTERPRISE_OR_MANAGER: UserRoleStrict[] = ['manager', 'selectora', 'cliente'];
 
 /**
@@ -66,6 +71,7 @@ export function roleLabel(role: string | null | undefined): string {
     case 'manager': return 'Manager';
     case 'selectora': return 'Selectora';
     case 'cliente': return 'Cliente';
+    case 'support': return 'Soporte';
     default: return role || '-';
   }
 }
