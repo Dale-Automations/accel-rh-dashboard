@@ -2,7 +2,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { readFileSync, existsSync } from "node:fs";
-import { componentTagger } from "lovable-tagger";
 
 const versionFile = path.resolve(__dirname, "public/version.json");
 const BUILD_VERSION = existsSync(versionFile)
@@ -21,7 +20,7 @@ export default defineConfig(({ mode }) => ({
   define: {
     __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

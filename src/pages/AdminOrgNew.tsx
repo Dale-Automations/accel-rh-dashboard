@@ -64,7 +64,7 @@ export default function AdminOrgNew() {
     setSubmitting(true);
     try {
       const authToken = session?.access_token;
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://qdlopcpjopvaprvnzxys.supabase.co'}/functions/v1/admin-create-organization`, {
+      const res = await fetch('https://qdlopcpjopvaprvnzxys.supabase.co/functions/v1/admin-create-organization', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({
