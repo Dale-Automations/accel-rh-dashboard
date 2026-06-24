@@ -12,10 +12,21 @@ services:
       - n8n_default
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.accelrh-app.rule=Host(`accelrhapp.daleautomations.com`) || Host(`accelerate.accel-rh.com`)"
+      # Router principal: dominio actual del producto
+      - "traefik.http.routers.accelrh-app.rule=Host(`accelerate.accel-rh.com`)"
       - "traefik.http.routers.accelrh-app.entrypoints=websecure"
       - "traefik.http.routers.accelrh-app.tls.certresolver=letsencrypt"
       - "traefik.http.services.accelrh-app.loadbalancer.server.port=80"
+      # Router legacy: redirige 301 el dominio viejo (lovable) al actual.
+      # Mantiene los bookmarks viejos funcionando y fuerza al browser a usar el dominio correcto.
+      - "traefik.http.routers.accelrh-app-legacy.rule=Host(`accelrhapp.daleautomations.com`)"
+      - "traefik.http.routers.accelrh-app-legacy.entrypoints=websecure"
+      - "traefik.http.routers.accelrh-app-legacy.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.accelrh-app-legacy.middlewares=accelrh-redirect"
+      - "traefik.http.routers.accelrh-app-legacy.service=accelrh-app"
+      - "traefik.http.middlewares.accelrh-redirect.redirectregex.regex=^https?://accelrhapp\\.daleautomations\\.com/(.*)"
+      - "traefik.http.middlewares.accelrh-redirect.redirectregex.replacement=https://accelerate.accel-rh.com/$${1}"
+      - "traefik.http.middlewares.accelrh-redirect.redirectregex.permanent=true"
 
 networks:
   n8n_default:
