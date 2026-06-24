@@ -60,10 +60,7 @@ export default function AdminOrgNew() {
       toast({ title: 'Faltan campos requeridos', variant: 'destructive' });
       return;
     }
-    if (isDemo && !transferVacancyId) {
-      toast({ title: 'Para demo debes elegir una vacancy a transferir', variant: 'destructive' });
-      return;
-    }
+    // transferVacancyId es opcional: si no se elige, el enterprise arma su propia vacancy adentro.
     setSubmitting(true);
     try {
       const authToken = session?.access_token;
@@ -76,7 +73,7 @@ export default function AdminOrgNew() {
           is_demo: isDemo,
           demo_expires_at: isDemo ? new Date(demoExpiresAt).toISOString() : undefined,
           demo_source: isDemo ? demoSource || undefined : undefined,
-          transfer_vacancy_id: isDemo ? transferVacancyId : undefined,
+          transfer_vacancy_id: isDemo && transferVacancyId ? transferVacancyId : undefined,
           owner_email: ownerEmail,
           owner_full_name: ownerFullName,
           owner_password: ownerPassword,
@@ -142,17 +139,18 @@ export default function AdminOrgNew() {
                   <Input value={demoSource} onChange={e => setDemoSource(e.target.value)} placeholder="vicky / nacho / texto libre" />
                 </div>
                 <div>
-                  <Label>Vacancy a transferir desde AccelRH *</Label>
-                  <Select value={transferVacancyId} onValueChange={setTransferVacancyId}>
-                    <SelectTrigger><SelectValue placeholder="Elegir vacancy" /></SelectTrigger>
+                  <Label>Vacancy a transferir desde AccelRH (opcional)</Label>
+                  <Select value={transferVacancyId || 'none'} onValueChange={(v) => setTransferVacancyId(v === 'none' ? '' : v)}>
+                    <SelectTrigger><SelectValue placeholder="Sin vacancy (el enterprise arma la suya)" /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Sin vacancy (el enterprise la crea adentro)</SelectItem>
                       {vacancies.map(v => (
                         <SelectItem key={v.vacancy_id} value={v.vacancy_id}>{v.vacancy_name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    La vacancy ya tiene que estar publicada en HiringRoom con la cuenta de AccelRH. Al transferirla, sale del dashboard de AccelRH y aparece en el del demo.
+                    Si quer&eacute;s arrancar el demo con una vacancy ya cargada (ya publicada en HR con la cuenta de AccelRH), eleg&iacute;la ac&aacute;. Si no, el enterprise crea su propia vacancy desde adentro del sistema.
                   </p>
                 </div>
               </div>

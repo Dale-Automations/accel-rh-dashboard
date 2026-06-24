@@ -93,9 +93,7 @@ Deno.serve(async (req: Request) => {
   if (owner_password.length < 6) {
     return jsonResponse({ error: 'owner_password minimo 6 caracteres' }, 400);
   }
-  if (is_demo && !transfer_vacancy_id) {
-    return jsonResponse({ error: 'is_demo=true requiere transfer_vacancy_id' }, 400);
-  }
+  // transfer_vacancy_id es opcional incluso para demos: el enterprise puede crear su vacancy adentro.
 
   const slug = requestedSlug ? slugify(requestedSlug) : slugify(display_name);
   if (!slug) {
