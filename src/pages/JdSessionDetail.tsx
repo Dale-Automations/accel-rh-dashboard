@@ -143,8 +143,12 @@ export default function JdSessionDetail() {
   const guion = session.guion_final || session.guion_draft || [];
   const history = Array.isArray(session.history) ? session.history : [];
 
-  const canDecide = session.status === 'confirmed';
-  const canReopenFromCommercial = session.status === 'requires_commercial';
+  // Solo manager/enterprise/super_admin pueden aprobar y abrir la vacante.
+  // La selectora puede crear la sesion pero queda esperando aprobacion del manager.
+  const canApprove = role === 'manager' || role === 'enterprise' || role === 'super_admin';
+  const canDecide = session.status === 'confirmed' && canApprove;
+  const canReopenFromCommercial = session.status === 'requires_commercial' && canApprove;
+  const isSelectoraWaitingApproval = session.status === 'confirmed' && role === 'selectora';
 
   return (
     <div className="max-w-5xl mx-auto py-4 space-y-4">
@@ -181,7 +185,22 @@ export default function JdSessionDetail() {
         </CardContent>
       </Card>
 
-      {/* Acciones de aprobación — sesión recién confirmada por el cliente */}
+      {/* Mensaje para selectora cuando la sesion esta esperando aprobacion */}
+      {isSelectoraWaitingApproval && (
+        <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="p-4 flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+            <div className="space-y-1 text-sm">
+              <div className="font-medium">Tu solicitud quedó pendiente de aprobación.</div>
+              <div className="text-muted-foreground">
+                Cuando un manager o enterprise apruebe esta búsqueda, la vacante se abre automáticamente y vas a recibir una notificación.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Acciones de aprobación — solo manager/enterprise/super_admin */}
       {canDecide && (
         <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/20">
           <CardContent className="p-4 space-y-3">

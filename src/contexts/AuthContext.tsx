@@ -9,6 +9,8 @@ interface AuthContextType {
   profile: UserProfile | null;
   role: UserRole | null;
   organization: Organization | null;
+  hasExternalClients: boolean;
+  refreshProfile: () => Promise<void>;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -89,6 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   };
 
+  const refreshProfile = async () => {
+    if (user?.id) await fetchProfile(user.id);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -97,6 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile,
         role: profile?.role ?? null,
         organization: profile?.organizations ?? null,
+        hasExternalClients: !!profile?.organizations?.has_external_clients,
+        refreshProfile,
         loading,
         signIn,
         signOut,

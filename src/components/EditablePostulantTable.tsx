@@ -141,8 +141,8 @@ export default function EditablePostulantTable({
 }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, profile: authProfile } = useAuth();
-  const { etapas: ETAPAS } = useEtapas();
+  const { user, profile: authProfile, hasExternalClients } = useAuth();
+  const { etapas: ETAPAS } = useEtapas({ filterClientStages: !hasExternalClients });
 
   const getScore = (id: string) => {
     // Pick the most recent score if multiple exist
@@ -307,7 +307,9 @@ export default function EditablePostulantTable({
                 <SortableHead col="status" className="min-w-[120px]">Estado</SortableHead>
                 <SortableHead col="salary" className="min-w-[110px]">Rem. Pret.</SortableHead>
                 <TableHead className="w-10 text-center" title="Marcar como contactado">✓</TableHead>
-                <TableHead className="w-16 text-center" title="Mostrar al cliente (genera CV anonimizado)">Cliente</TableHead>
+                {hasExternalClients && (
+                  <TableHead className="w-16 text-center" title="Mostrar al cliente (genera CV anonimizado)">Cliente</TableHead>
+                )}
                 <SortableHead col="contact_status" className="min-w-[160px]">Estado Contacto</SortableHead>
                 <TableHead className="min-w-[180px]">Coment. Selector/a</TableHead>
                 {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && <TableHead className="min-w-[180px]">Coment. Manager</TableHead>}
@@ -320,7 +322,7 @@ export default function EditablePostulantTable({
         <TableBody>
           {postulantes.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={15} className="text-center py-10 text-muted-foreground">Sin postulantes</TableCell>
+              <TableCell colSpan={hasExternalClients ? 15 : 14} className="text-center py-10 text-muted-foreground">Sin postulantes</TableCell>
             </TableRow>
           ) : (
             postulantes.map((p, idx) => {
@@ -670,20 +672,22 @@ export default function EditablePostulantTable({
                         )}
                       </TableCell>
 
-                      {/* Mostrar al cliente - checkbox + dispara generación CV */}
-                      <TableCell className="text-center">
-                        {generatingCv.has(p.id_postulant) ? (
-                          <Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" />
-                        ) : editable ? (
-                          <Checkbox
-                            checked={!!p.mostrar_cliente}
-                            onCheckedChange={c => handleMostrarCliente(p.id_postulant, !!c)}
-                            className="mx-auto"
-                          />
-                        ) : (
-                          p.mostrar_cliente ? <CheckCircle className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
+                      {/* Mostrar al cliente - checkbox + dispara generación CV (solo orgs con clientes externos) */}
+                      {hasExternalClients && (
+                        <TableCell className="text-center">
+                          {generatingCv.has(p.id_postulant) ? (
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" />
+                          ) : editable ? (
+                            <Checkbox
+                              checked={!!p.mostrar_cliente}
+                              onCheckedChange={c => handleMostrarCliente(p.id_postulant, !!c)}
+                              className="mx-auto"
+                            />
+                          ) : (
+                            p.mostrar_cliente ? <CheckCircle className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
 
                       {/* Contact Status - editable text */}
                       <TableCell>

@@ -28,7 +28,7 @@ const roleBadge: Record<string, string> = {
 };
 
 export default function UserManagement() {
-  const { role, profile } = useAuth();
+  const { role, profile, hasExternalClients } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [vacantes, setVacantes] = useState<Vacante[]>([]);
@@ -47,7 +47,8 @@ export default function UserManagement() {
   const [submitting, setSubmitting] = useState(false);
 
   if (!canManageUsers(role)) return <Navigate to="/" replace />;
-  const assignableRoles = rolesAssignableBy(role);
+  const assignableRoles = rolesAssignableBy(role, hasExternalClients);
+  const showRoleGuidance = !hasExternalClients && role === 'enterprise';
 
   useEffect(() => {
     loadData();
@@ -216,6 +217,19 @@ export default function UserManagement() {
         <DialogContent>
           <DialogHeader><DialogTitle>{editUser ? 'Editar Usuario' : 'Nuevo Usuario'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            {!editUser && showRoleGuidance && (
+              <div className="bg-violet-50 border border-violet-200 rounded-md p-3 text-xs space-y-1">
+                <div className="font-medium text-violet-900">¿Qué rol elegir?</div>
+                <p className="text-violet-900/80">
+                  Tu usuario enterprise tiene los mismos poderes que un manager dentro de tu organización.
+                  Te recomendamos crear usuarios <strong>manager</strong> y <strong>selectora</strong> separados para repartir la coordinación:
+                </p>
+                <ul className="list-disc pl-5 text-violet-900/80 space-y-0.5">
+                  <li><strong>Manager</strong>: aprueba informes y coordina búsquedas.</li>
+                  <li><strong>Selector/a</strong>: trabaja sobre los candidatos y escribe los informes.</li>
+                </ul>
+              </div>
+            )}
             <div>
               <Label>Nombre Completo</Label>
               <Input value={formName} onChange={e => setFormName(e.target.value)} />

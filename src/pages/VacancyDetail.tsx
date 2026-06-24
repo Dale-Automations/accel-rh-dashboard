@@ -23,6 +23,7 @@ import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider }
 import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
 import HuntingCard from '@/components/HuntingCard';
+import { EvaluarCandidatosButton } from '@/components/EvaluarCandidatosButton';
 import { useToast } from '@/hooks/use-toast';
 import type { Vacante, Postulante, CvScore, UserProfile, VacancyAssignment, Rubrica } from '@/types/database';
 import { useEtapas } from '@/hooks/useEtapas';
@@ -727,6 +728,17 @@ export default function VacancyDetail() {
             )}
             {(role === 'manager' || role === 'selectora') && vacante.status === 'Activa' && (
               <HuntingCard vacancyId={vacancy_id!} vacancyName={vacante.vacancy_name} role={role} userId={user?.id} />
+            )}
+            {(role === 'manager' || role === 'enterprise' || role === 'selectora' || role === 'super_admin') && vacante.status === 'Activa' && (
+              <EvaluarCandidatosButton
+                vacancyId={vacancy_id!}
+                vacancyName={vacante.vacancy_name}
+                geminiThreshold={vacante.gemini_threshold}
+                postulantes={postulantes}
+                scores={scores}
+                rubricaActive={!!activeRubric}
+                onTriggered={loadData}
+              />
             )}
             {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && vacante.status === 'Activa' && (
               <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCloseModalOpen(true)}>

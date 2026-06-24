@@ -1,11 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabaseExternal as supabase } from '@/lib/supabaseExternal';
 
 const sb = supabase as any;
 
 let cachedEtapas: string[] | null = null;
 
-export function useEtapas() {
+const CLIENT_STAGE_NAMES = ['Enviado a cliente', 'Aceptado por Cliente', 'Rechazado por cliente'];
+
+interface UseEtapasOptions {
+  /** Si true, oculta las etapas relacionadas al cliente (uso en orgs sin clientes externos). */
+  filterClientStages?: boolean;
+}
+
+export function useEtapas(options: UseEtapasOptions = {}) {
   const [etapas, setEtapas] = useState<string[]>(cachedEtapas || []);
   const [loading, setLoading] = useState(!cachedEtapas);
 
@@ -29,5 +36,10 @@ export function useEtapas() {
     await loadEtapas();
   };
 
-  return { etapas, loading, addEtapa, reload: loadEtapas };
+  const filteredEtapas = useMemo(
+    () => (options.filterClientStages ? etapas.filter(e => !CLIENT_STAGE_NAMES.includes(e)) : etapas),
+    [etapas, options.filterClientStages],
+  );
+
+  return { etapas: filteredEtapas, loading, addEtapa, reload: loadEtapas };
 }

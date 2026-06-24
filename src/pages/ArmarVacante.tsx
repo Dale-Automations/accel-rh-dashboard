@@ -73,9 +73,9 @@ export default function ArmarVacante() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Gate: solo cliente
+  // Gate: cualquier rol que arma JDs (cliente, selectora, manager, enterprise, super_admin)
   useEffect(() => {
-    if (role && role !== 'cliente') {
+    if (role && !['cliente', 'selectora', 'manager', 'enterprise', 'super_admin'].includes(role)) {
       navigate('/');
     }
   }, [role, navigate]);
@@ -341,7 +341,7 @@ export default function ArmarVacante() {
             </div>
 
             {readyToConfirm && entregables && (
-              <DeliverablesPreview entregables={entregables} onConfirm={handleConfirm} confirming={confirming} />
+              <DeliverablesPreview entregables={entregables} onConfirm={handleConfirm} confirming={confirming} role={role} />
             )}
 
             <form
@@ -413,8 +413,18 @@ function DeliverableRow({
 }
 
 function DeliverablesPreview({
-  entregables, onConfirm, confirming,
-}: { entregables: NonNullable<WizardResponse['entregables']>; onConfirm: () => void; confirming: boolean; }) {
+  entregables, onConfirm, confirming, role,
+}: { entregables: NonNullable<WizardResponse['entregables']>; onConfirm: () => void; confirming: boolean; role: string | null; }) {
+  const isSelectora = role === 'selectora';
+  const isCliente = role === 'cliente';
+  const ctaLabel = isCliente ? 'Crear esta búsqueda → Enviar a AccelRH'
+    : isSelectora ? 'Enviar a aprobación del manager'
+    : 'Crear esta búsqueda → Abrir vacante';
+  const footnote = isCliente
+    ? 'Al enviar, Vicky y Jimena reciben tus 3 entregables y se contactan con vos en menos de 24hs.'
+    : isSelectora
+    ? 'Tu solicitud queda pendiente. Cuando el manager la apruebe, la vacante se abre y arranca la búsqueda.'
+    : 'Al enviar, se crea la vacante en tu organización y queda lista para cargar candidatos y evaluar con IA.';
   const { jd, rubrica, guion } = entregables;
   const criterios = Array.isArray(rubrica?.criterios) ? rubrica.criterios : [];
   return (
@@ -476,11 +486,11 @@ function DeliverablesPreview({
           {confirming ? (
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando…</>
           ) : (
-            <>Crear esta búsqueda → Enviar a AccelRH</>
+            <>{ctaLabel}</>
           )}
         </Button>
         <p className="text-[10px] text-muted-foreground text-center">
-          Al enviar, Vicky y Jimena reciben tus 3 entregables y se contactan con vos en menos de 24hs.
+          {footnote}
         </p>
       </CardContent>
     </Card>

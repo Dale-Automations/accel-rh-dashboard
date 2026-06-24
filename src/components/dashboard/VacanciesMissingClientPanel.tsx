@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabaseExternal as supabase } from '@/lib/supabaseExternal';
 import { fetchAll } from '@/lib/supabaseFetchAll';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,10 +23,12 @@ interface Row {
  */
 export function VacanciesMissingClientPanel({ role }: { role: string | null }) {
   const navigate = useNavigate();
+  const { hasExternalClients } = useAuth();
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!hasExternalClients) { setLoading(false); return; }
     if (role !== 'manager' && role !== 'enterprise' && role !== 'super_admin') { setLoading(false); return; }
     let cancelled = false;
     (async () => {

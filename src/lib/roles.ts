@@ -39,9 +39,23 @@ export function canManageOrg(role: string | null | undefined): boolean {
 export const ROLES_FOR_SUPER_ADMIN: UserRoleStrict[] = ['enterprise', 'manager', 'selectora', 'cliente'];
 export const ROLES_FOR_ENTERPRISE_OR_MANAGER: UserRoleStrict[] = ['manager', 'selectora', 'cliente'];
 
-export function rolesAssignableBy(callerRole: string | null | undefined): UserRoleStrict[] {
+/**
+ * Roles que el caller puede asignar al crear usuarios.
+ *
+ * - super_admin: todos los roles (excepto super_admin).
+ * - enterprise/manager: manager/selectora; agrega 'cliente' SOLO si la org tiene
+ *   clientes externos (caso dale-accelrh). En orgs nuevas tipo demo no hay cliente.
+ */
+export function rolesAssignableBy(
+  callerRole: string | null | undefined,
+  orgHasExternalClients: boolean = true,
+): UserRoleStrict[] {
   if (callerRole === 'super_admin') return ROLES_FOR_SUPER_ADMIN;
-  if (callerRole === 'enterprise' || callerRole === 'manager') return ROLES_FOR_ENTERPRISE_OR_MANAGER;
+  if (callerRole === 'enterprise' || callerRole === 'manager') {
+    return orgHasExternalClients
+      ? ROLES_FOR_ENTERPRISE_OR_MANAGER
+      : (['manager', 'selectora'] as UserRoleStrict[]);
+  }
   return [];
 }
 

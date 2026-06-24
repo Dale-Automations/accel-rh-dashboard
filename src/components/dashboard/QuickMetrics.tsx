@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Briefcase, UserSearch, Send, Clock, CheckCircle, ListChecks, ClipboardCheck, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
 
 const sb = supabase as any;
 
@@ -19,6 +20,7 @@ interface MetricCard {
 
 export function QuickMetrics({ role, userId }: { role: Role; userId?: string }) {
   const navigate = useNavigate();
+  const { hasExternalClients } = useAuth();
   const [metrics, setMetrics] = useState<MetricCard[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,14 +70,21 @@ export function QuickMetrics({ role, userId }: { role: Role; userId?: string }) 
           const { count: activas } = await sb.from('vacantes').select('vacancy_id', { count: 'exact', head: true }).eq('status', 'Activa');
           const { count: porEvaluar } = await sb.from('postulantes').select('id_postulant', { count: 'exact', head: true }).eq('scoring_status', 'pending');
           const { count: porRevisarInforme } = await sb.from('postulantes').select('id_postulant', { count: 'exact', head: true }).eq('informe_status', 'pending_review');
-          const { count: esperandoCliente } = await sb.from('postulantes').select('id_postulant', { count: 'exact', head: true }).eq('mostrar_cliente', true).eq('cliente_estado', 'pendiente');
+          let esperandoCliente: number | null = null;
+          if (hasExternalClients) {
+            const r = await sb.from('postulantes').select('id_postulant', { count: 'exact', head: true }).eq('mostrar_cliente', true).eq('cliente_estado', 'pendiente');
+            esperandoCliente = r.count ?? 0;
+          }
           if (cancelled) return;
-          setMetrics([
+          const baseMetrics: MetricCard[] = [
             { label: 'Vacantes activas', value: activas || 0, icon: Briefcase, to: '/vacantes?status=Activa', color: 'text-violet-600' },
             { label: 'Postulantes por evaluar', value: porEvaluar || 0, icon: ListChecks, to: '/candidatos?scoring=pending', color: 'text-amber-600' },
             { label: 'Informes a revisar', value: porRevisarInforme || 0, icon: ClipboardCheck, to: '/informes', color: 'text-indigo-600' },
-            { label: 'Esperando cliente', value: esperandoCliente || 0, icon: Send, to: '/candidatos?cliente_estado=pendiente', color: 'text-green-600' },
-          ]);
+          ];
+          if (hasExternalClients) {
+            baseMetrics.push({ label: 'Esperando cliente', value: esperandoCliente || 0, icon: Send, to: '/candidatos?cliente_estado=pendiente', color: 'text-green-600' });
+          }
+          setMetrics(baseMetrics);
         }
       } catch {
         if (!cancelled) setMetrics([]);
@@ -84,7 +93,7 @@ export function QuickMetrics({ role, userId }: { role: Role; userId?: string }) 
       }
     })();
     return () => { cancelled = true; };
-  }, [role, userId]);
+  }, [role, userId, hasExternalClients]);
 
   if (loading) {
     return (

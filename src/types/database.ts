@@ -158,6 +158,7 @@ export interface Organization {
   daily_openai_cap: number;
   created_by: string | null;
   created_at: string;
+  has_external_clients?: boolean;
   // demo extras
   demo_source?: string | null;
   demo_created_by?: string | null;
@@ -176,6 +177,7 @@ export interface UserProfile {
   preferences?: {
     action_counts?: Record<string, number>;
     last_action_at?: string;
+    onboarding_dismissed?: string[];
   } | null;
   organizations?: Organization | null;
 }

@@ -6,6 +6,7 @@ import { HelpModal } from '@/components/dashboard/HelpModal';
 import HuntingRequestsPanel from '@/components/dashboard/HuntingRequestsPanel';
 import { PendingInformeChangesPanel } from '@/components/dashboard/PendingInformeChangesPanel';
 import { VacanciesMissingClientPanel } from '@/components/dashboard/VacanciesMissingClientPanel';
+import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
 import { useState } from 'react';
 
 export default function Home() {
@@ -24,6 +25,9 @@ export default function Home() {
           ¿Qué querés hacer hoy?
         </p>
       </div>
+
+      {/* Onboarding (solo enterprise/manager en orgs self-serve sin clientes externos) */}
+      <OnboardingChecklist />
 
       {/* Métricas compactas */}
       <QuickMetrics role={role} userId={profile?.id} />
