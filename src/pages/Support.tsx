@@ -133,6 +133,34 @@ export default function Support() {
     return c;
   }, [tickets]);
 
+  // Metricas para vista de soporte (Dale). Calculadas sobre lo que cargamos
+  // (limit 200), suficiente para un MVP de cockpit; si crece el volumen
+  // habria que paginar y mover a queries agregadas.
+  const supportMetrics = useMemo(() => {
+    if (!isSupportTeam) return null;
+    const active = tickets.filter((t) => t.status !== 'closed');
+    const byCategory = { error: 0, no_entiendo: 0, sugerencia: 0, otro: 0 };
+    active.forEach((t) => { byCategory[t.category] = (byCategory[t.category] || 0) + 1; });
+    const unassigned = active.filter((t) => !t.assigned_to).length;
+    const byOrg = new Map<string, { id: string; name: string; count: number }>();
+    active.forEach((t) => {
+      const o = (t as any).organizations;
+      const key = o?.id || t.organization_id;
+      const name = o?.display_name || o?.slug || 'Org';
+      const cur = byOrg.get(key);
+      if (cur) cur.count += 1;
+      else byOrg.set(key, { id: key, name, count: 1 });
+    });
+    const topOrgs = Array.from(byOrg.values()).sort((a, b) => b.count - a.count).slice(0, 5);
+    return {
+      activeTotal: active.length,
+      closedTotal: tickets.length - active.length,
+      byCategory,
+      unassigned,
+      topOrgs,
+    };
+  }, [isSupportTeam, tickets]);
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto pt-4">
       {/* Hero */}
@@ -143,18 +171,78 @@ export default function Support() {
               <LifeBuoy className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Centro de soporte</h1>
+              <h1 className="text-2xl font-semibold text-foreground">
+                {isSupportTeam ? 'Mesa de soporte' : 'Centro de soporte'}
+              </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                ¿En qué te podemos ayudar? Buscá tu duda en las preguntas frecuentes o abrí un ticket si hay un error o algo no anda como esperás.
+                {isSupportTeam
+                  ? 'Vista del equipo de mantenimiento. Tickets de todas las organizaciones con metricas de carga y prioridad.'
+                  : '¿En qué te podemos ayudar? Buscá tu duda en las preguntas frecuentes o abrí un ticket si hay un error o algo no anda como esperás.'}
               </p>
             </div>
           </div>
-          <Button onClick={() => setNewOpen(true)} className="bg-violet-600 hover:bg-violet-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Abrir nuevo ticket
-          </Button>
+          {!isSupportTeam && (
+            <Button onClick={() => setNewOpen(true)} className="bg-violet-600 hover:bg-violet-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Abrir nuevo ticket
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Panel de metricas (solo support / super_admin) */}
+      {isSupportTeam && supportMetrics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Activos</p>
+              <p className="text-2xl font-semibold mt-1">{supportMetrics.activeTotal}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {counts.open} abiertos · {counts.in_progress} en progreso · {counts.waiting_user} esperando
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Sin asignar</p>
+              <p className="text-2xl font-semibold mt-1">{supportMetrics.unassigned}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Activos sin owner asignado</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Por categoria (activos)</p>
+              <div className="mt-1.5 space-y-1 text-xs">
+                <div className="flex justify-between"><span className="text-muted-foreground inline-flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Errores</span><span className="font-medium">{supportMetrics.byCategory.error}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground inline-flex items-center gap-1"><HelpCircle className="h-3 w-3" />Dudas</span><span className="font-medium">{supportMetrics.byCategory.no_entiendo}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground inline-flex items-center gap-1"><Lightbulb className="h-3 w-3" />Sugerencias</span><span className="font-medium">{supportMetrics.byCategory.sugerencia}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground inline-flex items-center gap-1"><Sparkles className="h-3 w-3" />Otros</span><span className="font-medium">{supportMetrics.byCategory.otro}</span></div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Top organizaciones</p>
+              {supportMetrics.topOrgs.length === 0 ? (
+                <p className="text-xs text-muted-foreground mt-2">Sin tickets activos.</p>
+              ) : (
+                <div className="mt-1.5 space-y-1 text-xs">
+                  {supportMetrics.topOrgs.map((o) => (
+                    <button
+                      key={o.id}
+                      onClick={() => setOrgFilter(o.id)}
+                      className="w-full flex justify-between gap-2 hover:bg-muted/40 rounded px-1 py-0.5 transition-colors text-left"
+                    >
+                      <span className="text-muted-foreground truncate min-w-0">{o.name}</span>
+                      <span className="font-medium shrink-0">{o.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={setTabAndUrl}>
         <TabsList>
@@ -221,11 +309,19 @@ export default function Support() {
               ) : visibleTickets.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Inbox className="h-10 w-10 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">No hay tickets para mostrar.</p>
-                  <Button onClick={() => setNewOpen(true)} variant="outline" size="sm" className="mt-3">
-                    <Plus className="h-3.5 w-3.5 mr-1.5" />
-                    Abrir el primero
-                  </Button>
+                  <p className="text-sm">
+                    {isSupportTeam
+                      ? (statusFilter !== 'all' || orgFilter !== 'all'
+                          ? 'No hay tickets que coincidan con los filtros.'
+                          : 'No hay tickets en el sistema todavia.')
+                      : 'No hay tickets para mostrar.'}
+                  </p>
+                  {!isSupportTeam && (
+                    <Button onClick={() => setNewOpen(true)} variant="outline" size="sm" className="mt-3">
+                      <Plus className="h-3.5 w-3.5 mr-1.5" />
+                      Abrir el primero
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <Table>
@@ -291,10 +387,14 @@ export default function Support() {
               </div>
               {filteredFaq.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
-                  Sin resultados. Probá con otra palabra o
-                  <Button variant="link" className="px-1 h-auto" onClick={() => setNewOpen(true)}>
-                    abrí un ticket
-                  </Button>.
+                  Sin resultados. Probá con otra palabra
+                  {!isSupportTeam && (
+                    <> o
+                      <Button variant="link" className="px-1 h-auto" onClick={() => setNewOpen(true)}>
+                        abrí un ticket
+                      </Button>
+                    </>
+                  )}.
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -321,13 +421,15 @@ export default function Support() {
                   ))}
                 </div>
               )}
-              <div className="text-xs text-muted-foreground pt-2">
-                ¿No encontraste lo que buscabas?{' '}
-                <Button variant="link" className="px-1 h-auto" onClick={() => setNewOpen(true)}>
-                  Abrí un ticket
-                </Button>{' '}
-                y te ayudamos.
-              </div>
+              {!isSupportTeam && (
+                <div className="text-xs text-muted-foreground pt-2">
+                  ¿No encontraste lo que buscabas?{' '}
+                  <Button variant="link" className="px-1 h-auto" onClick={() => setNewOpen(true)}>
+                    Abrí un ticket
+                  </Button>{' '}
+                  y te ayudamos.
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
