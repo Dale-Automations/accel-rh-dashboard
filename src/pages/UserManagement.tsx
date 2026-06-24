@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Briefcase, Loader2 } from 'lucide-react';
 import { formatDate } from '@/lib/formatters';
 import type { UserProfile, Vacante, VacancyAssignment } from '@/types/database';
-import { canManageUsers, rolesAssignableBy } from '@/lib/roles';
+import { canManageUsers, rolesAssignableBy, roleLabel } from '@/lib/roles';
 
 const sb = supabase as any;
 
@@ -251,7 +251,7 @@ export default function UserManagement() {
                 <SelectContent>
                   {assignableRoles.map(r => (
                     <SelectItem key={r} value={r}>
-                      {r === 'enterprise' ? 'Enterprise' : r === 'manager' ? 'Manager' : r === 'selectora' ? 'Selector/a' : 'Cliente'}
+                      {roleLabel(r)}
                     </SelectItem>
                   ))}
                 </SelectContent>
