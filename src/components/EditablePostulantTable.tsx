@@ -528,7 +528,7 @@ export default function EditablePostulantTable({
                           </Tooltip>
                         ) : p.eval_pipeline_status === 'waiting_gemini' ? (
                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-[10px] gap-1">
-                            <ListOrdered className="h-3 w-3" />Cola Gemini
+                            <ListOrdered className="h-3 w-3" />En fila Gemini
                           </Badge>
                         ) : p.eval_pipeline_status === 'scoring_gemini' ? (
                           <Tooltip>

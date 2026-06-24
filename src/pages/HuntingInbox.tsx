@@ -77,7 +77,7 @@ export default function HuntingInbox() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  // ---- Carga de candidatos (LinkedIn + match + no encolados) ----
+  // ---- Carga de candidatos (LinkedIn + match + no en fila) ----
   const loadCandidates = useCallback(async () => {
     setLoading(true);
     try {
@@ -92,7 +92,7 @@ export default function HuntingInbox() {
       // Solo de vacantes activas (no tiene sentido contactar para una vacante cerrada)
       const list = ((posts || []) as any[]).filter(p => p.vacantes?.status === 'Activa');
 
-      // Excluir los que ya están en la cola (cualquier estado salvo cancelled)
+      // Excluir los que ya están en la fila de envío (cualquier estado salvo cancelled)
       const { data: queued } = await sb
         .from('hunting_message_queue')
         .select('postulant_id, status')
@@ -133,7 +133,7 @@ export default function HuntingInbox() {
     setLoading(false);
   }, []);
 
-  // ---- Carga de la cola (aprobación + historial) ----
+  // ---- Carga de la fila de envío (aprobación + historial) ----
   const loadQueue = useCallback(async () => {
     const { data } = await sb
       .from('hunting_message_queue')
@@ -199,7 +199,7 @@ export default function HuntingInbox() {
       loadCandidates();
       loadQueue();
     } catch (err: any) {
-      toast({ title: 'Error al enviar a la cola', description: err.message, variant: 'destructive' });
+      toast({ title: 'Error al enviar a la fila', description: err.message, variant: 'destructive' });
     }
     setSubmitting(false);
   };
@@ -212,7 +212,7 @@ export default function HuntingInbox() {
         .update({ status: 'pending', approved_by: profile?.id || null, approved_at: new Date().toISOString() })
         .eq('id', q.id);
       if (error) throw error;
-      toast({ title: 'Mensaje aprobado', description: 'Entró a la cola de envío.' });
+      toast({ title: 'Mensaje aprobado', description: 'Entró a la fila de envío.' });
       loadQueue();
     } catch (err: any) {
       toast({ title: 'Error al aprobar', description: err.message, variant: 'destructive' });
@@ -246,7 +246,7 @@ export default function HuntingInbox() {
     sent: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200',
     failed: 'bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200',
   };
-  const STATUS_LABEL: Record<string, string> = { pending_approval: 'Pend. aprobación', pending: 'En cola', sent: 'Enviado', failed: 'Falló' };
+  const STATUS_LABEL: Record<string, string> = { pending_approval: 'Pend. aprobación', pending: 'En fila', sent: 'Enviado', failed: 'Falló' };
 
   return (
     <div className="max-w-6xl mx-auto py-4 space-y-4">
@@ -267,7 +267,7 @@ export default function HuntingInbox() {
               Pendientes de aprobación{pendingApproval.length ? ` (${pendingApproval.length})` : ''}
             </TabsTrigger>
           )}
-          <TabsTrigger value="queue">Cola y enviados</TabsTrigger>
+          <TabsTrigger value="queue">Fila y enviados</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -355,7 +355,7 @@ export default function HuntingInbox() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Enviar {selected.size} mensaje{selected.size > 1 ? 's' : ''} a aprobación?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Quedan en la cola como "pendiente de aprobación". {isManager ? 'Los aprobás vos en la otra pestaña.' : 'Un manager los revisa antes de enviarse.'} No se envía nada todavía.
+                      Quedan en la fila como "pendientes de aprobación". {isManager ? 'Los aprobás vos en la otra pestaña.' : 'Un manager los revisa antes de enviarse.'} No se envía nada todavía.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -411,7 +411,7 @@ export default function HuntingInbox() {
       {/* ---------- TAB QUEUE / SENT ---------- */}
       {tab === 'queue' && (
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Cola de envío e historial</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Fila de envío e historial</CardTitle></CardHeader>
           <CardContent>
             {inQueue.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground"><Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />Todavía no hay mensajes aprobados ni enviados.</div>
