@@ -21,6 +21,18 @@ const corsHeaders = {
 const ROLES_ENTERPRISE_CAN_CREATE = ['manager', 'selectora', 'cliente'] as const;
 const ROLES_SUPER_ADMIN_CAN_CREATE = ['enterprise', 'manager', 'selectora', 'cliente', 'support'] as const;
 
+// Emails internos de Dale Automations autorizados a crear users con role='support'.
+// 'support' es la mesa de ayuda cross-org: un user 'support' ve tickets de TODAS las
+// orgs del sistema. Aunque otros super_admin (Vicky, Nacho) existan, NO deben poder
+// crear nuevos usuarios soporte (cross-tenant). El dropdown del frontend ya filtra
+// el rol, pero replicamos el check aca como defensa en profundidad por si alguien
+// pega al endpoint con curl.
+const DALE_ADMIN_EMAILS = new Set<string>([
+  'hepada@gmail.com',
+  'daleautomations00@gmail.com',
+  'pablo@daleautomations.com',
+]);
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -85,6 +97,13 @@ Deno.serve(async (req: Request) => {
   const allowedRoles = isSuperAdmin ? ROLES_SUPER_ADMIN_CAN_CREATE : ROLES_ENTERPRISE_CAN_CREATE;
   if (!allowedRoles.includes(role)) {
     return jsonResponse({ error: `Role invalido para tu nivel: ${role}` }, 400);
+  }
+
+  // 4b. Defensa en profundidad: el rol 'support' es interno de Dale Automations.
+  // Solo emails de Dale pueden crearlo. Bloquea a otros super_admin (Vicky, Nacho, etc).
+  const callerEmail = (callerUser.user.email || '').toLowerCase();
+  if (role === 'support' && !DALE_ADMIN_EMAILS.has(callerEmail)) {
+    return jsonResponse({ error: 'El rol soporte es interno de Dale Automations. Contactanos si necesitas habilitar un usuario.' }, 403);
   }
 
   // 5. Resolver org del nuevo usuario

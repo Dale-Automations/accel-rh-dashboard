@@ -40,8 +40,13 @@ export function canManageOrg(role: string | null | undefined): boolean {
 }
 
 // Roles que solo el super_admin puede asignar.
-// 'support' lo creamos rara vez (1 user accel@daleautomations.com); queda disponible.
-export const ROLES_FOR_SUPER_ADMIN: UserRoleStrict[] = ['enterprise', 'manager', 'selectora', 'cliente', 'support'];
+// Nota: 'support' NO esta en la lista a proposito. Es un rol interno de
+// Dale Automations (mesa de soporte que atiende tickets de todas las orgs).
+// Se crea manualmente desde el SQL Editor o via curl directo a la edge
+// function, no desde el dropdown de "Crear usuario". Si lo agregamos aca,
+// cualquier super_admin de un cliente (Vicky, Nacho, etc.) podria crear
+// users 'support' que veria todos los tickets cross-org.
+export const ROLES_FOR_SUPER_ADMIN: UserRoleStrict[] = ['enterprise', 'manager', 'selectora', 'cliente'];
 export const ROLES_FOR_ENTERPRISE_OR_MANAGER: UserRoleStrict[] = ['manager', 'selectora', 'cliente'];
 
 /**
