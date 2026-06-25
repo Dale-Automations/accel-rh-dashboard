@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backups automaticos (scripts in-place) y artefactos del CLI Supabase
+*.bak
+*.bak-*
+supabase/.temp/
+
+# Variables de entorno (la prod vive en el .env del VPS)
+.env
+.env.local
+
+# Build info inyectado en cada build
+public/version.json
