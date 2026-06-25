@@ -18,11 +18,12 @@ import { formatDate } from '@/lib/formatters';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle, ChevronDown, ChevronUp, List, Plus, Maximize2, Minimize2, Sparkles, Loader2, RefreshCw, ListOrdered, Check, X, Upload } from 'lucide-react';
+import { ExternalLink, Users, CheckCircle, Clock, TrendingUp, Phone, Search, UserPlus, ArrowLeft, Download, Zap, ClipboardCheck, AlertTriangle, XCircle, ChevronDown, ChevronUp, List, Plus, Maximize2, Minimize2, Sparkles, Loader2, RefreshCw, ListOrdered, Check, X, Upload, Combine } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import * as XLSX from 'xlsx';
 import EditablePostulantTable from '@/components/EditablePostulantTable';
 import HuntingCard from '@/components/HuntingCard';
+import { MergeVacancyDialog } from '@/components/MergeVacancyDialog';
 import { EvaluarCandidatosButton } from '@/components/EvaluarCandidatosButton';
 import { useToast } from '@/hooks/use-toast';
 import type { Vacante, Postulante, CvScore, UserProfile, VacancyAssignment, Rubrica } from '@/types/database';
@@ -61,6 +62,7 @@ export default function VacancyDetail() {
   const [scoringBatch, setScoringBatch] = useState<Set<string>>(new Set());
   const [closeModalOpen, setCloseModalOpen] = useState(false);
   const [reopenModalOpen, setReopenModalOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [closeReason, setCloseReason] = useState('');
   const [closeComments, setCloseComments] = useState('');
@@ -715,7 +717,7 @@ export default function VacancyDetail() {
             </div>
             <p className="text-sm text-muted-foreground mt-1">Creada: {formatDate(vacante.created_at)} · <span className="font-mono text-xs">{vacancy_id}</span></p>
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="flex flex-nowrap items-center justify-end gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={handleExportXlsx} title="Exportar XLSX" aria-label="Exportar XLSX">
               <Download className="h-4 w-4" />
             </Button>
@@ -729,31 +731,25 @@ export default function VacancyDetail() {
             {(role === 'manager' || role === 'selectora') && vacante.status === 'Activa' && (
               <HuntingCard vacancyId={vacancy_id!} vacancyName={vacante.vacancy_name} role={role} userId={user?.id} />
             )}
-            {(role === 'manager' || role === 'enterprise' || role === 'selectora' || role === 'super_admin') && vacante.status === 'Activa' && (
-              <EvaluarCandidatosButton
-                vacancyId={vacancy_id!}
-                vacancyName={vacante.vacancy_name}
-                geminiThreshold={vacante.gemini_threshold}
-                postulantes={postulantes}
-                scores={scores}
-                rubricaActive={!!activeRubric}
-                onTriggered={loadData}
-              />
+            {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && vacante.status === 'Activa' && (
+              <Button variant="outline" size="sm" onClick={() => setMergeOpen(true)} title="Unir esta vacante con otra: mueve todos los candidatos preservando la evaluación y cierra esta. Para duplicados de la misma búsqueda.">
+                <Combine className="h-4 w-4 mr-2" /> Combinar
+              </Button>
             )}
             {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && vacante.status === 'Activa' && (
               <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCloseModalOpen(true)}>
-                <XCircle className="h-4 w-4 mr-2" /> Cerrar Vacante
+                <XCircle className="h-4 w-4 mr-2" /> Cerrar
               </Button>
             )}
             {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && vacante.status === 'Cerrada' && (
               <Button variant="outline" size="sm" className="text-green-700 border-green-200 hover:bg-green-50" onClick={() => setReopenModalOpen(true)}>
-                <CheckCircle className="h-4 w-4 mr-2" /> Reabrir Vacante
+                <CheckCircle className="h-4 w-4 mr-2" /> Reabrir
               </Button>
             )}
             {(role === 'manager' || role === 'enterprise' || role === 'super_admin') && (
               <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm"><UserPlus className="h-4 w-4 mr-2" /> Asignar Usuarios</Button>
+                  <Button size="sm"><UserPlus className="h-4 w-4 mr-2" /> Asignar</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader><DialogTitle>Asignar Usuarios</DialogTitle></DialogHeader>
@@ -1009,6 +1005,12 @@ export default function VacancyDetail() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <MergeVacancyDialog
+          sourceVacancy={vacante}
+          open={mergeOpen}
+          onClose={() => setMergeOpen(false)}
+        />
 
         {/* Close vacancy modal */}
         <Dialog open={closeModalOpen} onOpenChange={setCloseModalOpen}>
@@ -1790,6 +1792,19 @@ export default function VacancyDetail() {
                 <XCircle className="h-3.5 w-3.5" />
               </Button>
             </>
+          )}
+
+          {/* Evaluar candidatos (movido acá para quedar junto a OpenAI/Gemini/Pre-evaluar) */}
+          {(role === 'manager' || role === 'enterprise' || role === 'selectora' || role === 'super_admin') && vacante.status === 'Activa' && (
+            <EvaluarCandidatosButton
+              vacancyId={vacancy_id!}
+              vacancyName={vacante.vacancy_name}
+              geminiThreshold={vacante.gemini_threshold}
+              postulantes={postulantes}
+              scores={scores}
+              rubricaActive={!!activeRubric}
+              onTriggered={loadData}
+            />
           )}
 
           {/* Scoring buttons - always visible */}

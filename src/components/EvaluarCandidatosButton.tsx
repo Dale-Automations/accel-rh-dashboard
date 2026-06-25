@@ -132,14 +132,15 @@ export function EvaluarCandidatosButton({
 
   const buttonContent = (
     <Button
+      size="sm"
       onClick={() => setOpen(true)}
       disabled={!rubricaActive || totalAEvaluar === 0}
-      className="bg-violet-600 hover:bg-violet-700"
+      className="h-8 text-xs px-2 shrink-0 bg-violet-600 hover:bg-violet-700"
     >
-      <Brain className="h-4 w-4 mr-2" />
-      Evaluar candidatos
+      <Brain className="h-3.5 w-3.5 mr-1" />
+      Evaluar
       {totalAEvaluar > 0 && (
-        <span className="ml-2 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold bg-white text-violet-700">
+        <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full text-[10px] font-bold bg-white text-violet-700">
           {totalAEvaluar}
         </span>
       )}
